@@ -1,0 +1,281 @@
+@model IEnumerable<RouteX.Models.AuditLog>
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="audit-container">
+    <div class="audit-controls">
+        <div class="search-filter">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" class="form-control" placeholder="Search audit logs..." id="auditSearch">
+            </div>
+            <div class="filter-dropdown">
+                <select class="form-control" id="actionFilter">
+                    <option value="">All Actions</option>
+                    <option value="Login">Login</option>
+                    <option value="Created">Created</option>
+                    <option value="Updated">Updated</option>
+                    <option value="Deleted">Deleted</option>
+                    <option value="Generated">Generated</option>
+                    <option value="Exported">Exported</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="audit-table-container">
+        <table class="audit-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Action Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var audit in Model)
+                {
+                    <tr>
+                        <td class="user-id">@audit.UserId</td>
+                        <td class="action">@audit.Action</td>
+                        <td class="action-date">@audit.ActionDate.ToString("MMM dd, yyyy - HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="audit-pagination">
+        <div class="pagination-info">
+            <span>Showing 1-10 of @Model.Count() entries</span>
+        </div>
+        <div class="pagination-controls">
+            <button class="btn-pagination" disabled>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="btn-pagination active">1</button>
+            <button class="btn-pagination">2</button>
+            <button class="btn-pagination">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('auditSearch');
+    const filterSelect = document.getElementById('actionFilter');
+    const tableRows = document.querySelectorAll('.audit-table tbody tr');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filterValue = filterSelect.value.toLowerCase();
+
+        tableRows.forEach(row => {
+            const userId = row.querySelector('.user-id').textContent.toLowerCase();
+            const action = row.querySelector('.action').textContent.toLowerCase();
+            
+            const matchesSearch = userId.includes(searchTerm) || action.includes(searchTerm);
+            const matchesFilter = !filterValue || action.toLowerCase().includes(filterValue);
+            
+            row.style.display = matchesSearch && matchesFilter ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterTable);
+    filterSelect.addEventListener('change', filterTable);
+});
+</script>
+
+<style>
+.audit-container {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    padding: 30px;
+    margin: 20px;
+}
+
+.audit-controls {
+    margin-bottom: 25px;
+}
+
+.search-filter {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666666;
+    font-size: 0.9rem;
+}
+
+.search-box .form-control {
+    padding-left: 45px;
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.filter-dropdown .form-control {
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9rem;
+    min-width: 150px;
+    transition: all 0.3s ease;
+}
+
+.audit-table-container {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.audit-table th {
+    background: rgba(255, 107, 53, 0.18);
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #333333;
+    border-bottom: 2px solid rgba(255, 107, 53, 0.18);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.audit-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666666;
+    font-size: 0.85rem;
+}
+
+.audit-table tbody tr:hover {
+    background-color: transparent;
+}
+
+.audit-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.user-id {
+    font-weight: 500;
+    color: #333333;
+}
+
+.action {
+    font-weight: 500;
+    color: #ff6b35;
+}
+
+.action-date {
+    color: #666666;
+    font-size: 0.8rem;
+}
+
+.audit-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.pagination-info {
+    color: #666666;
+    font-size: 0.85rem;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-pagination {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #666666;
+    transition: all 0.3s ease;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #ffffff;
+}
+
+.btn-pagination.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #ffffff;
+}
+
+.btn-pagination:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@@media (max-width: 768px) {
+    .search-filter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box {
+        min-width: auto;
+        max-width: none;
+    }
+    
+    .audit-pagination {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .audit-table {
+        font-size: 0.8rem;
+    }
+    
+    .audit-table th,
+    .audit-table td {
+        padding: 10px 12px;
+    }
+}
+}
+
+</style>

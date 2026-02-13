@@ -1,0 +1,470 @@
+﻿@model RouteX.Controllers.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<style>
+.dashboard-container {
+    padding: 20px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    margin-bottom: 24px;
+}
+
+.dashboard-header h2 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.dashboard-header p {
+    color: #6c757d;
+    margin: 0;
+}
+
+.finance-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.finance-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.finance-card-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 140, 66, 0.08));
+    border-radius: 12px;
+    font-size: 1.8rem;
+    color: #ff6b35;
+}
+
+.finance-card-content h3 {
+    color: #000000;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.finance-card-content p {
+    color: #666666;
+    font-size: 0.9rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.chart-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 16px;
+}
+
+.chart-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.fuel-chart {
+    height: 300px;
+}
+
+.status-chart {
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.active-vehicles {
+    grid-column: 1 / -1;
+}
+
+.vehicle-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+}
+
+.vehicle-table th,
+.vehicle-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.vehicle-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.vehicle-table td {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.rank-badge {
+    background: #ff6b35;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.distance-badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dashboard-content {
+    margin-top: 32px;
+}
+
+.content-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.content-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.activity-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.activity-desc {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+@@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .finance-summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+@@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 16px;
+    }
+    
+    .finance-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Welcome to RouteX Dashboard</h2>
+        <p>Manage your vehicle fleet efficiently</p>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="finance-summary-grid">
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>24</h3>
+                <p>Total Vehicles</p>
+            </div>
+        </div>
+        
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>18</h3>
+                <p>Active Vehicles</p>
+            </div>
+        </div>
+        
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-wrench"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>8</h3>
+                <p>Pending Maintenance</p>
+            </div>
+        </div>
+        
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>₱45,678</h3>
+                <p>Total Expenses</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <!-- Fuel Consumption Trend Chart -->
+        <div class="chart-container">
+            <h3 class="chart-title">Fuel Consumption Trend</h3>
+            <p class="chart-subtitle">Total Fuel Spend vs. Distance Traveled (Last 30 Days)</p>
+            <div class="fuel-chart">
+                <canvas id="fuelChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Vehicle Status Distribution Chart -->
+        <div class="chart-container">
+            <h3 class="chart-title">Vehicle Status Distribution</h3>
+            <p class="chart-subtitle">Current fleet status overview</p>
+            <div class="status-chart">
+                <canvas id="statusChart" width="250" height="250"></canvas>
+            </div>
+        </div>
+        
+        <!-- Most Active Vehicles -->
+        <div class="chart-container active-vehicles">
+            <h3 class="chart-title">Top 5 Most Active Vehicles</h3>
+            <p class="chart-subtitle">Vehicles clocking the most kilometers</p>
+            
+            <table class="vehicle-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Vehicle</th>
+                        <th>Model</th>
+                        <th>Distance (km)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vehicle in Model.MostActiveVehicles)
+                    {
+                        <tr>
+                            <td>
+                                <span class="rank-badge">@vehicle.Rank</span>
+                            </td>
+                            <td><strong>@vehicle.PlateNumber</strong></td>
+                            <td>@vehicle.UnitModel</td>
+                            <td>
+                                <span class="distance-badge">@vehicle.DistanceKm.ToString("N0") km</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Recent Activity Section -->
+    <div class="dashboard-content">
+        <div class="content-section">
+            <h3>Recent Activity</h3>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <span class="activity-time">2 hours ago</span>
+                    <span class="activity-desc">Vehicle TRK-001 completed scheduled maintenance</span>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-time">5 hours ago</span>
+                    <span class="activity-desc">Fuel record added for Vehicle TRK-003</span>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-time">1 day ago</span>
+                    <span class="activity-desc">New driver added to the system</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fuel Consumption Line Chart
+    const fuelCtx = document.getElementById('fuelChart').getContext('2d');
+    const fuelData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FuelConsumptionData.Select(d => new { d.Date, d.TotalFuelSpend, d.DistanceTraveled })));
+    
+    new Chart(fuelCtx, {
+        type: 'line',
+        data: {
+            labels: fuelData.map(d => d.date),
+            datasets: [
+                {
+                    label: 'Total Fuel Spend (₱)',
+                    data: fuelData.map(d => d.totalFuelSpend),
+                    borderColor: '#ff6b35',
+                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Distance Traveled (km)',
+                    data: fuelData.map(d => d.distanceTraveled),
+                    borderColor: '#1976d2',
+                    backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Fuel Spend (₱)'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Distance (km)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Vehicle Status Donut Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VehicleStatusData));
+    
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: statusData.map(d => d.Status),
+            datasets: [{
+                data: statusData.map(d => d.Count),
+                backgroundColor: [
+                    '#28a745', // Active - Green
+                    '#ffc107', // Maintenance - Yellow  
+                    '#dc3545'  // Inactive - Red
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const data = statusData[context.dataIndex];
+                            return `${data.Status}: ${data.Count} vehicles (${data.Percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>

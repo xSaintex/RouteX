@@ -1,0 +1,198 @@
+@model RouteX.Models.FinanceEntry
+@{
+    ViewData["Title"] = "View Finance";
+}
+
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; }
+/* Container consumes full viewport and aligns content to the left-top */
+.view-finance-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px 32px;
+    background: #ffffff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: visible; /* allow content to be visible */
+}
+
+/* Breadcrumb sits at the very top-left */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.breadcrumb a { color: #ff6b35; text-decoration: none; display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; }
+.breadcrumb a:hover { color: #e55a2b; background: rgba(255,107,53,0.04); }
+.breadcrumb span { color: #999; }
+.breadcrumb .finance-text { color: #ff6b35; font-weight: 500; }
+
+/* Form area: don't allow its own scrolling so page shows no scroll */
+.view-finance-form {
+    width: 100%;
+    max-width: 1100px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    height: auto; /* don't force internal scroll */
+    box-sizing: border-box;
+    overflow: visible; /* prevent internal scroll */
+}
+
+/* Grid layout: two columns for pairs */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.form-group { display:flex; flex-direction:column; }
+.form-group label { margin-bottom:6px; color:#1a1a1a; font-weight:600; font-size:13px; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+/* Read-only field styling */
+.form-group input:read-only,
+.form-group select:disabled,
+.form-group textarea:read-only {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    border-color: #e9ecef;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-group.full { grid-column: 1 / -1; }
+
+/* File upload styling for view */
+.file-upload-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.file-upload-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.file-upload-label {
+    font-size: 13px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Action buttons pinned to bottom of the form */
+.form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e9ecef; }
+.btn-cancel { background: transparent; color:#6c757d; border:1px solid #e9ecef; padding:10px 22px; border-radius:6px; cursor: pointer; transition: all 0.12s ease; }
+.btn-cancel:hover { background: #f8f9fa; border-color: #dcdcdc; color: #1a1a1a; }
+
+/* Responsive adjustments */
+@@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .view-finance-form { padding: 20px; }
+}
+</style>
+
+<div class="view-finance-container">
+    <div class="breadcrumb">
+        <a href="@Url.Action("FinancePage", "Finance")">
+            <i class="fas fa-chart-line"></i>
+            <span class="finance-text">Finance</span>
+        </a>
+        <span>›</span>
+        <i class="fas fa-eye"></i>
+        <span>View Finance</span>
+    </div>
+
+    <form class="view-finance-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="vehicle">Vehicle (Plate #)</label>
+                <select id="vehicle" disabled>
+                    @{
+                        var activeVehicles = ViewBag.Vehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
+                        var selectedVehicle = activeVehicles?.FirstOrDefault(v => v.Id == Model?.VehicleId);
+                        var vehicleDisplay = selectedVehicle != null ? $"{selectedVehicle.PlateNumber} - {selectedVehicle.UnitModel}" : "Not specified";
+                    }
+                    <option value="">@vehicleDisplay</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="expenseType">Expense Type</label>
+                <input type="text" id="expenseType" value="@(Model?.ExpenseType ?? "Not specified")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Amount (₱)</label>
+                <input type="text" id="amount" value="@(Model?.Amount > 0 ? Model.Amount.ToString("F2") : "0.00")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="expenseDate">Expense Date</label>
+                <input type="text" id="expenseDate" value="@(Model?.ExpenseDate != default ? Model.ExpenseDate.ToString("MMM dd, yyyy") : "Not specified")" readonly />
+            </div>
+
+            <div class="form-group full">
+                <label for="description">Description</label>
+                <textarea id="description" readonly>@(Model?.Description ?? "Not specified")</textarea>
+            </div>
+
+            <div class="form-group" id="referenceIdGroup" style="@(Model?.ExpenseType == "Fuel" || Model?.ExpenseType == "Maintenance" ? "display: flex;" : "display: none;")">
+                <label for="referenceId">Reference ID</label>
+                <input type="text" id="referenceId" value="@(Model?.ReferenceId?.ToString() ?? "Not applicable")" readonly />
+            </div>
+
+            <div class="form-group full">
+                <label for="attachment">Attachment/Receipt</label>
+                <div class="file-upload-group">
+                    <div class="file-upload-wrapper">
+                        <span class="file-upload-label">@(string.IsNullOrEmpty(Model?.AttachmentPath) ? "No attachment" : Model.AttachmentPath)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='@Url.Action("FinancePage", "Finance")'">
+                Close
+            </button>
+        </div>
+    </form>
+</div>

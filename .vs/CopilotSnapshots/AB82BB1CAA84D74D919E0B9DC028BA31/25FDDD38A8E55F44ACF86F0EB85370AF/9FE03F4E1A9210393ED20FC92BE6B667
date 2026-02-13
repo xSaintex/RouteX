@@ -1,0 +1,271 @@
+﻿@model IEnumerable<RouteX.Models.MaintenanceEntry>
+@{
+    ViewData["Title"] = "Maintenance Schedule";
+    var statuses = Model.Select(m => m.Status.ToString()).Distinct().ToList();
+}
+
+<style>
+/* Reuse vehicle/fuel popover styles for consistency */
+.search-filter { position: relative; display:flex; align-items:center; gap:8px; }
+.filter-popover {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: 320px;
+    background: #ffffff; /* white panel */
+    border: 1px solid #eee;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-radius: 6px;
+    padding: 12px;
+    z-index: 1200;
+    color: #111; /* black text */
+}
+.filter-popover::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 16px;
+    border-width: 8px 8px 0 8px;
+    border-style: solid;
+    border-color: #fff transparent transparent transparent;
+}
+.filter-row { display:flex; gap:12px; align-items:center; }
+.filter-row > div { flex: 1; }
+.filter-label { display:block; font-size:12px; margin-bottom:6px; color:#222; }
+.filter-select, .filter-input { width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; }
+.filter-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+.btn-apply { background:#ff7a00; color: #fff; border: none; padding:8px 12px; border-radius:4px; }
+.btn-apply:hover { filter: brightness(0.95); }
+.btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
+.btn-clear:hover { opacity:0.95; }
+.pagination-info { color:#333; }
+/* remove bg from status-badge on maintenance page specifically and set text colors */
+.maintenance-status-text { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; }
+.maintenance-status-pending { color: #ffb300 !important; font-weight:600; }
+.maintenance-status-ongoing { color: #ff7a00 !important; font-weight:600; }
+.maintenance-status-completed { color: #28a745 !important; font-weight:600; }
+.maintenance-status-overdue { color: #dc3545 !important; font-weight:600; }
+</style>
+
+<div class="vehicles-container">
+    <div class="vehicles-header">
+        <p>Plan and track scheduled maintenance for your fleet</p>
+    </div>
+
+    <div class="vehicles-actions">
+        <button class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add Schedule
+        </button>
+        <div class="search-filter">
+            <input type="text" class="form-control" id="maintenanceSearch" placeholder="Search maintenance...">
+            <button id="maintenanceFilterToggle" class="btn btn-outline-secondary" title="Filters" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-filter"></i>
+            </button>
+
+            <div id="maintenanceFilterPanel" class="filter-popover" role="dialog" aria-label="Maintenance filters" style="display:none;">
+                <div class="filter-row">
+                    <div>
+                        <label class="filter-label" for="maintenanceFilterStart">Start Date</label>
+                        <input id="maintenanceFilterStart" class="filter-input" type="date" />
+                    </div>
+                    <div>
+                        <label class="filter-label" for="maintenanceFilterEnd">End Date</label>
+                        <input id="maintenanceFilterEnd" class="filter-input" type="date" />
+                    </div>
+                </div>
+
+                <div style="margin-top:8px;">
+                    <label class="filter-label" for="maintenanceFilterStatus">Status</label>
+                    <select id="maintenanceFilterStatus" class="filter-select">
+                        <option value="">All</option>
+                        @foreach(var s in statuses)
+                        {
+                            <option value="@s.ToLower()">@s</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button id="clearMaintenanceFilters" class="btn-clear" type="button">Clear</button>
+                    <button id="applyMaintenanceFilters" class="btn-apply" type="button">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>Maintenance ID</th>
+                    <th>Plate #</th>
+                    <th>Service Type</th>
+                    <th>Service Date</th>
+                    <th>Cost</th>
+                    <th>Technician Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="maintenanceTableBody">
+                @foreach (var entry in Model)
+                {
+                    <tr class="maintenance-row" data-maintenance-id="@entry.MaintenanceId" data-plate="@entry.PlateNumber.ToLower()" data-service="@entry.ServiceType.ToLower()" data-tech="@entry.TechnicianName.ToLower()" data-status="@entry.Status.ToString().ToLower()" data-date="@entry.ServiceDate.ToString("yyyy-MM-dd")">
+                        <td>@entry.MaintenanceId</td>
+                        <td>@entry.PlateNumber</td>
+                        <td>@entry.ServiceType</td>
+                        <td>@entry.ServiceDate.ToString("MMM dd, yyyy")</td>
+                        <td>@entry.Cost.ToString("C2")</td>
+                        <td>@entry.TechnicianName</td>
+                        <td>
+                            <span class="status-badge maintenance-status-text maintenance-status-@entry.Status.ToString().ToLower()">
+                                @entry.Status
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn edit-btn" title="Edit Schedule">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn view-btn" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="8">
+                        <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="pagination-info">Showing 0 of 0 entries</div>
+                            <div class="pagination-controls">
+                                <button class="page-link prev" type="button">&lt;</button>
+                                <button class="page-link page-number active" type="button">1</button>
+                                <button class="page-link next" type="button">&gt;</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    const tbody = document.getElementById('maintenanceTableBody');
+    const allRows = Array.from(tbody.getElementsByClassName('maintenance-row'));
+
+    const filterToggle = document.getElementById('maintenanceFilterToggle');
+    const filterPanel = document.getElementById('maintenanceFilterPanel');
+
+    function openFilterPanel() {
+        filterPanel.style.display = 'block';
+        filterToggle.setAttribute('aria-expanded', 'true');
+    }
+    function closeFilterPanel() {
+        filterPanel.style.display = 'none';
+        filterToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    // click outside to close
+    document.addEventListener('click', function (e) {
+        if (!filterPanel.contains(e.target) && !filterToggle.contains(e.target)) {
+            closeFilterPanel();
+        }
+    });
+
+    function getFilteredRows() {
+        const searchTerm = document.getElementById('maintenanceSearch').value.trim().toLowerCase();
+        const start = document.getElementById('maintenanceFilterStart').value;
+        const end = document.getElementById('maintenanceFilterEnd').value;
+        const selectedStatus = document.getElementById('maintenanceFilterStatus').value || '';
+
+        return allRows.filter(row => {
+            const plate = (row.getAttribute('data-plate') || '').toLowerCase();
+            const service = (row.getAttribute('data-service') || '').toLowerCase();
+            const tech = (row.getAttribute('data-tech') || '').toLowerCase();
+            const status = (row.getAttribute('data-status') || '').toLowerCase();
+            const date = row.getAttribute('data-date'); // yyyy-MM-dd
+
+            const matchesSearch = !searchTerm || plate.includes(searchTerm) || service.includes(searchTerm) || tech.includes(searchTerm);
+            const matchesStatus = !selectedStatus || status === selectedStatus;
+
+            let matchesDate = true;
+            if (start) matchesDate = matchesDate && (date >= start);
+            if (end) matchesDate = matchesDate && (date <= end);
+
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+    }
+
+    function renderRowsForPage(rows) {
+        allRows.forEach(r => r.style.display = 'none');
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+        rows.forEach((r, i) => { if (i >= startIdx && i < endIdx) r.style.display = ''; });
+    }
+
+    function filterMaintenance() {
+        const filtered = getFilteredRows();
+        renderRowsForPage(filtered);
+        updatePagination(filtered.length);
+    }
+
+    // wire search input
+    document.getElementById('maintenanceSearch').addEventListener('input', function () {
+        currentPage = 1;
+        filterMaintenance();
+    });
+
+    filterToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (filterPanel.style.display === 'block') closeFilterPanel(); else openFilterPanel();
+    });
+
+    document.getElementById('applyMaintenanceFilters').addEventListener('click', function (e) {
+        e.stopPropagation();
+        currentPage = 1;
+        filterMaintenance();
+        closeFilterPanel();
+    });
+
+    document.getElementById('clearMaintenanceFilters').addEventListener('click', function (e) {
+        e.stopPropagation();
+        document.getElementById('maintenanceFilterStart').value = '';
+        document.getElementById('maintenanceFilterEnd').value = '';
+        document.getElementById('maintenanceFilterStatus').value = '';
+        currentPage = 1;
+        filterMaintenance();
+        closeFilterPanel();
+    });
+
+    // pagination buttons
+    document.querySelector('.pagination-controls .prev').addEventListener('click', function () { if (currentPage > 1) { currentPage--; filterMaintenance(); } });
+    document.querySelector('.pagination-controls .next').addEventListener('click', function () { const totalVisible = getFilteredRows().length; const maxPage = Math.max(1, Math.ceil(totalVisible / itemsPerPage)); if (currentPage < maxPage) { currentPage++; filterMaintenance(); } });
+
+    function updatePagination(visibleCount) {
+        const info = document.querySelector('.pagination-info');
+        const start = (currentPage - 1) * itemsPerPage + 1;
+        const end = Math.min(visibleCount, currentPage * itemsPerPage);
+        info.textContent = visibleCount === 0 ? 'Showing 0 of 0 entries' : `Showing ${start}-${end} of ${visibleCount} entries`;
+
+        const prevBtn = document.querySelector('.pagination-controls .prev');
+        const nextBtn = document.querySelector('.pagination-controls .next');
+        prevBtn.style.display = currentPage > 1 ? '' : 'none';
+        nextBtn.style.display = visibleCount > currentPage * itemsPerPage ? '' : 'none';
+
+        const pageNumberBtn = document.querySelector('.pagination-controls .page-number');
+        pageNumberBtn.textContent = currentPage.toString();
+    }
+
+    // initial
+    currentPage = 1;
+    filterMaintenance();
+});
+</script>

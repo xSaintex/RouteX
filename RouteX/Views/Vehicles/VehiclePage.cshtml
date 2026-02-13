@@ -1,0 +1,286 @@
+@model IEnumerable<RouteX.Models.Vehicle>
+@{
+    ViewData["Title"] = "Vehicle Management";
+    var types = Model.Select(v => v.VehicleType).Distinct().ToList();
+    var statuses = Model.Select(v => v.Status.ToString()).Distinct().ToList();
+}
+
+<style>
+/* Status: text only, no background */
+.status-badge { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; font-weight:600; }
+.status-active { color: #28a745 !important; }
+.status-maintenance { color: #ffb300 !important; }
+.status-inactive { color: #dc3545 !important; }
+
+/* Filter popover and pagination styles (reuse from other pages) */
+.search-filter { position: relative; display:flex; align-items:center; gap:8px; }
+.filter-popover {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: 320px;
+    background: #ffffff;
+    border: 1px solid #eee;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-radius: 6px;
+    padding: 12px;
+    z-index: 1200;
+    color: #111;
+}
+.filter-popover::before { content: ''; position: absolute; top: -8px; right: 16px; border-width: 8px 8px 0 8px; border-style: solid; border-color: #fff transparent transparent transparent; }
+.filter-label { display:block; font-size:12px; margin-bottom:6px; color:#222; }
+.filter-select, .filter-input { width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; }
+.filter-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+.btn-apply { background:#ff7a00; color: #fff; border: none; padding:8px 12px; border-radius:4px; }
+.btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
+
+.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
+.pagination-info { color:#333; font-size:14px; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+
+/* Alert styles */
+.alert { padding: 12px 16px; margin-bottom: 16px; border: 1px solid transparent; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+.alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+.alert-dismissible .btn-close { position: relative; top: -2px; right: -12px; padding: 4px 8px; color: inherit; background: transparent; border: none; font-size: 16px; cursor: pointer; }
+</style>
+
+<div class="vehicles-container">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    <div class="vehicles-header">
+        <p>Manage and monitor your vehicle fleet</p>
+    </div>
+
+    <div class="vehicles-actions">
+        <a href="@Url.Action("AddVehicle", "Vehicles")" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add New Vehicle
+        </a>
+        <div class="search-filter">
+            <input type="text" class="form-control" id="vehicleSearch" placeholder="Search vehicles...">
+            <button id="vehicleFilterToggle" class="btn btn-outline-secondary" title="Filters" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-filter"></i>
+            </button>
+
+            <div id="vehicleFilterPanel" class="filter-popover" role="dialog" aria-label="Vehicle filters" style="display:none;">
+                <div>
+                    <label class="filter-label" for="filterType">Vehicle Type</label>
+                    <select id="filterType" class="filter-select">
+                        <option value="">All</option>
+                        @foreach (var t in types)
+                        {
+                            <option value="@t.ToLower()">@t</option>
+                        }
+                    </select>
+                </div>
+
+                <div style="margin-top:8px;">
+                    <label class="filter-label" for="filterStatus">Status</label>
+                    <select id="filterStatus" class="filter-select">
+                        <option value="">All</option>
+                        @foreach (var s in statuses)
+                        {
+                            <option value="@s.ToLower()">@s</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button id="clearVehicleFilters" class="btn-clear" type="button">Clear</button>
+                    <button id="applyVehicleFilters" class="btn-apply" type="button">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>Vehicle ID</th>
+                    <th>Unit Model</th>
+                    <th>Plate #</th>
+                    <th>Vehicle Type</th>
+                    <th>Status</th>
+                    <th>Mileage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="vehicleTableBody">
+                @foreach (var vehicle in Model)
+                {
+                    <tr class="vehicle-row" data-model="@vehicle.UnitModel.ToLower()" data-plate="@vehicle.PlateNumber.ToLower()" data-type="@vehicle.VehicleType.ToLower()" data-status="@vehicle.Status.ToString().ToLower()">
+                        <td>@vehicle.Id</td>
+                        <td>@vehicle.UnitModel</td>
+                        <td>@vehicle.PlateNumber</td>
+                        <td>@vehicle.VehicleType</td>
+                        <td>
+                            <span class="status-badge status-@vehicle.Status.ToString().ToLower()">
+                                @vehicle.Status
+                            </span>
+                        </td>
+                        <td>@vehicle.Mileage.ToString("N0") km</td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="@Url.Action("EditVehicle", "Vehicles", new { id = vehicle.Id })" class="action-btn edit-btn" title="Edit Vehicle">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="@Url.Action("ViewVehicle", "Vehicles", new { id = vehicle.Id })" class="action-btn view-btn" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button class="action-btn route-btn" title="View Route">
+                                    <i class="fas fa-route"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="7">
+                        <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="pagination-info">Showing 0 of 0 entries</div>
+                            <div class="pagination-controls">
+                                <button class="page-link prev" type="button">&lt;</button>
+                                <button class="page-link page-number active" type="button">1</button>
+                                <button class="page-link next" type="button">&gt;</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    const tbody = document.getElementById('vehicleTableBody');
+    const allRows = Array.from(tbody.getElementsByClassName('vehicle-row'));
+
+    const filterToggle = document.getElementById('vehicleFilterToggle');
+    const filterPanel = document.getElementById('vehicleFilterPanel');
+
+    function openFilterPanel() { filterPanel.style.display = 'block'; filterToggle.setAttribute('aria-expanded', 'true'); }
+    function closeFilterPanel() { filterPanel.style.display = 'none'; filterToggle.setAttribute('aria-expanded', 'false'); }
+
+    // close when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!filterPanel.contains(e.target) && !filterToggle.contains(e.target)) {
+            closeFilterPanel();
+        }
+    });
+
+    function getFilteredRows() {
+        const searchTerm = document.getElementById('vehicleSearch').value.trim().toLowerCase();
+        const selectedType = document.getElementById('filterType').value || '';
+        const selectedStatus = document.getElementById('filterStatus').value || '';
+
+        return allRows.filter(row => {
+            const model = (row.getAttribute('data-model') || '').toLowerCase();
+            const plate = (row.getAttribute('data-plate') || '').toLowerCase();
+            const type = (row.getAttribute('data-type') || '').toLowerCase();
+            const status = (row.getAttribute('data-status') || '').toLowerCase();
+
+            const matchesSearch = !searchTerm || model.includes(searchTerm) || plate.includes(searchTerm) || type.includes(searchTerm);
+            const matchesType = !selectedType || type === selectedType;
+            const matchesStatus = !selectedStatus || status === selectedStatus;
+
+            return matchesSearch && matchesType && matchesStatus;
+        });
+    }
+
+    function renderRowsForPage(rows) {
+        allRows.forEach(r => r.style.display = 'none');
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        rows.forEach((r, index) => {
+            if (index >= start && index < end) {
+                r.style.display = '';
+            }
+        });
+    }
+
+    function filterVehicles() {
+        const filtered = getFilteredRows();
+        renderRowsForPage(filtered);
+        updatePagination(filtered.length);
+    }
+
+    // Auto-filter on search input
+    document.getElementById('vehicleSearch').addEventListener('input', function () {
+        currentPage = 1;
+        filterVehicles();
+    });
+
+    filterToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (filterPanel.style.display === 'block') closeFilterPanel(); else openFilterPanel();
+    });
+
+    document.getElementById('applyVehicleFilters').addEventListener('click', function (e) {
+        e.stopPropagation();
+        currentPage = 1;
+        filterVehicles();
+        closeFilterPanel();
+    });
+
+    document.getElementById('clearVehicleFilters').addEventListener('click', function (e) {
+        e.stopPropagation();
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterStatus').value = '';
+        currentPage = 1;
+        filterVehicles();
+        closeFilterPanel();
+    });
+
+    // pagination
+    document.querySelector('.pagination-controls .prev').addEventListener('click', function () {
+        if (currentPage > 1) { currentPage--; filterVehicles(); }
+    });
+    document.querySelector('.pagination-controls .next').addEventListener('click', function () {
+        const totalVisible = getFilteredRows().length;
+        const maxPage = Math.max(1, Math.ceil(totalVisible / itemsPerPage));
+        if (currentPage < maxPage) { currentPage++; filterVehicles(); }
+    });
+
+    function updatePagination(visibleCount) {
+        const info = document.querySelector('.pagination-info');
+        const start = (currentPage - 1) * itemsPerPage + 1;
+        const end = Math.min(visibleCount, currentPage * itemsPerPage);
+        info.textContent = visibleCount === 0 ? 'Showing 0 of 0 entries' : `Showing ${start}-${end} of ${visibleCount} entries`;
+
+        const prevBtn = document.querySelector('.pagination-controls .prev');
+        const nextBtn = document.querySelector('.pagination-controls .next');
+        prevBtn.style.display = currentPage > 1 ? '' : 'none';
+        nextBtn.style.display = visibleCount > currentPage * itemsPerPage ? '' : 'none';
+
+        const pageNumberBtn = document.querySelector('.pagination-controls .page-number');
+        pageNumberBtn.textContent = currentPage.toString();
+    }
+
+    // initial
+    currentPage = 1; filterVehicles();
+
+    // Handle alert dismissal
+    document.querySelectorAll('.btn-close').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const alert = this.closest('.alert');
+            if (alert) {
+                alert.style.display = 'none';
+            }
+        });
+    });
+});
+</script>

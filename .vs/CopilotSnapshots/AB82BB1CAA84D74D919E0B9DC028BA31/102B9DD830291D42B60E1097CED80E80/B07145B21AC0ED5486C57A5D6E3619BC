@@ -1,0 +1,354 @@
+﻿@model RouteX.Controllers.ReportsViewModel
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<style>
+/* Reports table badge styles: no background, only colored text */
+.expense-type-badge { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; font-weight:600; }
+.expense-fuel { color: #ff7a00 !important; }
+.expense-maintenance { color: #ffb300 !important; }
+.expense-other { color: #6c757d !important; }
+.pagination-info { color:#333; }
+</style>
+
+
+<!-- Report Filters Section -->
+<div class="finance-section">
+    <h3>Report Filters</h3>
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="reportType">Report Type</label>
+            <select id="reportType" class="form-control">
+                @foreach (var type in Model.ReportTypes)
+                {
+                    <option value="@type" selected="@(Model.SelectedReportType == type)">@type</option>
+                }
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="vehicle">Vehicle</label>
+            <select id="vehicle" class="form-control">
+                @foreach (var vehicle in Model.Vehicles)
+                {
+                    <option value="@vehicle" selected="@(Model.SelectedVehicle == vehicle)">@vehicle</option>
+                }
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="dateRange">Date Range</label>
+            <select id="dateRange" class="form-control" onchange="toggleDateRange(this.value)">
+                <option value="Last 7 Days" selected>Last 7 Days</option>
+                <option value="Last 30 Days">Last 30 Days</option>
+                <option value="Last 3 Months">Last 3 Months</option>
+                <option value="Last 6 Months">Last 6 Months</option>
+                <option value="Last Year">Last Year</option>
+                <option value="Custom Range">Custom Range</option>
+            </select>
+        </div>
+        
+        <div id="customDateRange" class="filter-group" style="display: none;">
+            <label for="startDate">Start Date</label>
+            <input type="date" id="startDate" class="form-control" style="min-width: 140px;">
+        </div>
+        
+        <div id="customDateRangeEnd" class="filter-group" style="display: none;">
+            <label for="endDate">End Date</label>
+            <input type="date" id="endDate" class="form-control" style="min-width: 140px;">
+        </div>
+        
+        <div class="filter-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-orange" onclick="generateReport()">
+                <i class="fas fa-chart-line"></i>
+                Generate Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards Section -->
+<div class="finance-summary-grid">
+    <a href="#" class="finance-card-link">
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>@Model.TotalExpenses.ToString("C2")</h3>
+                <p>Total Expenses (All-Time)</p>
+            </div>
+        </div>
+    </a>
+
+    <a href="#" class="finance-card-link">
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-gas-pump"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>@Model.TotalFuelCost.ToString("C2")</h3>
+                <p>Total Fuel Cost</p>
+            </div>
+        </div>
+    </a>
+
+    <a href="#" class="finance-card-link">
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-wrench"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>@Model.TotalMaintenanceCost.ToString("C2")</h3>
+                <p>Total Maintenance Cost</p>
+            </div>
+        </div>
+    </a>
+
+    <a href="#" class="finance-card-link">
+        <div class="finance-card">
+            <div class="finance-card-icon">
+                <i class="fas fa-route"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>@Model.TotalTrips</h3>
+                <p>Total Trips</p>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- Chart Section -->
+<div class="finance-section">
+    <h3>Report Visualization</h3>
+    <div class="finance-charts">
+        <div class="chart-container">
+            <h3>Expense Trends</h3>
+            <div class="chart-placeholder">
+                <i class="fas fa-chart-line"></i>
+                <p>Expense trends chart will be displayed here</p>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>Category Breakdown</h3>
+            <div class="chart-placeholder">
+                <i class="fas fa-chart-pie"></i>
+                <p>Expense category breakdown will be displayed here</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Table Section -->
+<div class="finance-section">
+    <div class="section-header">
+        <h3>Detailed Report</h3>
+        <div class="export-actions">
+            <button class="btn btn-orange" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i>
+                Export PDF
+            </button>
+            <button class="btn btn-orange" onclick="exportToCSV()">
+                <i class="fas fa-file-csv"></i>
+                Export CSV
+            </button>
+        </div>
+    </div>
+    
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>Record ID</th>
+                    <th>Vehicle</th>
+                    <th>Category / Type</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody id="reportTableBody">
+                @foreach (var record in Model.ReportRecords)
+                {
+                    <tr class="report-row" data-vehicle="@record.Vehicle.ToLower()" data-type="@record.Category.ToLower()" data-desc="@record.Description.ToLower()" data-date="@record.Date.ToString("yyyy-MM-dd")">
+                        <td>#@record.Id</td>
+                        <td>@record.Vehicle</td>
+                        <td>
+                            <span class="expense-type-badge expense-@record.Category.ToLower()">
+                                @record.Category
+                            </span>
+                        </td>
+                        <td class="cost-highlight">@record.Amount.ToString("N2")</td>
+                        <td>@record.Date.ToString("dd/MM/yyyy")</td>
+                        <td>@record.Description</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6">
+                        <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="pagination-info">Showing 0 of 0 entries</div>
+                            <div class="pagination-controls">
+                                <button class="page-link prev" type="button">&lt;</button>
+                                <button class="page-link page-number active" type="button">1</button>
+                                <button class="page-link next" type="button">&gt;</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleDateRange(value) {
+    const customDateRange = document.getElementById('customDateRange');
+    const customDateRangeEnd = document.getElementById('customDateRangeEnd');
+    
+    if (value === 'Custom Range') {
+        customDateRange.style.display = 'block';
+        customDateRangeEnd.style.display = 'block';
+    } else {
+        customDateRange.style.display = 'none';
+        customDateRangeEnd.style.display = 'none';
+    }
+}
+
+function generateReport() {
+    // Get selected values
+    const reportType = document.getElementById('reportType').value;
+    const vehicle = document.getElementById('vehicle').value;
+    const dateRange = document.getElementById('dateRange').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    button.disabled = true;
+    
+    // Simulate report generation
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        // Update summary cards based on report type
+        updateSummaryCards(reportType);
+        
+        // Show success message
+        showNotification('Report generated successfully!', 'success');
+    }, 1500);
+}
+
+// Client-side pagination for reports table (matches maintenance table behavior)
+document.addEventListener('DOMContentLoaded', function () {
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    const tbody = document.getElementById('reportTableBody');
+    const allRows = Array.from(tbody.getElementsByClassName('report-row'));
+
+    function renderRowsForPage(rows) {
+        allRows.forEach(r => r.style.display = 'none');
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+        rows.forEach((r, i) => { if (i >= startIdx && i < endIdx) r.style.display = ''; });
+    }
+
+    function updatePagination(visibleCount) {
+        const info = document.querySelector('.pagination-info');
+        const start = (currentPage - 1) * itemsPerPage + 1;
+        const end = Math.min(visibleCount, currentPage * itemsPerPage);
+        info.textContent = visibleCount === 0 ? 'Showing 0 of 0 entries' : `Showing ${start}-${end} of ${visibleCount} entries`;
+
+        const prevBtn = document.querySelector('.pagination-controls .prev');
+        const nextBtn = document.querySelector('.pagination-controls .next');
+        prevBtn.style.display = currentPage > 1 ? '' : 'none';
+        nextBtn.style.display = visibleCount > currentPage * itemsPerPage ? '' : 'none';
+
+        const pageNumberBtn = document.querySelector('.pagination-controls .page-number');
+        pageNumberBtn.textContent = currentPage.toString();
+    }
+
+    function refresh() {
+        const visibleRows = allRows; // no filters here; show all rows paged
+        renderRowsForPage(visibleRows);
+        updatePagination(visibleRows.length);
+    }
+
+    document.querySelector('.pagination-controls .prev').addEventListener('click', function () { if (currentPage > 1) { currentPage--; refresh(); } });
+    document.querySelector('.pagination-controls .next').addEventListener('click', function () { const totalVisible = allRows.length; const maxPage = Math.max(1, Math.ceil(totalVisible / itemsPerPage)); if (currentPage < maxPage) { currentPage++; refresh(); } });
+
+    // Initial
+    currentPage = 1; refresh();
+});
+
+function updateSummaryCards(reportType) {
+    // This would typically make an AJAX call to get updated data
+    // For now, we'll just update the display
+    console.log('Updating summary cards for:', reportType);
+}
+
+function exportToPDF() {
+    showNotification('Exporting to PDF...', 'info');
+    setTimeout(() => {
+        showNotification('PDF exported successfully!', 'success');
+    }, 1000);
+}
+
+function exportToCSV() {
+    showNotification('Exporting to CSV...', 'info');
+    setTimeout(() => {
+        showNotification('CSV exported successfully!', 'success');
+    }, 1000);
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+
+<style>
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideInRight 0.3s ease;
+}
+
+.notification-success {
+    background: #28a745;
+}
+
+.notification-info {
+    background: #17a2b8;
+}
+
+</style>

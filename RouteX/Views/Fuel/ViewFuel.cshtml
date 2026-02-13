@@ -1,0 +1,296 @@
+@model RouteX.Models.FuelEntry
+@{
+    ViewData["Title"] = "View Fuel";
+}
+
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; }
+/* Container consumes full viewport and aligns content to the left-top */
+.view-fuel-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px 32px;
+    background: #ffffff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: visible; /* allow content to be visible */
+}
+
+/* Breadcrumb sits at the very top-left */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.breadcrumb a { color: #ff6b35; text-decoration: none; display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; }
+.breadcrumb a:hover { color: #e55a2b; background: rgba(255,107,53,0.04); }
+.breadcrumb span { color: #999; }
+.breadcrumb .fuel-text { color: #ff6b35; font-weight: 500; }
+
+/* Form area: don't allow its own scrolling so page shows no scroll */
+.view-fuel-form {
+    width: 100%;
+    max-width: 1100px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    height: auto; /* don't force internal scroll */
+    box-sizing: border-box;
+    overflow: visible; /* prevent internal scroll */
+}
+
+/* Grid layout: two columns for pairs */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.form-group { display:flex; flex-direction:column; }
+.form-group label { margin-bottom:6px; color:#1a1a1a; font-weight:600; font-size:13px; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+/* Read-only styling */
+.form-group input:read-only,
+.form-group select:disabled,
+.form-group textarea:read-only {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    border-color: #e9ecef;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #ff6b35;
+}
+
+.checkbox-group input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-weight: 400;
+    cursor: pointer;
+    color: #1a1a1a;
+    font-size: 14px;
+}
+
+.checkbox-group label.disabled {
+    color: #666;
+    cursor: not-allowed;
+}
+
+.file-upload {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.file-upload-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+    background: #f8f9fa;
+    cursor: not-allowed;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: #666;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.file-upload-label i {
+    font-size: 18px;
+}
+
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #666;
+}
+
+.file-preview img {
+    max-width: 60px;
+    max-height: 60px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+/* Action buttons pinned to bottom of the form */
+.form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e9ecef; }
+.btn-cancel { background: transparent; color:#6c757d; border:1px solid #e9ecef; padding:10px 22px; border-radius:6px; cursor: pointer; transition: all 0.12s ease; }
+.btn-cancel:hover { background: #f8f9fa; border-color: #dcdcdc; color: #1a1a1a; }
+
+.calculated-field {
+    background: #f8f9fa !important;
+    color: #666 !important;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .view-fuel-form { padding: 20px; }
+}
+</style>
+
+<div class="view-fuel-container">
+    <div class="breadcrumb">
+        <a href="@Url.Action("FuelPage", "Fuel")">
+            <i class="fas fa-gas-pump"></i>
+            <span class="fuel-text">Fuel</span>
+        </a>
+        <span>›</span>
+        <i class="fas fa-eye"></i>
+        <span>View Fuel</span>
+    </div>
+
+    <form class="view-fuel-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="vehicle">Vehicle</label>
+                <select id="vehicle" disabled>
+                    @{
+    Vehicle selectedVehicle = null;
+    if (ViewBag.Vehicles != null && Model != null && Model.VehicleId != 0)
+    {
+        foreach (Vehicle vehicle in ViewBag.Vehicles)
+        {
+            if (vehicle.Id == Model.VehicleId)
+            {
+                selectedVehicle = vehicle;
+                break;
+            }
+        }
+    }
+    var vehicleDisplay = selectedVehicle != null ? $"{selectedVehicle.PlateNumber} - {selectedVehicle.UnitModel}" : "Not specified";
+}
+<option value="">@vehicleDisplay</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="driver">Driver</label>
+                <input type="text" id="driver" value="@(Model?.Driver ?? "Not specified")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="date" id="date" value="@(Model?.DateTime != null ? Model.DateTime.ToString("yyyy-MM-dd") : "")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="fuelStation">Fuel Station</label>
+                <input type="text" id="fuelStation" value="@(Model?.FuelStation ?? "Not specified")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="odometer">Current Odometer (Mileage)</label>
+                <input type="number" id="odometer" value="@(Model?.Odometer > 0 ? Model.Odometer.ToString() : "")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="fuelVolume">Fuel Volume (Liters)</label>
+                <input type="number" id="fuelVolume" value="@(Model?.Liters > 0 ? Model.Liters.ToString().Replace(',', '.') : "")" step="0.1" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="totalCost">Total Cost (₱)</label>
+                <input type="number" id="totalCost" value="@(Model?.TotalCost > 0 ? Model.TotalCost.ToString().Replace(',', '.') : "")" step="0.01" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="pricePerLiter">Price per Liter (₱)</label>
+                <input type="number" id="pricePerLiter" value="@((Model != null && Model.TotalCost > 0 && Model.Liters > 0) ? (Model.TotalCost / Model.Liters).ToString("F2").Replace(',', '.') : "")" step="0.01" readonly class="calculated-field" />
+            </div>
+
+            <div class="form-group">
+                <label for="fuelType">Fuel Type</label>
+                <select id="fuelType" disabled>
+                    <option value="@(Model?.FuelType ?? "")">@(Model?.FuelType ?? "Not specified")</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Full Tank</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="fullTank" @(Model?.FullTank == true ? "checked" : "") disabled />
+                    <label for="fullTank" class="@(Model?.FullTank != true ? "disabled" : "")">@(Model?.FullTank == true ? "Yes" : "No")</label>
+                </div>
+            </div>
+
+            <div class="form-group full">
+                <label for="receiptUpload">Receipt Upload</label>
+                <div class="file-upload">
+                    <div class="file-upload-label">
+                        <i class="fas fa-file-image"></i>
+                        <span>No receipt uploaded</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group full">
+                <label for="notes">Notes</label>
+                <textarea id="notes" readonly>@(Model?.Notes ?? "No notes")</textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='@Url.Action("FuelPage", "Fuel")'">
+                Close
+            </button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,368 @@
+﻿@model RouteX.Models.Vehicle
+@{
+    ViewData["Title"] = "Add Vehicle";
+}
+
+<style>
+.add-vehicle-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #ffffff;
+    min-height: 100vh;
+}
+
+.add-vehicle-header {
+    margin-bottom: 20px;
+}
+
+.add-vehicle-header h1 {
+    color: #1a1a1a;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.add-vehicle-header p {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.add-vehicle-form {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.form-grid {
+    display: block;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    position: relative;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #1a1a1a;
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #adb5bd;
+}
+
+.form-group select:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-save {
+    background: #ff6b35;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.btn-save:hover {
+    background: #e55a2b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.btn-cancel {
+    background: transparent;
+    color: #6c757d;
+    border: 1px solid #e9ecef;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.btn-cancel:hover {
+    background: #f8f9fa;
+    border-color: #6c757d;
+    color: #1a1a1a;
+}
+
+.validation-message {
+    color: #dc3545;
+    font-size: 11px;
+    margin-top: 3px;
+    display: none;
+}
+
+.form-group.error input {
+    border-color: #dc3545;
+}
+
+.form-group.error .validation-message {
+    display: block;
+}
+
+.form-group.success input {
+    border-color: #28a745;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.breadcrumb a {
+    color: #ff6b35;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.breadcrumb a:hover {
+    color: #e55a2b;
+}
+
+.breadcrumb span {
+    margin: 0 6px;
+}
+
+@@media (max-width: 768px) {
+    .add-vehicle-form {
+        padding: 30px 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-save,
+    .btn-cancel {
+        width: 100%;
+    }
+}
+</style>
+
+<div class="add-vehicle-container">
+    <div class="breadcrumb">
+        <a href="@Url.Action("Index", "Vehicles")">
+            <i class="fas fa-car"></i>
+            Vehicles
+        </a>
+        <span>›</span>
+        <i class="fas fa-plus"></i>
+        <span>Add Vehicle</span>
+    </div>
+
+    <form asp-action="AddVehicle" method="post" class="add-vehicle-form" id="addVehicleForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label asp-for="UnitModel">Unit Model</label>
+                <input asp-for="UnitModel" type="text" id="unitModel" placeholder="e.g., Toyota Hilux 2023" required>
+                <span class="validation-message">Please enter a unit model</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PlateNumber">Plate #</label>
+                <input asp-for="PlateNumber" type="text" id="plateNumber" placeholder="e.g., ABC-1234" required>
+                <span class="validation-message">Please enter a plate number</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="VehicleType">Vehicle Type</label>
+                <select asp-for="VehicleType" id="vehicleType" required>
+                    <option value="">Select Vehicle Type</option>
+                    <option value="Truck">Truck</option>
+                    <option value="Van">Van</option>
+                    <option value="Car">Car</option>
+                </select>
+                <span class="validation-message">Please select a vehicle type</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Status">Status</label>
+                <input asp-for="Status" type="text" id="status" value="Active" readonly>
+                <span class="validation-message">Status is set to Active by default</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Mileage">Current Mileage (km)</label>
+                <input asp-for="Mileage" type="number" id="mileage" placeholder="e.g., 15000" min="0" required>
+                <span class="validation-message">Please enter current mileage</span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='@Url.Action("Index", "Vehicles")'">
+                Cancel
+            </button>
+            <button type="submit" class="btn-save">
+                <i class="fas fa-save"></i>
+                Save Vehicle
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addVehicleForm');
+    const inputs = form.querySelectorAll('input, select');
+    
+    // Real-time validation
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            validateField(this);
+        });
+        
+        input.addEventListener('input', function() {
+            if (this.parentElement.classList.contains('error')) {
+                validateField(this);
+            }
+        });
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        let isValid = true;
+        inputs.forEach(input => {
+            if (!validateField(input)) {
+                isValid = false;
+            }
+        });
+        
+        if (isValid) {
+            // Check for unique plate number
+            const plateNumber = document.getElementById('plateNumber').value;
+            checkPlateNumberUniqueness(plateNumber).then(isUnique => {
+                if (isUnique) {
+                    form.submit();
+                } else {
+                    showPlateNumberError();
+                }
+            });
+        }
+    });
+    
+    function validateField(field) {
+        const formGroup = field.parentElement;
+        const validationMessage = formGroup.querySelector('.validation-message');
+        
+        if (field.hasAttribute('required') && !field.value.trim()) {
+            formGroup.classList.add('error');
+            formGroup.classList.remove('success');
+            return false;
+        }
+        
+        // Specific validations
+        if (field.id === 'plateNumber') {
+            const plateRegex = /^[A-Z]{3}-\d{4}$/;
+            if (!plateRegex.test(field.value.toUpperCase())) {
+                validationMessage.textContent = 'Plate number must be in format: ABC-1234';
+                formGroup.classList.add('error');
+                formGroup.classList.remove('success');
+                return false;
+            }
+        }
+        
+        if (field.id === 'mileage' && field.value && parseInt(field.value) < 0) {
+            validationMessage.textContent = 'Mileage cannot be negative';
+            formGroup.classList.add('error');
+            formGroup.classList.remove('success');
+            return false;
+        }
+        
+        formGroup.classList.remove('error');
+        formGroup.classList.add('success');
+        return true;
+    }
+    
+    async function checkPlateNumberUniqueness(plateNumber) {
+        // Simulate API call to check uniqueness
+        // In a real application, this would be an actual API call
+        const existingPlates = ['ABC-1234', 'XYZ-5678', 'DEF-9012']; // Sample existing plates
+        return !existingPlates.includes(plateNumber.toUpperCase());
+    }
+    
+    function showPlateNumberError() {
+        const plateField = document.getElementById('plateNumber');
+        const formGroup = plateField.parentElement;
+        const validationMessage = formGroup.querySelector('.validation-message');
+        
+        validationMessage.textContent = 'This plate number already exists';
+        formGroup.classList.add('error');
+        formGroup.classList.remove('success');
+    }
+    
+    // Auto-format plate number
+    document.getElementById('plateNumber').addEventListener('input', function(e) {
+        let value = e.target.value.toUpperCase();
+        value = value.replace(/[^A-Z0-9-]/g, '');
+        
+        // Auto-add hyphen after 3 letters
+        if (value.length === 3 && !value.includes('-')) {
+            value += '-';
+        }
+        
+        // Limit to 8 characters (ABC-1234)
+        if (value.length > 8) {
+            value = value.substring(0, 8);
+        }
+        
+        e.target.value = value;
+    });
+});
+</script>

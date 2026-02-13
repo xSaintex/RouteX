@@ -1,0 +1,79 @@
+﻿@model IEnumerable<RouteX.Models.MaintenanceEntry>
+@{
+    ViewData["Title"] = "Maintenance Schedule";
+}
+
+<div class="vehicles-container">
+    <div class="vehicles-header">
+        <p>Plan and track scheduled maintenance for your fleet</p>
+    </div>
+
+    <div class="vehicles-actions">
+        <button class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add Schedule
+        </button>
+        <div class="search-filter">
+            <input type="text" class="form-control" placeholder="Search maintenance...">
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-filter"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>Maintenance ID</th>
+                    <th>Plate #</th>
+                    <th>Service Type</th>
+                    <th>Service Date</th>
+                    <th>Cost</th>
+                    <th>Technician Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in Model)
+                {
+                    <tr>
+                        <td>@entry.MaintenanceId</td>
+                        <td>@entry.PlateNumber</td>
+                        <td>@entry.ServiceType</td>
+                        <td>@entry.ServiceDate.ToString("MMM dd, yyyy")</td>
+                        <td>@entry.Cost.ToString("C2")</td>
+                        <td>@entry.TechnicianName</td>
+                        <td>
+                            <span class="status-badge maintenance-status-@entry.Status.ToString().ToLower()">
+                                @entry.Status
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn edit-btn" title="Edit Schedule">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn view-btn" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="8">
+                        <div class="table-pagination">
+                            <button class="page-link" type="button">&lt;</button>
+                            <button class="page-link active" type="button">1</button>
+                            <button class="page-link" type="button">&gt;</button>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>

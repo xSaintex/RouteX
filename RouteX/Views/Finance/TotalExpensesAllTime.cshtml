@@ -1,0 +1,273 @@
+@model List<RouteX.Models.ExpenseTimeSeriesData>
+@{
+    ViewData["Title"] = "Total Expenses (All-Time)";
+}
+
+<style>
+.chart-container-full {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+    margin-bottom: 24px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.chart-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.chart-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.chart-canvas {
+    height: 400px;
+    position: relative;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.chart-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    border-left: 4px solid #ff6b35;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+@@media (max-width: 768px) {
+    .chart-container-full {
+        padding: 16px;
+    }
+    
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .chart-canvas {
+        height: 300px;
+    }
+    
+    .chart-stats {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="vehicles-container">
+    <button class="back-button-top-left" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i>
+        Back
+    </button>
+
+    <div class="chart-container-full">
+        <div class="chart-header">
+            <div>
+                <h2 class="chart-title">Total Expenses Over Time</h2>
+                <p class="chart-subtitle">Monthly expense trends for the last 24 months</p>
+            </div>
+            
+            <div class="chart-export-buttons">
+                <button class="btn-export-small" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf"></i>
+                    Export PDF
+                </button>
+                <button class="btn-export-small" onclick="exportToCSV()">
+                    <i class="fas fa-file-csv"></i>
+                    Export CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="chart-canvas">
+            <canvas id="expensesTimeChart"></canvas>
+        </div>
+
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b35;"></div>
+                <span>Total Expenses</span>
+            </div>
+        </div>
+
+        <div class="chart-stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Expenses (All Time)</div>
+                <div class="stat-value">₱@Model.Sum(d => d.ExpenseAmount).ToString("N0")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Monthly</div>
+                <div class="stat-value">₱@Model.Average(d => d.ExpenseAmount).ToString("N0")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Highest Month</div>
+                <div class="stat-value">₱@Model.Max(d => d.ExpenseAmount).ToString("N0")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Lowest Month</div>
+                <div class="stat-value">₱@Model.Min(d => d.ExpenseAmount).ToString("N0")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const timeSeriesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+    
+    const ctx = document.getElementById('expensesTimeChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeSeriesData.map(d => d.Month),
+            datasets: [
+                {
+                    label: 'Total Expenses',
+                    data: timeSeriesData.map(d => d.ExpenseAmount),
+                    borderColor: '#ff6b35',
+                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Amount (₱)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '₱' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false // Hide default legend, using custom one
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += '₱' + context.parsed.y.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+function exportToPDF() {
+    showNotification('Exporting to PDF...', 'info');
+    setTimeout(() => {
+        showNotification('PDF exported successfully!', 'success');
+    }, 1000);
+}
+
+function exportToCSV() {
+    showNotification('Exporting to CSV...', 'info');
+    setTimeout(() => {
+        showNotification('CSV exported successfully!', 'success');
+    }, 1000);
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>

@@ -1,0 +1,127 @@
+﻿@model IEnumerable<RouteX.Controllers.Role>
+@{
+    ViewData["Title"] = "Roles";
+}
+
+<div class="vehicles-container">
+    <div class="vehicles-header">
+        <p>Manage user roles and permissions</p>
+    </div>
+
+    <div class="vehicles-actions">
+        <button class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add Role
+        </button>
+        <div class="search-filter">
+            <input type="text" class="form-control" placeholder="Search roles...">
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-filter"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>Role ID</th>
+                    <th>Role Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in Model)
+                {
+                    <tr>
+                        <td>@role.RoleId</td>
+                        <td>@role.RoleName</td>
+                        <td>
+                            <span class="status-badge maintenance-status-@role.Status.ToString().ToLower()">
+                                @role.Status
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn edit-btn" title="Edit Role">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn view-btn" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4">
+                        <div class="table-pagination">
+                            <button class="page-link" type="button">&lt;</button>
+                            <button class="page-link active" type="button">1</button>
+                            <button class="page-link" type="button">&gt;</button>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<style>
+/* Status Badge Styles - Matching Maintenance Page */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.maintenance-status-active {
+    background: rgba(40, 167, 69, 0.14);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.28);
+}
+
+.maintenance-status-inactive {
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+/* Table Pagination Styles - Matching Maintenance Page */
+.table-pagination {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+    margin-top: 16px;
+}
+
+.table-pagination .page-link {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    color: #111111;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 26px;
+    text-align: center;
+}
+
+.table-pagination .page-link:hover {
+    border-color: #ff6b35;
+    color: #ff6b35;
+    background: rgba(255, 107, 53, 0.08);
+}
+
+.table-pagination .page-link.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #ffffff;
+}
+</style>

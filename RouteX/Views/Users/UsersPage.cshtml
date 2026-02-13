@@ -1,0 +1,202 @@
+@model IEnumerable<RouteX.Models.User>
+@{
+    ViewData["Title"] = "Users List";
+}
+
+<style>
+/* Status text only, no background */
+.status-badge { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; font-weight:600; }
+.status-active { color: #28a745 !important; }
+.status-inactive { color: #dc3545 !important; }
+
+/* Filter popover & pagination styles consistent with other pages */
+.search-filter { position: relative; display:flex; align-items:center; gap:8px; }
+.filter-popover {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: 260px;
+    background: #ffffff;
+    border: 1px solid #eee;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-radius: 6px;
+    padding: 12px;
+    z-index: 1200;
+}
+.filter-label { display:block; font-size:12px; margin-bottom:6px; color:#222; }
+.filter-select { width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; }
+.filter-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+.btn-apply { background:#ff7a00; color: #fff; border: none; padding:8px 12px; border-radius:4px; }
+.btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
+
+.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
+.pagination-info { color:#333; font-size:14px; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+</style>
+
+<div class="vehicles-container">
+    <div class="vehicles-header">
+        <p>Manage user accounts and permissions</p>
+    </div>
+
+    <div class="vehicles-actions">
+        <a href="@Url.Action("AddUser", "Users")" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add User
+        </a>
+        <div class="search-filter">
+            <input type="text" class="form-control" id="userSearch" placeholder="Search users...">
+            <button id="userFilterToggle" class="btn btn-outline-secondary" title="Filters" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-filter"></i>
+            </button>
+
+            <div id="userFilterPanel" class="filter-popover" role="dialog" aria-label="User filters" style="display:none;">
+                <div>
+                    <label class="filter-label" for="filterUserStatus">Status</label>
+                    <select id="filterUserStatus" class="filter-select">
+                        <option value="">All</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button id="clearUserFilters" class="btn-clear" type="button">Clear</button>
+                    <button id="applyUserFilters" class="btn-apply" type="button">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                @foreach (var user in Model)
+                {
+                    <tr class="user-row" data-first="@user.FirstName.ToLower()" data-last="@user.LastName.ToLower()" data-email="@user.Email.ToLower()" data-status="@(user.Status.ToString().ToLower())">
+                        <td>@user.UserId</td>
+                        <td>@user.FirstName</td>
+                        <td>@user.LastName</td>
+                        <td>@user.Email</td>
+                        <td>@user.Role</td>
+                        <td>
+                            <span class="status-badge @(user.Status == "Active" ? "status-active" : "status-inactive")">
+                                @user.Status
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="@Url.Action("EditUser", "Users", new { id = user.UserId })" class="action-btn edit-btn" title="Edit User">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="@Url.Action("ViewUser", "Users", new { id = user.UserId })" class="action-btn view-btn" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="7">
+                        <div class="table-pagination">
+                            <div class="pagination-info">Showing 0 of 0 entries</div>
+                            <div class="pagination-controls">
+                                <button class="page-link prev" type="button">&lt;</button>
+                                <button class="page-link page-number active" type="button">1</button>
+                                <button class="page-link next" type="button">&gt;</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    const tbody = document.getElementById('userTableBody');
+    const allRows = Array.from(tbody.getElementsByClassName('user-row'));
+
+    const filterToggle = document.getElementById('userFilterToggle');
+    const filterPanel = document.getElementById('userFilterPanel');
+
+    function openFilterPanel() { filterPanel.style.display = 'block'; filterToggle.setAttribute('aria-expanded', 'true'); }
+    function closeFilterPanel() { filterPanel.style.display = 'none'; filterToggle.setAttribute('aria-expanded', 'false'); }
+
+    document.addEventListener('click', function (e) { if (!filterPanel.contains(e.target) && !filterToggle.contains(e.target)) closeFilterPanel(); });
+
+    function getFilteredRows() {
+        const searchTerm = document.getElementById('userSearch').value.trim().toLowerCase();
+        const selectedStatus = document.getElementById('filterUserStatus').value || '';
+
+        return allRows.filter(row => {
+            const first = (row.getAttribute('data-first') || '').toLowerCase();
+            const last = (row.getAttribute('data-last') || '').toLowerCase();
+            const email = (row.getAttribute('data-email') || '').toLowerCase();
+            const status = (row.getAttribute('data-status') || '').toLowerCase();
+
+            const matchesSearch = !searchTerm || first.includes(searchTerm) || last.includes(searchTerm) || email.includes(searchTerm);
+            const matchesStatus = !selectedStatus || status === selectedStatus;
+
+            return matchesSearch && matchesStatus;
+        });
+    }
+
+    function renderRowsForPage(rows) {
+        allRows.forEach(r => r.style.display = 'none');
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+        rows.forEach((r, i) => { if (i >= startIdx && i < endIdx) r.style.display = ''; });
+    }
+
+    function updatePagination(visibleCount) {
+        const info = document.querySelector('.pagination-info');
+        const start = (currentPage - 1) * itemsPerPage + 1;
+        const end = Math.min(visibleCount, currentPage * itemsPerPage);
+        info.textContent = visibleCount === 0 ? 'Showing 0 of 0 entries' : `Showing ${start}-${end} of ${visibleCount} entries`;
+
+        const prevBtn = document.querySelector('.pagination-controls .prev');
+        const nextBtn = document.querySelector('.pagination-controls .next');
+        prevBtn.style.display = currentPage > 1 ? '' : 'none';
+        nextBtn.style.display = visibleCount > currentPage * itemsPerPage ? '' : 'none';
+
+        const pageNumberBtn = document.querySelector('.pagination-controls .page-number');
+        pageNumberBtn.textContent = currentPage.toString();
+    }
+
+    function filterUsers() {
+        const filtered = getFilteredRows();
+        renderRowsForPage(filtered);
+        updatePagination(filtered.length);
+    }
+
+    document.getElementById('userSearch').addEventListener('input', function () { currentPage = 1; filterUsers(); });
+
+    filterToggle.addEventListener('click', function (e) { e.stopPropagation(); if (filterPanel.style.display === 'block') closeFilterPanel(); else openFilterPanel(); });
+
+    document.getElementById('applyUserFilters').addEventListener('click', function (e) { e.stopPropagation(); currentPage = 1; filterUsers(); closeFilterPanel(); });
+    document.getElementById('clearUserFilters').addEventListener('click', function (e) { e.stopPropagation(); document.getElementById('filterUserStatus').value = ''; currentPage = 1; filterUsers(); closeFilterPanel(); });
+
+    document.querySelector('.pagination-controls .prev').addEventListener('click', function () { if (currentPage > 1) { currentPage--; filterUsers(); } });
+    document.querySelector('.pagination-controls .next').addEventListener('click', function () { const totalVisible = getFilteredRows().length; const maxPage = Math.max(1, Math.ceil(totalVisible / itemsPerPage)); if (currentPage < maxPage) { currentPage++; filterUsers(); } });
+
+    // initial
+    currentPage = 1; filterUsers();
+});
+</script>

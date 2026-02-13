@@ -1,0 +1,186 @@
+@model RouteX.Models.MaintenanceEntry
+@{
+    ViewData["Title"] = "View Maintenance";
+}
+
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; }
+/* Container consumes full viewport and aligns content to the left-top */
+.view-maintenance-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px 32px;
+    background: #ffffff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: visible; /* allow content to be visible */
+}
+
+/* Breadcrumb sits at the very top-left */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.breadcrumb a { color: #ff6b35; text-decoration: none; display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; }
+.breadcrumb a:hover { color: #e55a2b; background: rgba(255,107,53,0.04); }
+.breadcrumb span { color: #999; }
+.breadcrumb .maintenance-text { color: #ff6b35; font-weight: 500; }
+
+/* Form area: don't allow its own scrolling so page shows no scroll */
+.view-maintenance-form {
+    width: 100%;
+    max-width: 1100px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    height: auto; /* don't force internal scroll */
+    box-sizing: border-box;
+    overflow: visible; /* prevent internal scroll */
+}
+
+/* Grid layout: two columns for pairs */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.form-group { display:flex; flex-direction:column; }
+.form-group label { margin-bottom:6px; color:#1a1a1a; font-weight:600; font-size:13px; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+/* Read-only styling */
+.form-group input:read-only,
+.form-group select:disabled,
+.form-group textarea:read-only {
+    background: #f8f9fa;
+    color: #666;
+    cursor: not-allowed;
+    border-color: #e9ecef;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-group.full { grid-column: 1 / -1; }
+
+/* Action buttons pinned to bottom of the form */
+.form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e9ecef; }
+.btn-cancel { background: transparent; color:#6c757d; border:1px solid #e9ecef; padding:10px 22px; border-radius:6px; cursor: pointer; transition: all 0.12s ease; }
+.btn-cancel:hover { background: #f8f9fa; border-color: #dcdcdc; color: #1a1a1a; }
+
+/* Responsive adjustments */
+@@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .view-maintenance-form { padding: 20px; }
+}
+</style>
+
+<div class="view-maintenance-container">
+    <div class="breadcrumb">
+        <a href="@Url.Action("MaintenancePage", "Maintenance")">
+            <i class="fas fa-wrench"></i>
+            <span class="maintenance-text">Maintenance</span>
+        </a>
+        <span>›</span>
+        <i class="fas fa-eye"></i>
+        <span>View Maintenance</span>
+    </div>
+
+    <form class="view-maintenance-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="vehicle">Vehicle (Plate #)</label>
+                <select id="vehicle" disabled>
+                    @{
+                        Vehicle? selectedVehicle = null;
+                        if (ViewBag.Vehicles != null && Model != null)
+                        {
+                            foreach (Vehicle vehicle in ViewBag.Vehicles)
+                            {
+                                if (Model.VehicleId != 0 && vehicle.Id == Model.VehicleId)
+                                {
+                                    selectedVehicle = vehicle;
+                                    break;
+                                }
+                            }
+                        }
+                        var vehicleDisplay = selectedVehicle != null ? $"{selectedVehicle.PlateNumber} - {selectedVehicle.UnitModel}" : "Not specified";
+                    }
+                    <option value="">@vehicleDisplay</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="serviceType">Service Type</label>
+                <input type="text" id="serviceType" value="@(Model?.ServiceType ?? "Not specified")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="serviceDate">Service Date</label>
+                <input type="date" id="serviceDate" value="@(Model?.ServiceDate.ToString("yyyy-MM-dd") ?? "")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="cost">Cost (₱)</label>
+                <input type="number" id="cost" value="@(Model?.Cost.ToString().Replace(',', '.') ?? "")" step="0.01" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="technicianName">Technician Name</label>
+                <input type="text" id="technicianName" value="@(Model?.TechnicianName ?? "Not specified")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="status">Status</label>
+                <input type="text" id="status" value="@(Model?.Status.ToString() ?? "Not specified")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="odometerAtService">Odometer at Service</label>
+                <input type="number" id="odometerAtService" value="@(Model?.OdometerAtService.ToString() ?? "")" readonly />
+            </div>
+
+            <div class="form-group">
+                <label for="nextServiceDue">Next Service Due</label>
+                <input type="date" id="nextServiceDue" value="@(Model?.NextServiceDue.ToString("yyyy-MM-dd") ?? "")" readonly />
+            </div>
+
+            <div class="form-group full">
+                <label for="description">Description</label>
+                <textarea id="description" readonly>@(Model?.Description ?? "No description")</textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='@Url.Action("MaintenancePage", "Maintenance")'">
+                Close
+            </button>
+        </div>
+    </form>
+</div>

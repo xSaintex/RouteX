@@ -1,0 +1,82 @@
+@{
+    ViewData["Title"] = "Total Maintenance Expenses";
+}
+
+<div class="vehicles-container">
+    <button class="back-button-top-left" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i>
+        Back
+    </button>
+
+    <div class="chart-export-buttons">
+        <button class="btn-export-small" onclick="exportToPDF()">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+        </button>
+        <button class="btn-export-small" onclick="exportToCSV()">
+            <i class="fas fa-file-csv"></i>
+            Export CSV
+        </button>
+    </div>
+
+    <div class="chart-tabs-top-right">
+        <button class="tab-btn-modern active" onclick="showTab('weekly')">Weekly</button>
+        <button class="tab-btn-modern" onclick="showTab('monthly')">Monthly</button>
+        <button class="tab-btn-modern" onclick="showTab('annually')">Annually</button>
+    </div>
+
+    <div class="chart-container-full">
+        <div class="chart-placeholder-large">
+            <i class="fas fa-wrench"></i>
+            <p id="chart-title">Weekly maintenance expenses chart will be displayed here</p>
+            <p class="chart-description">This chart tracks maintenance costs and patterns, helping you plan preventive maintenance schedules and budget for vehicle upkeep across different time periods.</p>
+        </div>
+    </div>
+
+    </div>
+
+<script>
+function showTab(period) {
+    const tabs = document.querySelectorAll('.tab-btn-modern');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    const chartTitle = document.getElementById('chart-title');
+    const descriptions = {
+        weekly: 'Weekly maintenance expenses chart will be displayed here',
+        monthly: 'Monthly maintenance expenses chart will be displayed here', 
+        annually: 'Annual maintenance expenses chart will be displayed here'
+    };
+    
+    chartTitle.textContent = descriptions[period];
+}
+
+function exportToPDF() {
+    showNotification('Exporting to PDF...', 'info');
+    setTimeout(() => {
+        showNotification('PDF exported successfully!', 'success');
+    }, 1000);
+}
+
+function exportToCSV() {
+    showNotification('Exporting to CSV...', 'info');
+    setTimeout(() => {
+        showNotification('CSV exported successfully!', 'success');
+    }, 1000);
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>

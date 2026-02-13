@@ -1,0 +1,114 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\acerh\\source\\repos\\RouteX\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\views\\fuel\\fuelpage.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\fuel\\fuelpage.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\views\\vehicles\\addvehicle.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\vehicles\\addvehicle.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 4,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\appsettings.json",
+              "RelativeDocumentMoniker": "RouteX\\appsettings.json",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\appsettings.json",
+              "RelativeToolTip": "RouteX\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-02-12T01:04:19.887Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Program.cs",
+              "RelativeDocumentMoniker": "RouteX\\Program.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Program.cs",
+              "RelativeToolTip": "RouteX\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-12T01:04:12.903Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "FuelPage.cshtml",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Fuel\\FuelPage.cshtml",
+              "RelativeDocumentMoniker": "RouteX\\Views\\Fuel\\FuelPage.cshtml",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Fuel\\FuelPage.cshtml",
+              "RelativeToolTip": "RouteX\\Views\\Fuel\\FuelPage.cshtml",
+              "ViewState": "AgIAAP0AAAAAAAAAAIBJwAwBAABgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-02-10T13:54:27.048Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AddVehicle.cshtml",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Vehicles\\AddVehicle.cshtml",
+              "RelativeDocumentMoniker": "RouteX\\Views\\Vehicles\\AddVehicle.cshtml",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Vehicles\\AddVehicle.cshtml",
+              "RelativeToolTip": "RouteX\\Views\\Vehicles\\AddVehicle.cshtml",
+              "ViewState": "AgIAAOUAAAAAAAAAAAAawOkAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-02-09T14:54:50.694Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

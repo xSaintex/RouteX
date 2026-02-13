@@ -1,0 +1,206 @@
+@model IEnumerable<RouteX.Models.Vehicle>
+@{
+    ViewData["Title"] = "Vehicle Management";
+    var totalVehicles = Model.Count();
+    var showingCount = Math.Min(totalVehicles, 10);
+}
+
+<div class="vehicles-container">
+    <div class="vehicles-header">
+        <p>Manage and monitor your vehicle fleet</p>
+    </div>
+
+    <div class="vehicles-actions">
+        <button class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add New Vehicle
+        </button>
+        <div class="search-filter">
+            <input type="text" class="form-control" id="vehicleSearch" placeholder="Search vehicles...">
+            <select class="form-control" id="statusFilter">
+                <option value="">All Status</option>
+                @foreach (var status in Enum.GetValues(typeof(RouteX.Models.VehicleStatus)))
+                {
+                    <option value="@status.ToString()">@status.ToString()</option>
+                }
+            </select>
+            <button class="btn btn-outline-secondary" onclick="filterVehicles()">
+                <i class="fas fa-filter"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="vehicles-table-container">
+        <table class="vehicles-table">
+            <thead>
+                <tr>
+                    <th>Vehicle ID</th>
+                    <th>Unit Model</th>
+                    <th>Plate #</th>
+                    <th>Vehicle Type</th>
+                    <th>Status</th>
+                    <th>Mileage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="vehicleTableBody">
+                @foreach (var vehicle in Model.Take(10))
+                {
+                    <tr class="vehicle-row" data-status="@vehicle.Status" data-model="@vehicle.UnitModel.ToLower()" data-plate="@vehicle.PlateNumber.ToLower()" data-type="@vehicle.VehicleType.ToLower()">
+                        <td>@vehicle.Id</td>
+                        <td>@vehicle.UnitModel</td>
+                        <td>@vehicle.PlateNumber</td>
+                        <td>@vehicle.VehicleType</td>
+                        <td>
+                            <span class="status-badge status-@vehicle.Status.ToString().ToLower()">
+                                @vehicle.Status
+                            </span>
+                        </td>
+                        <td>@vehicle.Mileage.ToString("N0") km</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn edit-btn" title="Edit Vehicle">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn view-btn" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn route-btn" title="View Route">
+                                    <i class="fas fa-route"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="7">
+                        <div class="table-pagination">
+                            <div class="pagination-info">
+                                Showing 1-@showingCount of @totalVehicles entries
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="page-link" type="button" onclick="changePage(-1)">&lt;</button>
+                                <button class="page-link active" type="button" onclick="changePage(0)">1</button>
+                                @if (totalVehicles > 10)
+                                {
+                                    <button class="page-link" type="button" onclick="changePage(1)">2</button>
+                                }
+                                <button class="page-link" type="button" onclick="changePage(1)">&gt;</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<style>
+.search-filter {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-filter input[type="text"] {
+    min-width: 250px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 8px 12px;
+}
+
+.search-filter select {
+    min-width: 150px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 8px 12px;
+}
+
+.search-filter button {
+    padding: 8px 12px !important;
+    min-width: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #6c757d !important;
+    background: #f8f9fa !important;
+    color: #495057 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.search-filter button:hover {
+    background: #e9ecef !important;
+    border-color: #5a6268 !important;
+}
+
+.search-filter button i {
+    margin: 0 !important;
+    font-size: 14px !important;
+}
+</style>
+
+<script>
+let currentPage = 1;
+const itemsPerPage = 10;
+const allVehicles = @Html.Raw(Json.Serialize(Model));
+
+function filterVehicles() {
+    const searchTerm = document.getElementById('vehicleSearch').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const tbody = document.getElementById('vehicleTableBody');
+    const rows = tbody.getElementsByClassName('vehicle-row');
+    
+    let visibleCount = 0;
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const model = row.getAttribute('data-model').toLowerCase();
+        const plate = row.getAttribute('data-plate').toLowerCase();
+        const type = row.getAttribute('data-type').toLowerCase();
+        const status = row.getAttribute('data-status');
+        
+        const matchesSearch = !searchTerm || model.includes(searchTerm) || plate.includes(searchTerm) || type.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === status;
+        
+        if (matchesSearch && matchesStatus) {
+            row.style.display = '';
+            visibleCount++;
+            if (visibleCount <= itemsPerPage) {
+                row.classList.remove('hidden-page');
+            } else {
+                row.classList.add('hidden-page');
+            }
+        } else {
+            row.style.display = 'none';
+        }
+    }
+    
+    updatePagination(visibleCount);
+}
+
+// Auto-filter on search input - automatically filters as you type
+document.getElementById('vehicleSearch').addEventListener('input', function() {
+    filterVehicles();
+});
+
+// Auto-filter on status change - automatically filters when status dropdown changes
+document.getElementById('statusFilter').addEventListener('change', function() {
+    filterVehicles();
+});
+
+function updatePagination(visibleCount) {
+    const paginationInfo = document.querySelector('.pagination-info');
+    const showingCount = Math.min(visibleCount, itemsPerPage);
+    paginationInfo.textContent = `Showing 1-${showingCount} of ${visibleCount} entries`;
+    
+    const nextBtn = document.querySelector('.pagination-controls button:last-child');
+    if (visibleCount <= itemsPerPage) {
+        nextBtn.style.display = 'none';
+    } else {
+        nextBtn.style.display = '';
+    }
+}
+</script>

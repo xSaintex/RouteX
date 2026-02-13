@@ -1,0 +1,260 @@
+@model RouteX.Models.Vehicle
+@{
+    ViewData["Title"] = "Add Vehicle";
+}
+
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; }
+/* Container consumes full viewport and aligns content to the left-top */
+.add-vehicle-container {
+    width: 100%;
+    height: 100vh;
+    padding: 20px 32px;
+    background: #ffffff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: hidden; /* avoid page scroll */
+}
+
+/* Breadcrumb sits at the very top-left */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.breadcrumb a { color: #ff6b35; text-decoration: none; display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; }
+.breadcrumb a:hover { color: #e55a2b; background: rgba(255,107,53,0.04); }
+
+/* Form area: don't allow its own scrolling so page shows no scroll */
+.add-vehicle-form {
+    width: 100%;
+    max-width: 1100px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    height: auto; /* don't force internal scroll */
+    box-sizing: border-box;
+    overflow: visible; /* prevent internal scroll */
+}
+
+/* Grid layout: two columns for pairs */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.form-group { display:flex; flex-direction:column; }
+.form-group label { margin-bottom:6px; color:#1a1a1a; font-weight:600; font-size:13px; }
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    color: #1a1a1a;
+}
+
+.form-group input:focus, .form-group select:focus { outline:none; border-color:#ff6b35; box-shadow: 0 0 0 2px rgba(255,107,53,0.08); }
+
+/* Make certain fields full width (span both columns) */
+.form-group.full { grid-column: 1 / -1; }
+
+/* Validation */
+.validation-message { color: #dc3545; font-size: 11px; margin-top: 6px; display: none; }
+.form-group.error .validation-message { display:block; }
+
+/* Action buttons pinned to bottom of the form */
+.form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e9ecef; }
+.btn-save { background: #ff6b35; color: white; border: none; padding:10px 22px; border-radius:6px; font-weight:600; cursor: pointer; transition: all 0.12s ease; }
+.btn-cancel { background: transparent; color:#6c757d; border:1px solid #e9ecef; padding:10px 22px; border-radius:6px; cursor: pointer; transition: all 0.12s ease; }
+
+/* Hover effects for buttons */
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(255,107,53,0.14); background: #e55a2b; }
+.btn-cancel:hover { background: #f8f9fa; border-color: #dcdcdc; color: #1a1a1a; }
+
+/* Status text-only styles */
+.status-badge { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; font-weight:600; }
+.status-active { color: #28a745 !important; }
+.status-maintenance { color: #ffb300 !important; }
+.status-inactive { color: #dc3545 !important; }
+
+/* Status select default appearance (grayed) */
+.status-default { color: #6c757d; }
+
+/* Responsive adjustments */
+@@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .add-vehicle-form { height: auto; }
+}
+</style>
+
+<div class="add-vehicle-container">
+    <div class="breadcrumb">
+        <a href="@Url.Action("VehiclePage", "Vehicles")">
+            <i class="fas fa-car"></i>
+            <span>Vehicles</span>
+        </a>
+        <span>›</span>
+        <i class="fas fa-plus"></i>
+        <span>Add Vehicle</span>
+    </div>
+
+    <form asp-action="AddVehicle" method="post" class="add-vehicle-form" id="addVehicleForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label asp-for="UnitModel">Unit Model</label>
+                <input asp-for="UnitModel" type="text" id="unitModel" placeholder="e.g., Toyota Hilux 2023" required />
+                <span class="validation-message">Please enter a unit model</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PlateNumber">Plate #</label>
+                <input asp-for="PlateNumber" type="text" id="plateNumber" placeholder="e.g., ABC-1234" required />
+                <span class="validation-message">Please enter a plate number</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="VehicleType">Vehicle Type</label>
+                <select asp-for="VehicleType" id="vehicleType" required>
+                    <option value="">Select Vehicle Type</option>
+                    <option value="Truck">Truck</option>
+                    <option value="Car">Car</option>
+                    <option value="Van">Van</option>
+                </select>
+                <span class="validation-message">Please select a vehicle type</span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Status">Status</label>
+                <div class="status-badge status-default" aria-hidden="true">Active</div>
+                <input asp-for="Status" type="hidden" value="Active" />
+            </div>
+
+            <div class="form-group full">
+                <label asp-for="Mileage">Current Mileage (km)</label>
+                <input asp-for="Mileage" type="number" id="mileage" placeholder="e.g., 15000" min="0" required />
+                <span class="validation-message">Please enter current mileage</span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='@Url.Action("VehiclePage", "Vehicles")'">Cancel</button>
+            <button type="submit" class="btn-save"><i class="fas fa-save"></i> Save Vehicle</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addVehicleForm');
+    const inputs = form.querySelectorAll('input[required], select[required]');
+
+    // Real-time validation
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() { validateField(this); });
+        input.addEventListener('input', function() { if (this.parentElement.classList.contains('error')) validateField(this); });
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        inputs.forEach(input => { if (!validateField(input)) isValid = false; });
+
+        if (isValid) {
+            const plateNumber = document.getElementById('plateNumber').value;
+            checkPlateNumberUniqueness(plateNumber).then(isUnique => {
+                if (isUnique) {
+                    // Remove the event listener to allow normal form submission
+                    form.removeEventListener('submit', arguments.callee);
+                    form.submit();
+                } else {
+                    showPlateNumberError();
+                }
+            });
+        } else {
+            e.preventDefault();
+        }
+    });
+
+    function validateField(field) {
+        const formGroup = field.parentElement;
+        const validationMessage = formGroup.querySelector('.validation-message');
+
+        if (field.hasAttribute('required') && !field.value.trim()) {
+            formGroup.classList.add('error');
+            formGroup.classList.remove('success');
+            return false;
+        }
+
+        if (field.id === 'plateNumber') {
+            const plateRegex = /^[A-Z]{3}-\d{4}$/;
+            if (!plateRegex.test(field.value.toUpperCase())) {
+                validationMessage.textContent = 'Plate number must be in format: ABC-1234';
+                formGroup.classList.add('error');
+                formGroup.classList.remove('success');
+                return false;
+            }
+        }
+
+        if (field.id === 'mileage' && field.value && parseInt(field.value) < 0) {
+            validationMessage.textContent = 'Mileage cannot be negative';
+            formGroup.classList.add('error');
+            formGroup.classList.remove('success');
+            return false;
+        }
+
+        formGroup.classList.remove('error');
+        formGroup.classList.add('success');
+        return true;
+    }
+
+    async function checkPlateNumberUniqueness(plateNumber) {
+        // Simulate API call to check uniqueness
+        const existingPlates = ['ABC-1234', 'XYZ-5678', 'DEF-9012']; // Sample existing plates
+        return !existingPlates.includes(plateNumber.toUpperCase());
+    }
+
+    function showPlateNumberError() {
+        const plateField = document.getElementById('plateNumber');
+        const formGroup = plateField.parentElement;
+        const validationMessage = formGroup.querySelector('.validation-message');
+
+        validationMessage.textContent = 'This plate number already exists';
+        formGroup.classList.add('error');
+        formGroup.classList.remove('success');
+    }
+
+    // Auto-format plate number
+    document.getElementById('plateNumber').addEventListener('input', function(e) {
+        let value = e.target.value.toUpperCase();
+        value = value.replace(/[^A-Z0-9-]/g, '');
+
+        // Auto-add hyphen after 3 letters
+        if (value.length === 3 && !value.includes('-')) {
+            value += '-';
+        }
+
+        // Limit to 8 characters (ABC-1234)
+        if (value.length > 8) {
+            value = value.substring(0, 8);
+        }
+
+        e.target.value = value;
+    });
+});
+</script>

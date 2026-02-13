@@ -1,0 +1,392 @@
+@model RouteX.Models.FuelEntry
+@{
+    ViewData["Title"] = "Edit Fuel";
+}
+
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; }
+/* Container consumes full viewport and aligns content to the left-top */
+.edit-fuel-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px 32px;
+    background: #ffffff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow: visible; /* allow content to be visible */
+}
+
+/* Breadcrumb sits at the very top-left */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.breadcrumb a { color: #ff6b35; text-decoration: none; display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; }
+.breadcrumb a:hover { color: #e55a2b; background: rgba(255,107,53,0.04); }
+.breadcrumb span { color: #999; }
+.breadcrumb .fuel-text { color: #ff6b35; font-weight: 500; }
+
+/* Form area: don't allow its own scrolling so page shows no scroll */
+.edit-fuel-form {
+    width: 100%;
+    max-width: 1100px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    height: auto; /* don't force internal scroll */
+    box-sizing: border-box;
+    overflow: visible; /* prevent internal scroll */
+}
+
+/* Grid layout: two columns for pairs */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.form-group { display:flex; flex-direction:column; }
+.form-group label { margin-bottom:6px; color:#1a1a1a; font-weight:600; font-size:13px; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #ff6b35;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-weight: 400;
+    cursor: pointer;
+    color: #1a1a1a;
+    font-size: 14px;
+}
+
+.file-upload {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.file-upload-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: #666;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.file-upload-label:hover {
+    border-color: #ff6b35;
+    background: #fff5f0;
+    color: #ff6b35;
+}
+
+.file-upload-label i {
+    font-size: 18px;
+}
+
+.file-preview {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #666;
+}
+
+.file-preview img {
+    max-width: 60px;
+    max-height: 60px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+/* Action buttons pinned to bottom of the form */
+.form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e9ecef; }
+.btn-save { background: #ff6b35; color: white; border: none; padding:10px 22px; border-radius:6px; font-weight:600; cursor: pointer; transition: all 0.12s ease; }
+.btn-cancel { background: transparent; color:#6c757d; border:1px solid #e9ecef; padding:10px 22px; border-radius:6px; cursor: pointer; transition: all 0.12s ease; }
+
+/* Hover effects for buttons */
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(255,107,53,0.14); background: #e55a2b; }
+.btn-cancel:hover { background: #f8f9fa; border-color: #dcdcdc; color: #1a1a1a; }
+
+.calculated-field {
+    background: #f8f9fa !important;
+    color: #666 !important;
+    cursor: not-allowed;
+}
+
+.validation-message {
+    display: none;
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.form-group input:invalid ~ .validation-message {
+    display: block;
+}
+
+/* Responsive adjustments */
+@@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .edit-fuel-form { padding: 20px; }
+}
+</style>
+
+<div class="edit-fuel-container">
+    <div class="breadcrumb">
+        <a href="@Url.Action("FuelPage", "Fuel")">
+            <i class="fas fa-gas-pump"></i>
+            <span class="fuel-text">Fuel</span>
+        </a>
+        <span>›</span>
+        <i class="fas fa-edit"></i>
+        <span>Edit Fuel</span>
+    </div>
+
+    <form asp-action="EditFuel" method="post" class="edit-fuel-form" id="editFuelForm" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Id" />
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="vehicle">Vehicle *</label>
+                <select id="vehicle" name="VehicleId" required>
+                    <option value="">Select Vehicle</option>
+                    @if (ViewBag.Vehicles != null)
+                    {
+                        foreach (var vehicle in ViewBag.Vehicles)
+                        {
+                            <option value="@vehicle.Id">@vehicle.PlateNumber - @vehicle.UnitModel</option>
+                        }
+                    }
+                </select>
+                <span class="validation-message">Please select a vehicle</span>
+            </div>
+
+            <div class="form-group">
+                <label for="driver">Driver *</label>
+                <input type="text" id="driver" name="Driver" value="@(Model?.Driver ?? string.Empty)" placeholder="Enter driver name" required />
+                <span class="validation-message">Please enter driver name</span>
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date *</label>
+                <input type="date" id="date" name="Date" value="@(Model?.DateTime != null ? Model.DateTime.ToString("yyyy-MM-dd") : string.Empty)" required />
+                <span class="validation-message">Please select date</span>
+            </div>
+
+            <div class="form-group">
+                <label for="fuelStation">Fuel Station *</label>
+                <input type="text" id="fuelStation" name="FuelStation" value="@(Model?.FuelStation ?? string.Empty)" placeholder="e.g., Shell, Petron, Caltex" required />
+                <span class="validation-message">Please enter fuel station</span>
+            </div>
+
+            <div class="form-group">
+                <label for="odometer">Current Odometer (Mileage) *</label>
+                <input type="number" id="odometer" name="Odometer" value="@(Model?.Odometer.ToString())" placeholder="e.g., 15420" min="0" required />
+                <span class="validation-message">Please enter current odometer reading</span>
+            </div>
+
+            <div class="form-group">
+                <label for="fuelVolume">Fuel Volume (Liters) *</label>
+                <input type="number" id="fuelVolume" name="FuelVolume" value="@(Model?.Liters.ToString().Replace(',', '.'))" placeholder="e.g., 45.5" step="0.1" min="0" required />
+                <span class="validation-message">Please enter fuel volume</span>
+            </div>
+
+            <div class="form-group">
+                <label for="totalCost">Total Cost (₱) *</label>
+                <input type="number" id="totalCost" name="TotalCost" value="@(Model?.TotalCost.ToString().Replace(',', '.'))" placeholder="e.g., 1850.75" step="0.01" min="0" required />
+                <span class="validation-message">Please enter total cost</span>
+            </div>
+
+            <div class="form-group">
+                <label for="pricePerLiter">Price per Liter (₱)</label>
+                <input type="number" id="pricePerLiter" name="PricePerLiter" value="@((Model != null && Model.TotalCost > 0 && Model.Liters > 0) ? (Model.TotalCost / Model.Liters).ToString("F2").Replace(',', '.') : string.Empty)" placeholder="Auto-calculated" step="0.01" readonly class="calculated-field" />
+            </div>
+
+            <div class="form-group">
+                <label for="fuelType">Fuel Type *</label>
+                <select id="fuelType" name="FuelType" required>
+                    <option value="">Select Fuel Type</option>
+                    @{
+                        var fuelTypes = new[] { "Diesel", "Premium", "Regular", "Unleaded", "Ethanol" };
+                        foreach (var type in fuelTypes)
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    }
+                </select>
+                <span class="validation-message">Please select fuel type</span>
+            </div>
+
+            <div class="form-group">
+                <label>Full Tank</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="fullTank" name="FullTank" value="true" @(Model?.FullTank == true ? "checked" : "") />
+                    <label for="fullTank">Yes</label>
+                </div>
+            </div>
+
+            <div class="form-group full">
+                <label for="receiptUpload">Receipt Upload</label>
+                <div class="file-upload">
+                    <input type="file" id="receiptUpload" name="ReceiptUpload" accept="image/*" />
+                    <label for="receiptUpload" class="file-upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Click to upload receipt image</span>
+                    </label>
+                    <div class="file-preview" id="filePreview">
+                        <img id="previewImage" src="" alt="Receipt preview" />
+                        <span id="fileName"></span>
+                        <button type="button" id="removeFile" style="background: none; border: none; color: #dc3545; cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group full">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="Notes" placeholder="e.g., Station pump was slow, Used emergency cash">@(Model?.Notes ?? string.Empty)</textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='@Url.Action("FuelPage", "Fuel")'">Cancel</button>
+            <button type="submit" class="btn-save"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editFuelForm');
+    const fuelVolumeInput = document.getElementById('fuelVolume');
+    const totalCostInput = document.getElementById('totalCost');
+    const pricePerLiterInput = document.getElementById('pricePerLiter');
+    const fileInput = document.getElementById('receiptUpload');
+    const filePreview = document.getElementById('filePreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileName = document.getElementById('fileName');
+    const removeFileBtn = document.getElementById('removeFile');
+
+    // Calculate price per liter
+    function calculatePricePerLiter() {
+        const volume = parseFloat(fuelVolumeInput.value);
+        const totalCost = parseFloat(totalCostInput.value);
+
+        if (volume > 0 && totalCost > 0) {
+            const pricePerLiter = totalCost / volume;
+            pricePerLiterInput.value = pricePerLiter.toFixed(2);
+        } else {
+            pricePerLiterInput.value = '';
+        }
+    }
+
+    fuelVolumeInput.addEventListener('input', calculatePricePerLiter);
+    totalCostInput.addEventListener('input', calculatePricePerLiter);
+
+    // File upload handling
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                fileName.textContent = file.name;
+                filePreview.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeFileBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        previewImage.src = '';
+        fileName.textContent = '';
+        filePreview.style.display = 'none';
+    });
+
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('invalid');
+            } else {
+                field.classList.remove('invalid');
+            }
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+});
+</script>

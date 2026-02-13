@@ -1,0 +1,261 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\acerh\\source\\repos\\RouteX\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|ViewDataWindow_MSSQL__/db41235.public.databaseasp.net/db41235/db41235/SqlTable/dbo.Users.sql||{0058A1F7-65F3-4DB9-B3D0-CA7E64DD73CD}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\acerh\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-2b3c536d-7980-47b4-9f54-4f12acefcbcd.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|MarkdownSecurePreview"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\migrations\\20260212123252_initialcreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\migrations\\20260212123252_initialcreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\controllers\\vehiclescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\vehiclescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\views\\vehicles\\editvehicle.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\vehicles\\editvehicle.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\models\\vehicle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\vehicle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\views\\finance\\totalfuel.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\finance\\totalfuel.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\migrations\\applicationdbcontextmodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\migrations\\applicationdbcontextmodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "dbo.Users [Data]",
+              "DocumentMoniker": "ViewDataWindow_MSSQL__/db41235.public.databaseasp.net/db41235/db41235/SqlTable/dbo.Users.sql",
+              "ToolTip": "dbo.Users [Data]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-02-13T02:34:29.021Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "ApplicationDbContextModelSnapshot.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "RelativeDocumentMoniker": "RouteX\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "RelativeToolTip": "RouteX\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "ViewState": "AgIAAPcAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-13T02:21:11.388Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ApplicationDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Data\\ApplicationDbContext.cs",
+              "RelativeDocumentMoniker": "RouteX\\Data\\ApplicationDbContext.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Data\\ApplicationDbContext.cs",
+              "RelativeToolTip": "RouteX\\Data\\ApplicationDbContext.cs",
+              "ViewState": "AgIAACAAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-13T02:20:17.155Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "plan-2b3c536d-7980-47b4-9f54-4f12acefcbcd.md [Preview]",
+              "DocumentMoniker": "C:\\Users\\acerh\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-2b3c536d-7980-47b4-9f54-4f12acefcbcd.md",
+              "RelativeDocumentMoniker": "..\\..\\..\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-2b3c536d-7980-47b4-9f54-4f12acefcbcd.md",
+              "ToolTip": "C:\\Users\\acerh\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-2b3c536d-7980-47b4-9f54-4f12acefcbcd.md [Preview]",
+              "RelativeToolTip": "..\\..\\..\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-2b3c536d-7980-47b4-9f54-4f12acefcbcd.md [Preview]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-13T02:20:05.396Z",
+              "EditorCaption": " [Preview]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "20260212123252_InitialCreate.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Migrations\\20260212123252_InitialCreate.cs",
+              "RelativeDocumentMoniker": "RouteX\\Migrations\\20260212123252_InitialCreate.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Migrations\\20260212123252_InitialCreate.cs",
+              "RelativeToolTip": "RouteX\\Migrations\\20260212123252_InitialCreate.cs",
+              "ViewState": "AgIAANwAAAAAAAAAAAAiwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-13T01:43:25.845Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\appsettings.json",
+              "RelativeDocumentMoniker": "RouteX\\appsettings.json",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\appsettings.json",
+              "RelativeToolTip": "RouteX\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-02-12T22:45:33.504Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "TotalFuel.cshtml",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Finance\\TotalFuel.cshtml",
+              "RelativeDocumentMoniker": "RouteX\\Views\\Finance\\TotalFuel.cshtml",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Finance\\TotalFuel.cshtml",
+              "RelativeToolTip": "RouteX\\Views\\Finance\\TotalFuel.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAxwGIBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-02-12T21:11:13.004Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Vehicle.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Models\\Vehicle.cs",
+              "RelativeDocumentMoniker": "RouteX\\Models\\Vehicle.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Models\\Vehicle.cs",
+              "RelativeToolTip": "RouteX\\Models\\Vehicle.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAA8wAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-12T09:08:15.61Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Program.cs",
+              "RelativeDocumentMoniker": "RouteX\\Program.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Program.cs",
+              "RelativeToolTip": "RouteX\\Program.cs",
+              "ViewState": "AgIAADgAAAAAAAAAAAAiwG4AAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-12T09:04:19.469Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "EditVehicle.cshtml",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Vehicles\\EditVehicle.cshtml",
+              "RelativeDocumentMoniker": "RouteX\\Views\\Vehicles\\EditVehicle.cshtml",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Vehicles\\EditVehicle.cshtml",
+              "RelativeToolTip": "RouteX\\Views\\Vehicles\\EditVehicle.cshtml",
+              "ViewState": "AgIAAHAAAAAAAAAAAMBdwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-02-12T08:56:17.548Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "VehiclesController.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Controllers\\VehiclesController.cs",
+              "RelativeDocumentMoniker": "RouteX\\Controllers\\VehiclesController.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Controllers\\VehiclesController.cs",
+              "RelativeToolTip": "RouteX\\Controllers\\VehiclesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAG0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-12T08:55:56.258Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "HomeController.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Controllers\\HomeController.cs",
+              "RelativeDocumentMoniker": "RouteX\\Controllers\\HomeController.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Controllers\\HomeController.cs",
+              "RelativeToolTip": "RouteX\\Controllers\\HomeController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-12T08:45:19.284Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "_Layout.cshtml",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Shared\\_Layout.cshtml",
+              "RelativeDocumentMoniker": "RouteX\\Views\\Shared\\_Layout.cshtml",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Views\\Shared\\_Layout.cshtml",
+              "RelativeToolTip": "RouteX\\Views\\Shared\\_Layout.cshtml",
+              "ViewState": "AgIAAEgAAAAAAAAAAAAewAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-02-12T08:37:54.462Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

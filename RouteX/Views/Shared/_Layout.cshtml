@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RouteX</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/RouteX.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand-container">
+                    <img src="~/routexlogo.png" alt="RouteX Logo" class="sidebar-logo" id="sidebarLogoToggle" />
+                    <span class="sidebar-brand">
+                        <span class="route-text">Route</span><span class="x-text">X</span>
+                    </span>
+                </div>
+                <button class="sidebar-collapse-btn" id="sidebarCollapseBtn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li class="menu-item">
+                    <a href="@Url.Action("Index", "Home")" class="menu-link @(ViewData["Title"]?.ToString() == "Dashboard" ? "active" : "")">
+                        <i class="fas fa-tachometer-alt menu-icon"></i>
+                        <span class="menu-text">Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("VehiclePage", "Vehicles")" class="menu-link @(ViewData["Title"]?.ToString() == "Vehicle Management" ? "active" : "")">
+                        <i class="fas fa-truck menu-icon"></i>
+                        <span class="menu-text">Vehicles</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("FuelPage", "Fuel")" class="menu-link @(ViewData["Title"]?.ToString() == "Fuel Management" ? "active" : "")">
+                        <i class="fas fa-gas-pump menu-icon"></i>
+                        <span class="menu-text">Fuel</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("MaintenancePage", "Maintenance")" class="menu-link @(ViewData["Title"]?.ToString() == "Maintenance Schedule" ? "active" : "")">
+                        <i class="fas fa-wrench menu-icon"></i>
+                        <span class="menu-text">Maintenance</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("FinancePage", "Finance")" class="menu-link @(ViewData["Title"]?.ToString() == "Finance" ? "active" : "")">
+                        <i class="fas fa-dollar-sign menu-icon"></i>
+                        <span class="menu-text">Finance</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("ReportsPage", "Reports")" class="menu-link @(ViewData["Title"]?.ToString() == "Reports" ? "active" : "")">
+                        <i class="fas fa-chart-bar menu-icon"></i>
+                        <span class="menu-text">Reports</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("AuditPage", "Audit")" class="menu-link @(ViewData["Title"]?.ToString() == "Audit Logs" ? "active" : "")">
+                        <i class="fas fa-clipboard-list menu-icon"></i>
+                        <span class="menu-text">Audit</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("UsersPage", "Users")" class="menu-link @(ViewData["Title"]?.ToString() == "Users List" ? "active" : "")">
+                        <i class="fas fa-users menu-icon"></i>
+                        <span class="menu-text">Users</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <a href="@Url.Action("Logout", "Account")" class="logout-btn">
+                    <i class="fas fa-sign-out-alt menu-icon"></i>
+                    <span class="menu-text">Logout</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-content">
+                    <h1 class="page-title">@ViewData["Title"]</h1>
+                    <div class="topbar-actions">
+                        <div class="user-menu">
+                            <i class="fas fa-user-circle user-avatar"></i>
+                            <span class="user-name">Admin User</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="content-area">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const collapseIcon = document.querySelector('#sidebarCollapseBtn i');
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+                collapseIcon.classList.remove('fa-chevron-left');
+                collapseIcon.classList.add('fa-chevron-right');
+            }
+            
+            // Mobile menu toggle functionality
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('mobile-open');
+                });
+            }
+            
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768) {
+                    if (!sidebar.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+                        sidebar.classList.remove('mobile-open');
+                    }
+                }
+            });
+            
+            // Handle sidebar collapse in mobile view
+            document.getElementById('sidebarCollapseBtn').addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    // In mobile view, just toggle collapsed state but keep mobile-open if it was open
+                    const wasMobileOpen = sidebar.classList.contains('mobile-open');
+                    sidebar.classList.toggle('collapsed');
+                    if (wasMobileOpen) {
+                        sidebar.classList.add('mobile-open');
+                    }
+                } else {
+                    toggleSidebar();
+                }
+            });
+            
+            document.getElementById('sidebarLogoToggle').addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    const wasMobileOpen = sidebar.classList.contains('mobile-open');
+                    if (sidebar.classList.contains('collapsed')) {
+                        sidebar.classList.remove('collapsed');
+                        if (wasMobileOpen) {
+                            sidebar.classList.add('mobile-open');
+                        }
+                    }
+                } else {
+                    if (sidebar.classList.contains('collapsed')) {
+                        toggleSidebar();
+                    }
+                }
+            });
+        });
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const collapseIcon = document.querySelector('#sidebarCollapseBtn i');
+            sidebar.classList.toggle('collapsed');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
+            
+            if (isCollapsed) {
+                collapseIcon.classList.remove('fa-chevron-left');
+                collapseIcon.classList.add('fa-chevron-right');
+            } else {
+                collapseIcon.classList.remove('fa-chevron-right');
+                collapseIcon.classList.add('fa-chevron-left');
+            }
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
