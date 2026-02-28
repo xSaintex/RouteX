@@ -29,6 +29,8 @@ namespace RouteX.Models
         
         public string? AttachmentPath { get; set; }
         
+        public bool IsArchived { get; set; } = false;
+        
         // Navigation properties
         public Vehicle? Vehicle { get; set; }
         

@@ -1,0 +1,459 @@
+@model RouteX.ViewModels.ArchiveViewModel
+@{
+    ViewData["Title"] = "Archive";
+    var archiveLogs = ViewBag.ArchiveLogLookup as Dictionary<string, RouteX.Models.AuditLog> ?? new Dictionary<string, RouteX.Models.AuditLog>();
+}
+
+<style>
+.archive-container {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    padding: 30px;
+    margin: 20px;
+}
+
+.archive-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.archive-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.archive-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.search-filter {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666666;
+    font-size: 0.9rem;
+}
+
+.search-box .form-control {
+    padding-left: 45px;
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.filter-dropdown .form-control {
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9rem;
+    min-width: 150px;
+    transition: all 0.3s ease;
+}
+
+.date-range {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.date-range .form-control {
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9rem;
+    padding: 0 15px;
+    transition: all 0.3s ease;
+}
+
+.archive-table-container {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.archive-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.archive-table th {
+    background: rgba(255, 107, 53, 0.18);
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #333333;
+    border-bottom: 2px solid rgba(255, 107, 53, 0.18);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.archive-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666666;
+    font-size: 0.85rem;
+}
+
+.archive-table tbody tr:hover {
+    background-color: transparent;
+}
+
+.archive-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #333333;
+}
+
+.restore-btn {
+    background: #ff6b35;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.restore-btn:hover {
+    background: #e55a2b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+.restore-btn i {
+    font-size: 12px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 64px;
+    color: #dee2e6;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.empty-state p {
+    font-size: 16px;
+    margin: 0;
+}
+
+.archive-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.pagination-info {
+    color: #666666;
+    font-size: 0.85rem;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-pagination {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #666666;
+    transition: all 0.3s ease;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #ffffff;
+}
+
+.btn-pagination.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #ffffff;
+}
+
+.btn-pagination:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+
+<div class="archive-container">
+    <div class="archive-header">
+        <h1 class="archive-title">Archive</h1>
+        
+        <div class="archive-controls">
+            <div class="search-filter">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control" placeholder="Search archived items..." id="searchInput" />
+                </div>
+                <div class="filter-dropdown">
+                    <select class="form-control" id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Vehicle">Vehicle</option>
+                        <option value="Fuel">Fuel</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Finance">Finance</option>
+                        <option value="User">User</option>
+                    </select>
+                </div>
+                <div class="date-range">
+                    <input type="date" class="form-control" id="startDateFilter" placeholder="Start Date" />
+                    <input type="date" class="form-control" id="endDateFilter" placeholder="End Date" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="archive-table-container">
+        <table class="archive-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Item Details</th>
+                    <th>Archived Date</th>
+                    <th>Archived By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="archiveTableBody">
+                @foreach (var item in Model.ArchiveItems)
+                {
+                    <tr class="archive-item" data-category="@item.Category" data-date="@item.ArchivedDate.ToString("yyyy-MM-dd")" data-archived-by="@item.ArchivedBy">
+                        <td>
+                            <span class="category-badge">@item.Category</span>
+                        </td>
+                        <td>
+                            @Html.Raw(item.DetailsHtml)
+                        </td>
+                        <td>@item.ArchivedDate.ToString("MMM dd, yyyy")</td>
+                        <td>@item.ArchivedBy</td>
+                        <td>
+                            <form method="post" asp-action="@item.RestoreAction" style="display:inline;">
+                                <input type="hidden" name="id" value="@item.RestoreId" />
+                                <button type="submit" class="restore-btn" onclick="return confirm('Are you sure you want to restore this item?')">
+                                    <i class="fas fa-undo"></i>
+                                    Restore
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!Model.ArchivedVehicles.Any() && !Model.ArchivedFuel.Any() && !Model.ArchivedMaintenance.Any() && !Model.ArchivedFinance.Any() && !Model.ArchivedUsers.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-archive"></i>
+                <h3>No Archived Items</h3>
+                <p>There are currently no archived items to display.</p>
+            </div>
+        }
+    </div>
+
+    <div class="archive-pagination">
+        <div class="pagination-info">
+            <span>Showing 1-10 of @(Model.ArchivedVehicles.Count() + Model.ArchivedFuel.Count() + Model.ArchivedMaintenance.Count() + Model.ArchivedFinance.Count() + Model.ArchivedUsers.Count()) entries</span>
+        </div>
+        <div class="pagination-controls">
+            <button class="btn-pagination" disabled>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="btn-pagination active">1</button>
+            <button class="btn-pagination">2</button>
+            <button class="btn-pagination">3</button>
+            <button class="btn-pagination">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const startDateFilter = document.getElementById('startDateFilter');
+    const endDateFilter = document.getElementById('endDateFilter');
+    const tableRows = document.querySelectorAll('#archiveTableBody tr.archive-item');
+    
+    // Pagination variables
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let filteredRows = Array.from(tableRows);
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedCategory = categoryFilter.value.toLowerCase();
+        const startDate = startDateFilter.value;
+        const endDate = endDateFilter.value;
+
+        filteredRows = Array.from(tableRows).filter(row => {
+            const text = row.textContent.toLowerCase();
+            const rowCategory = (row.getAttribute('data-category') || '').toLowerCase();
+            const rowDate = row.getAttribute('data-date');
+
+            const matchesSearch = !searchTerm || text.includes(searchTerm);
+            const matchesCategory = !selectedCategory || rowCategory === selectedCategory;
+            const matchesDateRange = (!startDate || rowDate >= startDate) && (!endDate || rowDate <= endDate);
+
+            return matchesSearch && matchesCategory && matchesDateRange;
+        });
+
+        currentPage = 1;
+        updatePagination();
+        displayPage();
+    }
+
+    function displayPage() {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        
+        tableRows.forEach(row => {
+            row.style.display = 'none';
+        });
+
+        filteredRows.slice(startIndex, endIndex).forEach(row => {
+            row.style.display = '';
+        });
+
+        updatePaginationInfo();
+    }
+
+    function updatePaginationInfo() {
+        const totalItems = filteredRows.length;
+        const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+        const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+        
+        const infoSpan = document.querySelector('.pagination-info span');
+        infoSpan.textContent = `Showing ${startItem}-${endItem} of ${totalItems} entries`;
+    }
+
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+        const paginationControls = document.querySelector('.pagination-controls');
+        
+        paginationControls.innerHTML = '';
+        
+        // Previous button
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'btn-pagination';
+        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                displayPage();
+                updatePagination();
+            }
+        });
+        paginationControls.appendChild(prevBtn);
+        
+        // Page numbers
+        for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.className = 'btn-pagination';
+            if (i === currentPage) pageBtn.classList.add('active');
+            pageBtn.textContent = i;
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                displayPage();
+                updatePagination();
+            });
+            paginationControls.appendChild(pageBtn);
+        }
+        
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-pagination';
+        nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayPage();
+                updatePagination();
+            }
+        });
+        paginationControls.appendChild(nextBtn);
+    }
+
+    // Initialize
+    filterTable();
+
+    // Event listeners
+    searchInput.addEventListener('input', filterTable);
+    categoryFilter.addEventListener('change', filterTable);
+    startDateFilter.addEventListener('change', filterTable);
+    endDateFilter.addEventListener('change', filterTable);
+});
+</script>

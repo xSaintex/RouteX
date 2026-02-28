@@ -2,8 +2,9 @@
     ViewData["Title"] = "Total Fuel Expenses";
 }
 
-@{
-    string css = @"
+@Html.AntiForgeryToken()
+
+<style>
 .chart-container-full {
     background: white;
     border-radius: 12px;
@@ -37,14 +38,6 @@
     position: relative;
 }
 
-.chart-tabs-top-right {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    gap: 8px;
-}
-
 .tab-btn-modern {
     padding: 8px 16px;
     border: 1px solid #ddd;
@@ -63,6 +56,55 @@
     background: #ff6b35;
     color: white;
     border-color: #ff6b35;
+}
+
+.tab-btn-small {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.tab-btn-small:hover {
+    background: #f8f9fa;
+}
+
+.tab-btn-small.active {
+    background: #ff6b35;
+    color: white;
+    border-color: #ff6b35;
+}
+
+.chart-tabs-below-header {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    justify-content: center;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
 }
 
 .chart-stats {
@@ -91,130 +133,134 @@
     color: #2c3e50;
 }
 
-@media (max-width: 768px) {
+@@media (max-width: 768px) {
     .chart-container-full {
         padding: 16px;
+        margin: 70px 10px 20px !important;
     }
-    
+
     .chart-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
     }
-    
+
     .chart-canvas {
         height: 300px;
     }
-    
-    .chart-tabs-top-right {
-        position: static;
+
+    .chart-tabs-below-header {
         margin-bottom: 16px;
     }
-    
+
     .chart-stats {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
-}";
+
+    .stat-card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
 }
+</style>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>@ViewData["Title"]</title>
-    <style>@css</style>
-</head>
-<body>
-    <div class="vehicles-container">
-        <button class="back-button-top-left" onclick="history.back()">
-            <i class="fas fa-arrow-left"></i>
-            Back
-        </button>
+<div class="vehicles-container">
+    <button class="back-button-top-left" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i>
+        Back
+    </button>
 
-        <div class="chart-container-full">
-            <div class="chart-header">
-                <div>
-                    <h2 class="chart-title">Fuel Expenses Analysis</h2>
-                    <p class="chart-subtitle">Track fuel costs across different time periods</p>
-                </div>
-                
-                <div class="chart-export-buttons">
-                    <button class="btn-export-small" onclick="exportToPDF()">
-                        <i class="fas fa-file-pdf"></i>
-                        Export PDF
-                    </button>
-                    <button class="btn-export-small" onclick="exportToCSV()">
-                        <i class="fas fa-file-csv"></i>
-                        Export CSV
-                    </button>
-                </div>
+    <div class="chart-container-full">
+        <div class="chart-header">
+            <div>
+                <h2 class="chart-title">Total Fuel Cost Over Time</h2>
+                <p class="chart-subtitle">Track fuel spending across different time periods</p>
             </div>
 
-            <div class="chart-tabs-top-right">
-                <button class="tab-btn-modern active" onclick="showTab('weekly')">Weekly</button>
-                <button class="tab-btn-modern" onclick="showTab('monthly')">Monthly</button>
-                <button class="tab-btn-modern" onclick="showTab('annually')">Annually</button>
+            <div class="chart-export-buttons">
+                <button class="btn-export-small" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf"></i>
+                    Export PDF
+                </button>
+                <button class="btn-export-small" onclick="exportToCSV()">
+                    <i class="fas fa-file-csv"></i>
+                    Export CSV
+                </button>
             </div>
+        </div>
 
-            <div class="chart-canvas">
-                <canvas id="fuelChart"></canvas>
+        <div class="chart-tabs-below-header">
+            <button class="tab-btn-small active" onclick="showTab('weekly')">Weekly</button>
+            <button class="tab-btn-small" onclick="showTab('monthly')">Monthly</button>
+            <button class="tab-btn-small" onclick="showTab('annually')">Annually</button>
+        </div>
+
+        <div class="chart-canvas">
+            <canvas id="fuelChart"></canvas>
+        </div>
+
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b35;"></div>
+                <span>Total Fuel Cost</span>
             </div>
+        </div>
 
-            <div class="chart-legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #ff6b35;"></div>
-                    <span>Fuel Cost</span>
-                </div>
+        <div class="chart-stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Fuel Cost</div>
+                <div class="stat-value" id="totalFuelCost">₱0</div>
             </div>
-
-            <div class="chart-stats">
-                <div class="stat-card">
-                    <div class="stat-label">Total Fuel Cost</div>
-                    <div class="stat-value" id="totalFuelCost">?0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Average Fuel Cost</div>
-                    <div class="stat-value" id="avgFuelCost">?0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Highest Period</div>
-                    <div class="stat-value" id="highestFuelCost">?0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Lowest Period</div>
-                    <div class="stat-value" id="lowestFuelCost">?0</div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Fuel Cost</div>
+                <div class="stat-value" id="avgFuelCost">₱0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Highest Month</div>
+                <div class="stat-value" id="highestFuelCost">₱0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Lowest Month</div>
+                <div class="stat-value" id="lowestFuelCost">₱0</div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- jsPDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.WeeklyData));
     const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MonthlyData));
     const annualData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AnnualData));
     
+    // Real statistics data from controller
+    const totalFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.TotalFuelCost ?? 0));
+    const avgFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AvgFuelCost ?? 0));
+    const highestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.HighestMonth));
+    const lowestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.LowestMonth));
+
     let currentChart = null;
-    let currentPeriod = 'weekly';
-    
-    // Show weekly chart by default
+
     showChart('weekly', weeklyData);
-    updateStats(weeklyData);
+    updateStats(totalFuelCost, avgFuelCost, highestMonth, lowestMonth);
 });
 
 function showTab(period) {
-    const tabs = document.querySelectorAll('.tab-btn-modern');
+    const tabs = document.querySelectorAll('.tab-btn-small');
     tabs.forEach(tab => tab.classList.remove('active'));
     event.target.classList.add('active');
-    
-    currentPeriod = period;
-    
+
     const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.WeeklyData));
     const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MonthlyData));
     const annualData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AnnualData));
-    
+
     let data;
     switch(period) {
         case 'weekly':
@@ -227,20 +273,26 @@ function showTab(period) {
             data = annualData;
             break;
     }
-    
+
     showChart(period, data);
-    updateStats(data);
+    
+    // Real statistics data from controller
+    const totalFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.TotalFuelCost ?? 0));
+    const avgFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AvgFuelCost ?? 0));
+    const highestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.HighestMonth));
+    const lowestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.LowestMonth));
+    
+    updateStats(totalFuelCost, avgFuelCost, highestMonth, lowestMonth);
 }
 
 function showChart(period, data) {
     const ctx = document.getElementById('fuelChart').getContext('2d');
-    
-    // Destroy existing chart if it exists
-    if (currentChart) {
-        currentChart.destroy();
+
+    if (window.fuelChartInstance) {
+        window.fuelChartInstance.destroy();
     }
-    
-    currentChart = new Chart(ctx, {
+
+    window.fuelChartInstance = new Chart(ctx, {
         type: period === 'annually' ? 'bar' : 'line',
         data: {
             labels: data.map(d => d.Period),
@@ -278,11 +330,11 @@ function showChart(period, data) {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Amount (?)'
+                        text: 'Amount (₱)'
                     },
                     ticks: {
                         callback: function(value) {
-                            return '?' + value.toLocaleString();
+                            return '₱' + value.toLocaleString();
                         }
                     }
                 }
@@ -299,40 +351,217 @@ function showChart(period, data) {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                label += '?' + context.parsed.y.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                label += '₱' + context.parsed.y.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             }
                             return label;
                         }
                     }
                 }
             }
-        });
+        }
+    });
 }
 
-function updateStats(data) {
-    const total = data.reduce((sum, d) => sum + d.FuelCost, 0);
-    const average = total / data.length;
-    const highest = Math.max(...data.map(d => d.FuelCost));
-    const lowest = Math.min(...data.map(d => d.FuelCost));
+function updateStats(totalFuelCost, avgFuelCost, highestMonth, lowestMonth) {
+    // Use real data from controller
+    const total = totalFuelCost;
+    const average = avgFuelCost;
+    const highest = highestMonth ? highestMonth.FuelCost : 0;
+    const lowest = lowestMonth ? lowestMonth.FuelCost : 0;
     
-    document.getElementById('totalFuelCost').textContent = '?' + total.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    document.getElementById('avgFuelCost').textContent = '?' + average.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    document.getElementById('highestFuelCost').textContent = '?' + highest.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    document.getElementById('lowestFuelCost').textContent = '?' + lowest.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const highestMonthName = highestMonth ? highestMonth.Period : 'N/A';
+    const lowestMonthName = lowestMonth ? lowestMonth.Period : 'N/A';
+
+    document.getElementById('totalFuelCost').textContent = '₱' + total.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('avgFuelCost').textContent = '₱' + average.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('highestFuelCost').textContent = '₱' + highest.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' (' + highestMonthName + ')';
+    document.getElementById('lowestFuelCost').textContent = '₱' + lowest.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' (' + lowestMonthName + ')';
 }
 
 function exportToPDF() {
-    showNotification('Exporting to PDF...', 'info');
-    setTimeout(() => {
-        showNotification('PDF exported successfully!', 'success');
-    }, 1000);
+    logFinanceExport('TotalFuel', 'PDF');
+    showNotification('Generating PDF...', 'info');
+    
+    // Get current chart data and statistics
+    const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.WeeklyData ?? new object[0]));
+    const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MonthlyData ?? new object[0]));
+    const annualData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AnnualData ?? new object[0]));
+    const totalFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.TotalFuelCost ?? 0));
+    const avgFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AvgFuelCost ?? 0));
+    const highestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.HighestMonth));
+    const lowestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.LowestMonth));
+    
+    // Create PDF content with chart images
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('Total Fuel Expenses Report', 20, 20);
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text('Generated: ' + new Date().toLocaleDateString(), 20, 30);
+    
+    // Add weekly chart image
+    const weeklyChartCanvas = document.getElementById('fuelChart');
+    if (weeklyChartCanvas) {
+        doc.setFontSize(14);
+        doc.text('Weekly Chart', 20, 45);
+        const weeklyChartImage = weeklyChartCanvas.toDataURL('image/png');
+        doc.addImage(weeklyChartImage, 'PNG', 20, 50, 170, 80);
+    }
+    
+    // Add statistics below weekly chart
+    doc.setFontSize(14);
+    doc.text('Statistics Summary', 20, 140);
+    doc.setFontSize(11);
+    doc.text('Total Fuel Cost: PHP ' + totalFuelCost.toLocaleString('en-PH'), 20, 150);
+    doc.text('Average Fuel Cost: PHP ' + avgFuelCost.toLocaleString('en-PH'), 20, 157);
+    doc.text('Highest Month: PHP ' + (highestMonth ? highestMonth.FuelCost.toLocaleString('en-PH') : '0') + ' (' + (highestMonth ? highestMonth.Period : 'N/A') + ')', 20, 164);
+    doc.text('Lowest Month: PHP ' + (lowestMonth ? lowestMonth.FuelCost.toLocaleString('en-PH') : '0') + ' (' + (lowestMonth ? lowestMonth.Period : 'N/A') + ')', 20, 171);
+    
+    // Add monthly chart image
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text('Monthly Chart (2026)', 20, 20);
+    
+    // Switch to monthly tab to capture chart
+    const monthlyTab = document.querySelector('[onclick="showTab(\'monthly\')"]');
+    if (monthlyTab) {
+        monthlyTab.click();
+        setTimeout(() => {
+            const monthlyChartCanvas = document.getElementById('fuelChart');
+            if (monthlyChartCanvas) {
+                const monthlyChartImage = monthlyChartCanvas.toDataURL('image/png');
+                doc.addImage(monthlyChartImage, 'PNG', 20, 30, 170, 80);
+                
+                // Add monthly data table
+                doc.setFontSize(14);
+                doc.text('Monthly Data (2026)', 20, 120);
+                doc.setFontSize(10);
+                let yPos = 130;
+                monthlyData.forEach(item => {
+                    doc.text(item.Period + ': PHP ' + item.FuelCost.toLocaleString('en-PH'), 20, yPos);
+                    yPos += 7;
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                });
+                
+                // Add annual chart
+                doc.addPage();
+                doc.setFontSize(14);
+                doc.text('Annual Chart', 20, 20);
+                
+                const annualTab = document.querySelector('[onclick="showTab(\'annually\')"]');
+                if (annualTab) {
+                    annualTab.click();
+                    setTimeout(() => {
+                        const annualChartCanvas = document.getElementById('fuelChart');
+                        if (annualChartCanvas) {
+                            const annualChartImage = annualChartCanvas.toDataURL('image/png');
+                            doc.addImage(annualChartImage, 'PNG', 20, 30, 170, 80);
+                            
+                            // Add annual data table
+                            doc.setFontSize(14);
+                            doc.text('Annual Data', 20, 120);
+                            doc.setFontSize(10);
+                            let yPos = 130;
+                            annualData.forEach(item => {
+                                doc.text(item.Period + ': PHP ' + item.FuelCost.toLocaleString('en-PH'), 20, yPos);
+                                yPos += 7;
+                                if (yPos > 270) {
+                                    doc.addPage();
+                                    yPos = 20;
+                                }
+                            });
+                            
+                            // Save PDF
+                            doc.save('TotalFuelExpenses_' + new Date().toISOString().split('T')[0] + '.pdf');
+                            showNotification('PDF exported successfully!', 'success');
+                        }
+                    }, 500);
+                }
+            }
+        }, 500);
+    }
 }
 
 function exportToCSV() {
-    showNotification('Exporting to CSV...', 'info');
-    setTimeout(() => {
-        showNotification('CSV exported successfully!', 'success');
-    }, 1000);
+    logFinanceExport('TotalFuel', 'CSV');
+    showNotification('Generating CSV...', 'info');
+    
+    // Get current chart data and statistics
+    const weeklyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.WeeklyData ?? new object[0]));
+    const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MonthlyData ?? new object[0]));
+    const annualData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AnnualData ?? new object[0]));
+    const totalFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.TotalFuelCost ?? 0));
+    const avgFuelCost = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.AvgFuelCost ?? 0));
+    const highestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.HighestMonth));
+    const lowestMonth = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.LowestMonth));
+    
+    // Create organized CSV content
+    let csvContent = 'Total Fuel Expenses Report\n';
+    csvContent += 'Generated,' + new Date().toLocaleDateString() + '\n\n';
+    
+    // Statistics Summary
+    csvContent += 'Statistics Summary\n';
+    csvContent += 'Total Fuel Cost,₱' + totalFuelCost.toLocaleString('en-PH') + '\n';
+    csvContent += 'Average Fuel Cost,₱' + avgFuelCost.toLocaleString('en-PH') + '\n';
+    csvContent += 'Highest Month,₱' + (highestMonth ? highestMonth.FuelCost.toLocaleString('en-PH') : '0') + ',' + (highestMonth ? highestMonth.Period : 'N/A') + '\n';
+    csvContent += 'Lowest Month,₱' + (lowestMonth ? lowestMonth.FuelCost.toLocaleString('en-PH') : '0') + ',' + (lowestMonth ? lowestMonth.Period : 'N/A') + '\n\n';
+    
+    // Weekly Data Table
+    csvContent += 'Weekly Data\n';
+    csvContent += 'Period,Fuel Cost (₱)\n';
+    weeklyData.forEach(item => {
+        csvContent += item.Period + ',' + item.FuelCost.toLocaleString('en-PH') + '\n';
+    });
+    
+    // Monthly Data Table
+    csvContent += '\nMonthly Data (2026)\n';
+    csvContent += 'Period,Fuel Cost (₱)\n';
+    monthlyData.forEach(item => {
+        csvContent += item.Period + ',' + item.FuelCost.toLocaleString('en-PH') + '\n';
+    });
+    
+    // Annual Data Table
+    csvContent += '\nAnnual Data\n';
+    csvContent += 'Period,Fuel Cost (₱)\n';
+    annualData.forEach(item => {
+        csvContent += item.Period + ',' + item.FuelCost.toLocaleString('en-PH') + '\n';
+    });
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'TotalFuelExpenses_' + new Date().toISOString().split('T')[0] + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('CSV exported successfully!', 'success');
+}
+
+function logFinanceExport(report, format) {
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    if (!token) {
+        return;
+    }
+
+    fetch('@Url.Action("LogExport", "Finance")', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: new URLSearchParams({ report, format })
+    });
 }
 
 function showNotification(message, type) {
@@ -342,13 +571,11 @@ function showNotification(message, type) {
         <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
         <span>${message}</span>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.remove();
     }, 3000);
 }
 </script>
-</body>
-</html>

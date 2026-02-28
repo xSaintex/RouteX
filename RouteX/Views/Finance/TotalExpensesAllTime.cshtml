@@ -3,6 +3,8 @@
     ViewData["Title"] = "Total Expenses (All-Time)";
 }
 
+@Html.AntiForgeryToken()
+
 <style>
 .chart-container-full {
     background: white;
@@ -153,11 +155,11 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Highest Month</div>
-                <div class="stat-value">₱@Model.Max(d => d.ExpenseAmount).ToString("N0")</div>
+                <div class="stat-value">₱@Model.Max(d => d.ExpenseAmount).ToString("N0") (@Model.OrderByDescending(d => d.ExpenseAmount).First().Month)</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Lowest Month</div>
-                <div class="stat-value">₱@Model.Min(d => d.ExpenseAmount).ToString("N0")</div>
+                <div class="stat-value">₱@Model.Where(d => d.ExpenseAmount > 0).Min(d => d.ExpenseAmount).ToString("N0") (@Model.Where(d => d.ExpenseAmount > 0).OrderBy(d => d.ExpenseAmount).First().Month)</div>
             </div>
         </div>
     </div>
@@ -165,6 +167,8 @@
 
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- jsPDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -243,17 +247,120 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function exportToPDF() {
-    showNotification('Exporting to PDF...', 'info');
-    setTimeout(() => {
-        showNotification('PDF exported successfully!', 'success');
-    }, 1000);
+    logFinanceExport('TotalExpensesAllTime', 'PDF');
+    showNotification('Generating PDF...', 'info');
+    
+    // Get current chart data and statistics
+    const timeSeriesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+    const totalExpenses = @(Model.Sum(d => d.ExpenseAmount));
+    const avgExpenses = @(Model.Average(d => d.ExpenseAmount));
+    const highestMonthData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OrderByDescending(d => d.ExpenseAmount).First()));
+    const lowestMonthData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Where(d => d.ExpenseAmount > 0).OrderBy(d => d.ExpenseAmount).First()));
+    
+    // Create PDF content with chart image
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('Total Expenses (All-Time) Report', 20, 20);
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text('Generated: ' + new Date().toLocaleDateString(), 20, 30);
+    
+    // Capture and add chart image
+    const chartCanvas = document.getElementById('expensesTimeChart');
+    if (chartCanvas) {
+        const chartImage = chartCanvas.toDataURL('image/png');
+        doc.addImage(chartImage, 'PNG', 20, 40, 170, 100);
+    }
+    
+    // Add statistics below chart
+    doc.setFontSize(14);
+    doc.text('Statistics Summary', 20, 150);
+    doc.setFontSize(11);
+    doc.text('Total Expenses: PHP ' + totalExpenses.toLocaleString('en-PH'), 20, 160);
+    doc.text('Average Monthly: PHP ' + avgExpenses.toLocaleString('en-PH'), 20, 167);
+    doc.text('Highest Month: PHP ' + highestMonthData.ExpenseAmount.toLocaleString('en-PH') + ' (' + highestMonthData.Month + ')', 20, 174);
+    doc.text('Lowest Month: PHP ' + lowestMonthData.ExpenseAmount.toLocaleString('en-PH') + ' (' + lowestMonthData.Month + ')', 20, 181);
+    
+    // Add monthly data table
+    doc.setFontSize(14);
+    doc.text('Monthly Data (Last 24 Months)', 20, 195);
+    doc.setFontSize(10);
+    let yPos = 205;
+    timeSeriesData.forEach(item => {
+        doc.text(item.Month + ': PHP ' + item.ExpenseAmount.toLocaleString('en-PH'), 20, yPos);
+        yPos += 7;
+        if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+        }
+    });
+    
+    // Save PDF
+    doc.save('TotalExpensesAllTime_' + new Date().toISOString().split('T')[0] + '.pdf');
+    showNotification('PDF exported successfully!', 'success');
 }
 
 function exportToCSV() {
-    showNotification('Exporting to CSV...', 'info');
-    setTimeout(() => {
-        showNotification('CSV exported successfully!', 'success');
-    }, 1000);
+    logFinanceExport('TotalExpensesAllTime', 'CSV');
+    showNotification('Generating CSV...', 'info');
+    
+    // Get current chart data and statistics
+    const timeSeriesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+    const totalExpenses = @(Model.Sum(d => d.ExpenseAmount));
+    const avgExpenses = @(Model.Average(d => d.ExpenseAmount));
+    const highestMonthData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OrderByDescending(d => d.ExpenseAmount).First()));
+    const lowestMonthData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Where(d => d.ExpenseAmount > 0).OrderBy(d => d.ExpenseAmount).First()));
+    
+    // Create organized CSV content
+    let csvContent = 'Total Expenses (All-Time) Report\n';
+    csvContent += 'Generated,' + new Date().toLocaleDateString() + '\n\n';
+    
+    // Statistics Summary
+    csvContent += 'Statistics Summary\n';
+    csvContent += 'Total Expenses,₱' + totalExpenses.toLocaleString('en-PH') + '\n';
+    csvContent += 'Average Monthly,₱' + avgExpenses.toLocaleString('en-PH') + '\n';
+    csvContent += 'Highest Month,₱' + highestMonthData.ExpenseAmount.toLocaleString('en-PH') + ',' + highestMonthData.Month + '\n';
+    csvContent += 'Lowest Month,₱' + lowestMonthData.ExpenseAmount.toLocaleString('en-PH') + ',' + lowestMonthData.Month + '\n\n';
+    
+    // Monthly Data Table
+    csvContent += 'Monthly Data (Last 24 Months)\n';
+    csvContent += 'Month,Expense Amount (₱)\n';
+    timeSeriesData.forEach(item => {
+        csvContent += item.Month + ',' + item.ExpenseAmount.toLocaleString('en-PH') + '\n';
+    });
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'TotalExpensesAllTime_' + new Date().toISOString().split('T')[0] + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('CSV exported successfully!', 'success');
+}
+
+function logFinanceExport(report, format) {
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    if (!token) {
+        return;
+    }
+
+    fetch('@Url.Action("LogExport", "Finance")', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: new URLSearchParams({ report, format })
+    });
 }
 
 function showNotification(message, type) {

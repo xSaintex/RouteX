@@ -195,7 +195,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 }
 </style>
 
-<div class="edit-fuel-container">
+<div class="fuel-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="breadcrumb">
         <a href="@Url.Action("FuelPage", "Fuel")">
             <i class="fas fa-gas-pump"></i>
@@ -211,54 +229,54 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
         
         <div class="form-grid">
             <div class="form-group">
-                <label for="vehicle">Vehicle *</label>
-                <select id="vehicle" name="VehicleId" required>
+                <label asp-for="VehicleId">Vehicle *</label>
+                <select asp-for="VehicleId" id="vehicle">
                     <option value="">Select Vehicle</option>
                     @if (ViewBag.Vehicles != null)
                     {
                         foreach (var vehicle in ViewBag.Vehicles)
                         {
-                            <option value="@vehicle.Id">@vehicle.PlateNumber - @vehicle.UnitModel</option>
+                            <option value="@vehicle.Id" selected="@(Model != null && Model.VehicleId == vehicle.Id)">@vehicle.PlateNumber - @vehicle.UnitModel</option>
                         }
                     }
                 </select>
-                <span class="validation-message">Please select a vehicle</span>
+                <span asp-validation-for="VehicleId" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="driver">Driver *</label>
-                <input type="text" id="driver" name="Driver" value="@(Model?.Driver ?? string.Empty)" placeholder="Enter driver name" required />
-                <span class="validation-message">Please enter driver name</span>
+                <label asp-for="Driver">Driver *</label>
+                <input asp-for="Driver" type="text" id="driver" placeholder="Enter driver name" />
+                <span asp-validation-for="Driver" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="date">Date *</label>
-                <input type="date" id="date" name="Date" value="@(Model?.DateTime != null ? Model.DateTime.ToString("yyyy-MM-dd") : string.Empty)" required />
-                <span class="validation-message">Please select date</span>
+                <label asp-for="DateTime">Date & Time *</label>
+                <input asp-for="DateTime" type="datetime-local" id="dateTime" value="@((Model != null) ? Model.DateTime.ToString("yyyy-MM-ddTHH:mm") : string.Empty)" />
+                <span asp-validation-for="DateTime" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="fuelStation">Fuel Station *</label>
-                <input type="text" id="fuelStation" name="FuelStation" value="@(Model?.FuelStation ?? string.Empty)" placeholder="e.g., Shell, Petron, Caltex" required />
-                <span class="validation-message">Please enter fuel station</span>
+                <label asp-for="FuelStation">Fuel Station *</label>
+                <input asp-for="FuelStation" type="text" id="fuelStation" placeholder="e.g., Shell, Petron, Caltex" />
+                <span asp-validation-for="FuelStation" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="odometer">Current Odometer (Mileage) *</label>
-                <input type="number" id="odometer" name="Odometer" value="@(Model?.Odometer.ToString())" placeholder="e.g., 15420" min="0" required />
-                <span class="validation-message">Please enter current odometer reading</span>
+                <label asp-for="Odometer">Current Odometer (Mileage) *</label>
+                <input asp-for="Odometer" type="number" id="odometer" placeholder="e.g., 15420" min="0" />
+                <span asp-validation-for="Odometer" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="fuelVolume">Fuel Volume (Liters) *</label>
-                <input type="number" id="fuelVolume" name="FuelVolume" value="@(Model?.Liters.ToString().Replace(',', '.'))" placeholder="e.g., 45.5" step="0.1" min="0" required />
-                <span class="validation-message">Please enter fuel volume</span>
+                <label asp-for="Liters">Fuel Volume (Liters) *</label>
+                <input asp-for="Liters" type="number" id="fuelVolume" placeholder="e.g., 45.5" step="0.1" min="0" />
+                <span asp-validation-for="Liters" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="totalCost">Total Cost (₱) *</label>
-                <input type="number" id="totalCost" name="TotalCost" value="@(Model?.TotalCost.ToString().Replace(',', '.'))" placeholder="e.g., 1850.75" step="0.01" min="0" required />
-                <span class="validation-message">Please enter total cost</span>
+                <label asp-for="TotalCost">Total Cost (₱) *</label>
+                <input asp-for="TotalCost" type="number" id="totalCost" placeholder="e.g., 1850.75" step="0.01" min="0" />
+                <span asp-validation-for="TotalCost" class="validation-message"></span>
             </div>
 
             <div class="form-group">
@@ -267,49 +285,29 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group">
-                <label for="fuelType">Fuel Type *</label>
-                <select id="fuelType" name="FuelType" required>
+                <label asp-for="FuelType">Fuel Type *</label>
+                <select asp-for="FuelType" id="fuelType">
                     <option value="">Select Fuel Type</option>
-                    @{
-                        var fuelTypes = new[] { "Diesel", "Premium", "Regular", "Unleaded", "Ethanol" };
-                        foreach (var type in fuelTypes)
-                        {
-                            <option value="@type">@type</option>
-                        }
-                    }
+                    <option value="Diesel" selected="@(Model != null && Model.FuelType == "Diesel")">Diesel</option>
+                    <option value="Premium" selected="@(Model != null && Model.FuelType == "Premium")">Premium</option>
+                    <option value="Regular" selected="@(Model != null && Model.FuelType == "Regular")">Regular</option>
+                    <option value="Unleaded" selected="@(Model != null && Model.FuelType == "Unleaded")">Unleaded</option>
+                    <option value="Ethanol" selected="@(Model != null && Model.FuelType == "Ethanol")">Ethanol</option>
                 </select>
-                <span class="validation-message">Please select fuel type</span>
+                <span asp-validation-for="FuelType" class="validation-message"></span>
             </div>
 
             <div class="form-group">
                 <label>Full Tank</label>
                 <div class="checkbox-group">
-                    <input type="checkbox" id="fullTank" name="FullTank" value="true" @(Model?.FullTank == true ? "checked" : "") />
+                    <input asp-for="FullTank" type="checkbox" id="fullTank" />
                     <label for="fullTank">Yes</label>
                 </div>
             </div>
 
             <div class="form-group full">
-                <label for="receiptUpload">Receipt Upload</label>
-                <div class="file-upload">
-                    <input type="file" id="receiptUpload" name="ReceiptUpload" accept="image/*" />
-                    <label for="receiptUpload" class="file-upload-label">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <span>Click to upload receipt image</span>
-                    </label>
-                    <div class="file-preview" id="filePreview">
-                        <img id="previewImage" src="" alt="Receipt preview" />
-                        <span id="fileName"></span>
-                        <button type="button" id="removeFile" style="background: none; border: none; color: #dc3545; cursor: pointer;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group full">
-                <label for="notes">Notes</label>
-                <textarea id="notes" name="Notes" placeholder="e.g., Station pump was slow, Used emergency cash">@(Model?.Notes ?? string.Empty)</textarea>
+                <label asp-for="Notes">Notes</label>
+                <textarea asp-for="Notes" id="notes" placeholder="e.g., Station pump was slow, Used emergency cash"></textarea>
             </div>
         </div>
 
@@ -326,11 +324,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const fuelVolumeInput = document.getElementById('fuelVolume');
     const totalCostInput = document.getElementById('totalCost');
     const pricePerLiterInput = document.getElementById('pricePerLiter');
-    const fileInput = document.getElementById('receiptUpload');
-    const filePreview = document.getElementById('filePreview');
-    const previewImage = document.getElementById('previewImage');
-    const fileName = document.getElementById('fileName');
-    const removeFileBtn = document.getElementById('removeFile');
 
     // Calculate price per liter
     function calculatePricePerLiter() {
@@ -348,45 +341,31 @@ document.addEventListener('DOMContentLoaded', function() {
     fuelVolumeInput.addEventListener('input', calculatePricePerLiter);
     totalCostInput.addEventListener('input', calculatePricePerLiter);
 
-    // File upload handling
-    fileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImage.src = e.target.result;
-                fileName.textContent = file.name;
-                filePreview.style.display = 'flex';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    removeFileBtn.addEventListener('click', function() {
-        fileInput.value = '';
-        previewImage.src = '';
-        fileName.textContent = '';
-        filePreview.style.display = 'none';
-    });
-
-    // Form validation
+    // Add debugging for form submission
     form.addEventListener('submit', function(e) {
-        const requiredFields = form.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                field.classList.add('invalid');
-            } else {
-                field.classList.remove('invalid');
-            }
-        });
-
-        if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields.');
-        }
+        console.log('Edit form submitted!');
+        console.log('Form data:', new FormData(form));
     });
+});
+
+    // Remove custom form validation to let ASP.NET Core handle it
+    // form.addEventListener('submit', function(e) {
+    //     const requiredFields = form.querySelectorAll('[required]');
+    //     let isValid = true;
+
+    //     requiredFields.forEach(field => {
+    //         if (!field.value.trim()) {
+    //             isValid = false;
+    //             field.classList.add('invalid');
+    //         } else {
+    //             field.classList.remove('invalid');
+    //         }
+    //     });
+
+    //     if (!isValid) {
+    //         e.preventDefault();
+    //         alert('Please fill in all required fields.');
+    //     }
+    // });
 });
 </script>

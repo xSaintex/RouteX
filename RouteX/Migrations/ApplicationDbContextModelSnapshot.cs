@@ -245,7 +245,125 @@ namespace RouteX.Migrations
 
                     b.HasKey("AuditLogId");
 
-                    b.ToTable("AuditLogs", t => t.ExcludeFromMigrations());
+                    b.ToTable("AuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("RouteX.Models.Branch", b =>
+                {
+                    b.Property<int>("BranchId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BranchId"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("BranchName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("CoverageRadiusKm")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Latitude")
+                        .HasColumnType("decimal(9, 6)");
+
+                    b.Property<decimal>("Longitude")
+                        .HasColumnType("decimal(9, 6)");
+
+                    b.Property<string>("ManagerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OperatingHours")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ServiceAreas")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("BranchId");
+
+                    b.ToTable("Branches", (string)null);
+                });
+
+            modelBuilder.Entity("RouteX.Models.BudgetEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BudgetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("BudgetAmount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Month")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MonthlyBudget", (string)null);
                 });
 
             modelBuilder.Entity("RouteX.Models.FinanceEntry", b =>
@@ -275,6 +393,9 @@ namespace RouteX.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("ReferenceId")
                         .HasColumnType("int");
 
@@ -285,7 +406,7 @@ namespace RouteX.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("FinanceEntries", t => t.ExcludeFromMigrations());
+                    b.ToTable("FinanceEntries", (string)null);
                 });
 
             modelBuilder.Entity("RouteX.Models.FuelEntry", b =>
@@ -317,6 +438,9 @@ namespace RouteX.Migrations
                     b.Property<bool>("FullTank")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("Liters")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
@@ -345,7 +469,9 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FuelEntries", t => t.ExcludeFromMigrations());
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("FuelEntries", (string)null);
                 });
 
             modelBuilder.Entity("RouteX.Models.MaintenanceEntry", b =>
@@ -356,54 +482,106 @@ namespace RouteX.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("Cost")
+                    b.Property<decimal?>("Cost")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("Date")
+                    b.Property<DateTime?>("Date")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("MaintenanceId")
+                    b.Property<bool?>("IsArchived")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MaintenanceId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("NextServiceDue")
+                    b.Property<DateTime?>("NextServiceDue")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("OdometerAtService")
+                    b.Property<int?>("OdometerAtService")
                         .HasColumnType("int");
 
                     b.Property<string>("PlateNumber")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ServiceDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("ServiceType")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Status")
+                    b.Property<int?>("Status")
                         .HasColumnType("int");
 
                     b.Property<string>("TechnicianName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UnitModel")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("VehicleId")
+                    b.Property<int?>("VehicleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.ToTable("MaintenanceEntries", t => t.ExcludeFromMigrations());
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("MaintenanceEntries", (string)null);
+                });
+
+            modelBuilder.Entity("RouteX.Models.RouteTrip", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BranchId1")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EndAddress")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("StartAddress")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VehicleId1")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("BranchId1");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("VehicleId1");
+
+                    b.ToTable("RouteTrips", (string)null);
                 });
 
             modelBuilder.Entity("RouteX.Models.User", b =>
@@ -426,13 +604,21 @@ namespace RouteX.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Users", t => t.ExcludeFromMigrations());
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("RouteX.Models.Vehicle", b =>
@@ -443,6 +629,12 @@ namespace RouteX.Migrations
                         .HasColumnName("VehicleId");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Mileage")
                         .HasColumnType("int");
@@ -464,7 +656,9 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Vehicles", t => t.ExcludeFromMigrations());
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("Vehicles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -527,6 +721,76 @@ namespace RouteX.Migrations
                         .IsRequired();
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("RouteX.Models.FuelEntry", b =>
+                {
+                    b.HasOne("RouteX.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("RouteX.Models.MaintenanceEntry", b =>
+                {
+                    b.HasOne("RouteX.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("RouteX.Models.RouteTrip", b =>
+                {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RouteX.Models.Branch", null)
+                        .WithMany("RouteTrips")
+                        .HasForeignKey("BranchId1");
+
+                    b.HasOne("RouteX.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RouteX.Models.Vehicle", null)
+                        .WithMany("RouteTrips")
+                        .HasForeignKey("VehicleId1");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("RouteX.Models.Vehicle", b =>
+                {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("RouteX.Models.Branch", b =>
+                {
+                    b.Navigation("RouteTrips");
+
+                    b.Navigation("Vehicles");
+                });
+
+            modelBuilder.Entity("RouteX.Models.Vehicle", b =>
+                {
+                    b.Navigation("RouteTrips");
                 });
 #pragma warning restore 612, 618
         }

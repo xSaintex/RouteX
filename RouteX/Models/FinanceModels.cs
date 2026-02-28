@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RouteX.Models
 {
     public class FinanceViewModel
@@ -27,6 +29,7 @@ namespace RouteX.Models
 
     public class ExpenseRecord
     {
+        [Key]
         public int ExpenseId { get; set; }
         public string Vehicle { get; set; } = string.Empty;
         public string ExpenseType { get; set; } = string.Empty;
@@ -34,12 +37,19 @@ namespace RouteX.Models
         public DateTime ExpenseDate { get; set; }
         public string Description { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; }
+        public bool IsArchived { get; set; }
     }
 
     public class FuelTimeSeriesData
     {
         public string Period { get; set; } = string.Empty;
         public double FuelCost { get; set; }
+    }
+
+    public class MaintenanceTimeSeriesData
+    {
+        public string Period { get; set; } = string.Empty;
+        public double MaintenanceCost { get; set; }
     }
 
     public class MonthlyExpenseBreakdownData

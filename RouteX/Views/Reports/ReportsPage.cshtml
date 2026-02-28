@@ -3,6 +3,8 @@
     ViewData["Title"] = "Reports";
 }
 
+@Html.AntiForgeryToken()
+
 <style>
 /* Reports table badge styles: no background, only colored text */
 .expense-type-badge { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; font-weight:600; }
@@ -10,6 +12,16 @@
 .expense-maintenance { color: #ffb300 !important; }
 .expense-other { color: #6c757d !important; }
 .pagination-info { color:#333; }
+
+/* Chart container styles */
+.chart-canvas {
+    height: 300px;
+    margin-top: 20px;
+}
+
+.chart-container {
+    min-height: 400px;
+}
 </style>
 
 
@@ -23,16 +35,6 @@
                 @foreach (var type in Model.ReportTypes)
                 {
                     <option value="@type" selected="@(Model.SelectedReportType == type)">@type</option>
-                }
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="vehicle">Vehicle</label>
-            <select id="vehicle" class="form-control">
-                @foreach (var vehicle in Model.Vehicles)
-                {
-                    <option value="@vehicle" selected="@(Model.SelectedVehicle == vehicle)">@vehicle</option>
                 }
             </select>
         </div>
@@ -61,9 +63,9 @@
         
         <div class="filter-group">
             <label>&nbsp;</label>
-            <button class="btn btn-orange" onclick="generateReport()">
-                <i class="fas fa-chart-line"></i>
-                Generate Report
+            <button class="btn btn-orange" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i>
+                Export PDF
             </button>
         </div>
     </div>
@@ -71,8 +73,8 @@
 
 <!-- Summary Cards Section -->
 <div class="finance-summary-grid">
-    <a href="#" class="finance-card-link">
-        <div class="finance-card">
+    <a href="@Url.Action("TotalExpensesAllTime", "Finance")" class="finance-card-link">
+        <div class="finance-card clickable-card">
             <div class="finance-card-icon">
                 <i class="fas fa-dollar-sign"></i>
             </div>
@@ -83,8 +85,8 @@
         </div>
     </a>
 
-    <a href="#" class="finance-card-link">
-        <div class="finance-card">
+    <a href="@Url.Action("TotalFuel", "Finance")" class="finance-card-link">
+        <div class="finance-card clickable-card">
             <div class="finance-card-icon">
                 <i class="fas fa-gas-pump"></i>
             </div>
@@ -95,8 +97,8 @@
         </div>
     </a>
 
-    <a href="#" class="finance-card-link">
-        <div class="finance-card">
+    <a href="@Url.Action("TotalMaintenance", "Finance")" class="finance-card-link">
+        <div class="finance-card clickable-card">
             <div class="finance-card-icon">
                 <i class="fas fa-wrench"></i>
             </div>
@@ -106,102 +108,33 @@
             </div>
         </div>
     </a>
-
-    <a href="#" class="finance-card-link">
-        <div class="finance-card">
-            <div class="finance-card-icon">
-                <i class="fas fa-route"></i>
-            </div>
-            <div class="finance-card-content">
-                <h3>@Model.TotalTrips</h3>
-                <p>Total Trips</p>
-            </div>
-        </div>
-    </a>
 </div>
 
 <!-- Chart Section -->
 <div class="finance-section">
-    <h3>Report Visualization</h3>
-    <div class="finance-charts">
-        <div class="chart-container">
-            <h3>Expense Trends</h3>
-            <div class="chart-placeholder">
-                <i class="fas fa-chart-line"></i>
-                <p>Expense trends chart will be displayed here</p>
-            </div>
-        </div>
-
-        <div class="chart-container">
-            <h3>Category Breakdown</h3>
-            <div class="chart-placeholder">
-                <i class="fas fa-chart-pie"></i>
-                <p>Expense category breakdown will be displayed here</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Report Table Section -->
-<div class="finance-section">
     <div class="section-header">
-        <h3>Detailed Report</h3>
+        <h3>Report Visualization</h3>
         <div class="export-actions">
-            <button class="btn btn-orange" onclick="exportToPDF()">
+            <button class="btn btn-orange" onclick="exportChartsPdf()">
                 <i class="fas fa-file-pdf"></i>
                 Export PDF
             </button>
-            <button class="btn btn-orange" onclick="exportToCSV()">
-                <i class="fas fa-file-csv"></i>
-                Export CSV
-            </button>
         </div>
     </div>
-    
-    <div class="vehicles-table-container">
-        <table class="vehicles-table">
-            <thead>
-                <tr>
-                    <th>Record ID</th>
-                    <th>Vehicle</th>
-                    <th>Category / Type</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody id="reportTableBody">
-                @foreach (var record in Model.ReportRecords)
-                {
-                    <tr class="report-row" data-vehicle="@record.Vehicle.ToLower()" data-type="@record.Category.ToLower()" data-desc="@record.Description.ToLower()" data-date="@record.Date.ToString("yyyy-MM-dd")">
-                        <td>#@record.Id</td>
-                        <td>@record.Vehicle</td>
-                        <td>
-                            <span class="expense-type-badge expense-@record.Category.ToLower()">
-                                @record.Category
-                            </span>
-                        </td>
-                        <td class="cost-highlight">@record.Amount.ToString("N2")</td>
-                        <td>@record.Date.ToString("dd/MM/yyyy")</td>
-                        <td>@record.Description</td>
-                    </tr>
-                }
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="6">
-                        <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="pagination-info">Showing 0 of 0 entries</div>
-                            <div class="pagination-controls">
-                                <button class="page-link prev" type="button">&lt;</button>
-                                <button class="page-link page-number active" type="button">1</button>
-                                <button class="page-link next" type="button">&gt;</button>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
+    <div class="finance-charts">
+        <div class="chart-container">
+            <h3>Expense Trends</h3>
+            <div class="chart-canvas">
+                <canvas id="expenseTrendsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>Monthly Total Cost vs Budget</h3>
+            <div class="chart-canvas">
+                <canvas id="budgetComparisonChart"></canvas>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -219,31 +152,13 @@ function toggleDateRange(value) {
     }
 }
 
-function generateReport() {
-    // Get selected values
-    const reportType = document.getElementById('reportType').value;
-    const vehicle = document.getElementById('vehicle').value;
-    const dateRange = document.getElementById('dateRange').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    
-    // Show loading state
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-    button.disabled = true;
-    
-    // Simulate report generation
-    setTimeout(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-        
-        // Update summary cards based on report type
-        updateSummaryCards(reportType);
-        
-        // Show success message
-        showNotification('Report generated successfully!', 'success');
-    }, 1500);
+function getReportFilters() {
+    return {
+        reportType: document.getElementById('reportType').value,
+        dateRange: document.getElementById('dateRange').value,
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value
+    };
 }
 
 // Client-side pagination for reports table (matches maintenance table behavior)
@@ -294,18 +209,118 @@ function updateSummaryCards(reportType) {
     console.log('Updating summary cards for:', reportType);
 }
 
-function exportToPDF() {
+async function exportToPDF() {
+    const { reportType, dateRange, startDate, endDate } = getReportFilters();
+
     showNotification('Exporting to PDF...', 'info');
-    setTimeout(() => {
-        showNotification('PDF exported successfully!', 'success');
-    }, 1000);
+
+    const params = new URLSearchParams({ reportType, dateRange });
+    if (dateRange === 'Custom Range' && startDate && endDate) {
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+    }
+
+    const response = await fetch(`@Url.Action("ReportData", "Reports")?${params.toString()}`);
+    if (!response.ok) {
+        showNotification('Unable to export report.', 'info');
+        return;
+    }
+
+    const records = await response.json();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text(`${reportType} Report`, 14, 16);
+    doc.setFontSize(11);
+    doc.text(`Date Range: ${dateRange}`, 14, 24);
+
+    const tableRows = records.map(r => [
+        `#${r.id}`,
+        r.vehicle,
+        r.category,
+        Number(r.amount).toFixed(2),
+        r.date || '-',
+        r.description
+    ]);
+
+    doc.autoTable({
+        head: [["Record ID", "Vehicle", "Category", "Amount", "Date", "Description"]],
+        body: tableRows,
+        startY: 30
+    });
+
+    doc.save(`${reportType}_Report.pdf`);
+    await logReportExport('PDF');
+    showNotification('PDF exported successfully!', 'success');
 }
 
-function exportToCSV() {
-    showNotification('Exporting to CSV...', 'info');
-    setTimeout(() => {
-        showNotification('CSV exported successfully!', 'success');
-    }, 1000);
+function exportChartsPdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text('Report Visualization', 14, 16);
+
+    const expenseCanvas = document.getElementById('expenseTrendsChart');
+    if (expenseCanvas) {
+        const expenseImage = expenseCanvas.toDataURL('image/png');
+        doc.addImage(expenseImage, 'PNG', 14, 24, 180, 80);
+
+        doc.setFontSize(12);
+        doc.text('Expense Trends Details', 14, 112);
+        doc.setFontSize(10);
+        let y = 120;
+        expenseTrendData.forEach(item => {
+            const line = `${item.Month}: Fuel PHP ${item.FuelCost.toLocaleString()} | Maintenance PHP ${item.MaintenanceCost.toLocaleString()} | Other PHP ${item.OtherCost.toLocaleString()}`;
+            doc.text(line, 14, y);
+            y += 6;
+            if (y > 190) {
+                doc.addPage();
+                y = 20;
+            }
+        });
+    }
+
+    doc.addPage();
+    const budgetCanvas = document.getElementById('budgetComparisonChart');
+    if (budgetCanvas) {
+        const budgetImage = budgetCanvas.toDataURL('image/png');
+        doc.addImage(budgetImage, 'PNG', 14, 20, 180, 80);
+
+        doc.setFontSize(12);
+        doc.text('Monthly Total Cost vs Budget Details', 14, 110);
+        doc.setFontSize(10);
+        let y = 118;
+        expenseTrendData.forEach(item => {
+            const budget = budgetLookup.get(item.Month) || 0;
+            const line = `${item.Month}: Total PHP ${item.TotalCost.toLocaleString()} | Budget PHP ${budget.toLocaleString()}`;
+            doc.text(line, 14, y);
+            y += 6;
+            if (y > 190) {
+                doc.addPage();
+                y = 20;
+            }
+        });
+    }
+
+    doc.save('ReportVisualization.pdf');
+}
+
+async function logReportExport(format) {
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    if (!token) {
+        return;
+    }
+
+    await fetch('@Url.Action("LogExport", "Reports")', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: new URLSearchParams({ format })
+    });
 }
 
 function showNotification(message, type) {
@@ -325,6 +340,130 @@ function showNotification(message, type) {
         notification.remove();
     }, 3000);
 }
+</script>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Expense Trends Chart
+    const expenseTrendsCtx = document.getElementById('expenseTrendsChart').getContext('2d');
+    
+    window.expenseTrendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyExpenseBreakdown));
+    const monthlyBudgets = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyBudgets));
+    window.budgetLookup = new Map(monthlyBudgets.map(b => [b.Month, b.BudgetAmount]));
+    
+    new Chart(expenseTrendsCtx, {
+        type: 'line',
+        data: {
+            labels: window.expenseTrendData.map(d => d.Month),
+            datasets: [
+                {
+                    label: 'Fuel Expenses',
+                    data: window.expenseTrendData.map(d => d.FuelCost),
+                    borderColor: '#ff7a00',
+                    backgroundColor: 'rgba(255, 122, 0, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Maintenance Expenses',
+                    data: window.expenseTrendData.map(d => d.MaintenanceCost),
+                    borderColor: '#ffb300',
+                    backgroundColor: 'rgba(255, 179, 0, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Other Expenses',
+                    data: window.expenseTrendData.map(d => d.OtherCost),
+                    borderColor: '#6c757d',
+                    backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Amount (₱)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Category Breakdown Chart
+    const budgetComparisonCtx = document.getElementById('budgetComparisonChart').getContext('2d');
+
+    new Chart(budgetComparisonCtx, {
+        type: 'bar',
+        data: {
+            labels: window.expenseTrendData.map(d => d.Month),
+            datasets: [
+                {
+                    label: 'Total Cost',
+                    data: window.expenseTrendData.map(d => d.TotalCost),
+                    backgroundColor: 'rgba(255, 122, 0, 0.4)',
+                    borderColor: '#ff7a00',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Budget',
+                    type: 'line',
+                    data: window.expenseTrendData.map(d => window.budgetLookup.get(d.Month) || 0),
+                    borderColor: '#1976d2',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Amount (₱)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+});
 </script>
 
 <style>

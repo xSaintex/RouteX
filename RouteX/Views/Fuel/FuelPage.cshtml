@@ -1,8 +1,7 @@
 @model IEnumerable<RouteX.Models.FuelEntry>
 @{
     ViewData["Title"] = "Fuel Management";
-    var fuelTypes = Model.Select(e => e.FuelStation).Distinct().ToList();
-    var dates = Model.Select(e => e.Date.Date).Distinct().ToList();
+    var fuelStations = Model.Select(e => e.FuelStation).Distinct().ToList();
 }
 
 <style>
@@ -29,12 +28,36 @@
 .btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
 
 .table-pagination { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
+.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 4px; align-items: center; }
 .pagination-info { color:#333; font-size:14px; }
 .table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
 .table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+.table-pagination .page-numbers { display: flex; gap: 2px; }
+
+/* Archive button style */
+.archive-btn { color: #6c757d; }
+.archive-btn:hover { color: #495057; background-color: #f8f9fa; }
 </style>
 
-<div class="vehicles-container">
+<div class="fuel-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="vehicles-header">
         <p>Track and review fuel usage across your fleet</p>
     </div>
@@ -44,6 +67,10 @@
             <i class="fas fa-plus"></i>
             Add Fuel Entry
         </a>
+        <button type="button" class="btn btn-outline-secondary" id="bulkArchiveFuel" style="display:none;">
+            <i class="fas fa-archive"></i>
+            Archive Selected
+        </button>
         <div class="search-filter">
             <input type="text" class="form-control" id="fuelSearch" placeholder="Search fuel logs...">
             <button id="fuelFilterToggle" class="btn btn-outline-secondary" title="Filters" type="button" aria-haspopup="true" aria-expanded="false">
@@ -55,7 +82,7 @@
                     <label class="filter-label" for="filterStation">Fuel Station</label>
                     <select id="filterStation" class="filter-select">
                         <option value="">All</option>
-                        @foreach (var station in fuelTypes)
+                        @foreach (var station in fuelStations)
                         {
                             <option value="@station.ToLower()">@station</option>
                         }
@@ -84,6 +111,9 @@
         <table class="vehicles-table">
             <thead>
                 <tr>
+                    <th>
+                        <input type="checkbox" id="selectAllFuel" />
+                    </th>
                     <th>Fuel ID</th>
                     <th>Unit Model</th>
                     <th>Plate #</th>
@@ -96,13 +126,30 @@
                 </tr>
             </thead>
             <tbody>
+                @{
+                    var recentFuelId = TempData["RecentFuelId"] as int?;
+                }
                 @foreach (var entry in Model)
                 {
-                    <tr>
-                        <td>#@entry.Id</td>
-                        <td>@entry.UnitModel</td>
-                        <td>@entry.PlateNumber</td>
-                        <td>@entry.Date.ToString("MMM dd, yyyy")</td>
+                    var isRecent = recentFuelId == entry.Id;
+                    <tr data-id="@entry.Id">
+                        <td>
+                            <input type="checkbox" class="fuel-select" value="@entry.Id" />
+                        </td>
+                        <td>
+                            #@entry.Id
+                            @if (isRecent)
+                            {
+                                var action = TempData["RecentFuelAction"] as string;
+                                if (action == "Edited")
+                                {
+                                    <span class="badge bg-warning ms-2" style="font-size: 0.7em;">EDITED</span>
+                                }
+                            }
+                        </td>
+                        <td>@(entry.Vehicle?.UnitModel ?? "N/A")</td>
+                        <td>@(entry.Vehicle?.PlateNumber ?? "N/A")</td>
+                        <td>@entry.DateTime.ToString("MMM dd, yyyy")</td>
                         <td>@entry.Liters.ToString("N1") L</td>
                         <td>@entry.TotalCost.ToString("C2")</td>
                         <td>@entry.Driver</td>
@@ -115,6 +162,9 @@
                                 <a href="@Url.Action("ViewFuel", "Fuel", new { id = entry.Id })" class="action-btn view-btn" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                <button type="button" class="action-btn archive-btn" title="Archive Entry" onclick="archiveFuelEntry(@entry.Id)">
+                                    <i class="fas fa-archive"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -122,12 +172,12 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="8">
+                    <td colspan="10">
                         <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="pagination-info">Showing 0 of 0 entries</div>
                             <div class="pagination-controls">
                                 <button class="page-link prev" type="button">&lt;</button>
-                                <button class="page-link page-number active" type="button">1</button>
+                                <div class="page-numbers"></div>
                                 <button class="page-link next" type="button">&gt;</button>
                             </div>
                         </div>
@@ -173,13 +223,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return rows.filter(row => {
             const cells = row.querySelectorAll('td');
-            const unitModel = cells[0].textContent.toLowerCase();
-            const plateNumber = cells[1].textContent.toLowerCase();
-            const dateText = cells[2].textContent;
-            const fuelStation = cells[5].textContent.toLowerCase();
+            const fuelId = cells[1].textContent.toLowerCase();
+            const unitModel = cells[2].textContent.toLowerCase();
+            const plateNumber = cells[3].textContent.toLowerCase();
+            const dateText = cells[4].textContent;
+            const fuelStation = cells[8].textContent.toLowerCase();
 
             // Search filter
             const matchesSearch = !searchTerm || 
+                fuelId.includes(searchTerm) ||
                 unitModel.includes(searchTerm) || 
                 plateNumber.includes(searchTerm) || 
                 fuelStation.includes(searchTerm);
@@ -223,12 +275,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const prevBtn = document.querySelector('.pagination-controls .prev');
         const nextBtn = document.querySelector('.pagination-controls .next');
-        // hide/show prev/next like maintenance page
-        prevBtn.style.display = currentPage > 1 ? '' : 'none';
-        nextBtn.style.display = visibleCount > currentPage * itemsPerPage ? '' : 'none';
+        const totalPages = Math.max(1, Math.ceil(visibleCount / itemsPerPage));
+        prevBtn.style.display = totalPages > 1 && currentPage > 1 ? '' : 'none';
+        nextBtn.style.display = totalPages > 1 && currentPage < totalPages ? '' : 'none';
 
-        const pageNumberBtn = document.querySelector('.pagination-controls .page-number');
-        if (pageNumberBtn) pageNumberBtn.textContent = currentPage.toString();
+        const pageNumbers = document.querySelector('.pagination-controls .page-numbers');
+        pageNumbers.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `page-link page-number${i === currentPage ? ' active' : ''}`;
+            btn.textContent = i.toString();
+            btn.addEventListener('click', function () {
+                if (currentPage !== i) {
+                    currentPage = i;
+                    filterFuel();
+                }
+            });
+            pageNumbers.appendChild(btn);
+        }
     }
 
     function filterFuel() {
@@ -277,7 +342,121 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initial load
-    currentPage = 1;
-    filterFuel();
-});
+    currentPage = 1; filterFuel();
+
+    const selectAllFuel = document.getElementById('selectAllFuel');
+    const bulkArchiveFuel = document.getElementById('bulkArchiveFuel');
+
+    function updateFuelBulkVisibility() {
+        const anyChecked = document.querySelectorAll('.fuel-select:checked').length > 0;
+        bulkArchiveFuel.style.display = anyChecked ? '' : 'none';
+    }
+
+    if (selectAllFuel) {
+        selectAllFuel.addEventListener('change', function () {
+            document.querySelectorAll('.fuel-select').forEach(cb => {
+                cb.checked = selectAllFuel.checked;
+            });
+            updateFuelBulkVisibility();
+        });
+    }
+
+    tableBody.addEventListener('change', function (event) {
+        if (event.target.classList.contains('fuel-select')) {
+            const allChecks = document.querySelectorAll('.fuel-select');
+            const checked = document.querySelectorAll('.fuel-select:checked');
+            if (selectAllFuel) {
+                selectAllFuel.checked = allChecks.length > 0 && checked.length === allChecks.length;
+            }
+            updateFuelBulkVisibility();
+        }
+    });
+
+    if (bulkArchiveFuel) {
+        bulkArchiveFuel.addEventListener('click', function () {
+            const selected = Array.from(document.querySelectorAll('.fuel-select:checked'));
+            if (selected.length === 0) {
+                alert('Please select at least one fuel entry to archive.');
+                return;
+            }
+
+            if (!confirm(`Archive ${selected.length} selected fuel entries?`)) {
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            Promise.all(selected.map(cb => {
+                const fuelId = cb.value;
+                return fetch('/Fuel/ArchiveFuel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': token
+                    },
+                    body: `id=${fuelId}`
+                }).then(response => response.json()).then(data => ({ data, fuelId }));
+            })).then(results => {
+                results.forEach(result => {
+                    if (result.data.success) {
+                        const row = document.querySelector(`tr:has([value="${result.fuelId}"])`);
+                        if (row) {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while archiving fuel entries.');
+            });
+        });
+    }
+
+    // Archive fuel entry function
+    window.archiveFuelEntry = function(entryId) {
+        if (confirm('Are you sure you want to archive this fuel entry? This action can be undone later.')) {
+            // Make AJAX call to server
+            fetch('/Fuel/ArchiveFuel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `id=${entryId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide the row
+                    const row = document.querySelector(`tr:has([onclick="archiveFuelEntry(${entryId})"])`);
+                    if (row) {
+                        row.style.display = 'none';
+                    }
+
+                    // Show success message
+                    const container = document.querySelector('.fuel-container') || document.querySelector('.vehicles-container');
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle"></i>
+                        ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    container.insertBefore(alertDiv, container.firstChild);
+
+                    // Auto-dismiss after 5 seconds
+                    setTimeout(() => {
+                        alertDiv.style.display = 'none';
+                    }, 5000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while archiving the fuel entry.');
+            });
+        }
+    };
+
+    });
 </script>

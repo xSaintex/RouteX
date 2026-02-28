@@ -14,11 +14,12 @@
                 <select class="form-control" id="actionFilter">
                     <option value="">All Actions</option>
                     <option value="Login">Login</option>
-                    <option value="Created">Created</option>
+                    <option value="Logout">Logout</option>
+                    <option value="Archived">Archived</option>
                     <option value="Updated">Updated</option>
-                    <option value="Deleted">Deleted</option>
-                    <option value="Generated">Generated</option>
+                    <option value="Added">Added</option>
                     <option value="Exported">Exported</option>
+                    <option value="Restored">Restored</option>
                 </select>
             </div>
         </div>
@@ -36,10 +37,49 @@
             <tbody>
                 @foreach (var audit in Model)
                 {
+                    var displayAction = audit.Action;
+                    if (audit.Action.StartsWith("Archive:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = audit.Action.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                        var entity = parts.Length > 1 ? parts[1].ToLower() : "item";
+                        displayAction = $"Archived {entity} data";
+                    }
+                    else if (audit.Action.StartsWith("Update:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = audit.Action.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                        var entity = parts.Length > 1 ? parts[1].ToLower() : "item";
+                        displayAction = $"Updated {entity} data";
+                    }
+                    else if (audit.Action.StartsWith("Create:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = audit.Action.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                        var entity = parts.Length > 1 ? parts[1].ToLower() : "item";
+                        displayAction = $"Added {entity} data";
+                    }
+                    else if (audit.Action.StartsWith("Export:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = audit.Action.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                        var entity = parts.Length > 1 ? parts[1].ToLower() : "report";
+                        displayAction = entity == "reports" ? "Exported report file" : $"Exported {entity} file";
+                    }
+                    else if (audit.Action.StartsWith("Restore:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = audit.Action.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                        var entity = parts.Length > 1 ? parts[1].ToLower() : "item";
+                        displayAction = $"Restored {entity} data";
+                    }
+                    else if (string.Equals(audit.Action, "Login", StringComparison.OrdinalIgnoreCase))
+                    {
+                        displayAction = "Login to system";
+                    }
+                    else if (string.Equals(audit.Action, "Logout", StringComparison.OrdinalIgnoreCase))
+                    {
+                        displayAction = "Logout from system";
+                    }
                     <tr>
                         <td class="user-id">@audit.UserId</td>
-                        <td class="action">@audit.Action</td>
-                        <td class="action-date">@audit.ActionDate.ToString("MMM dd, yyyy - HH:mm")</td>
+                        <td class="action">@displayAction</td>
+                        <td class="action-date">@audit.ActionDate.AddHours(8).ToString("MMM dd, yyyy - HH:mm")</td>
                     </tr>
                 }
             </tbody>
@@ -48,17 +88,46 @@
 
     <div class="audit-pagination">
         <div class="pagination-info">
-            <span>Showing 1-10 of @Model.Count() entries</span>
+            <span>Showing @((ViewBag.CurrentPage - 1) * ViewBag.PageSize + 1)-@Math.Min(ViewBag.CurrentPage * ViewBag.PageSize, ViewBag.TotalCount) of @ViewBag.TotalCount entries</span>
         </div>
         <div class="pagination-controls">
-            <button class="btn-pagination" disabled>
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="btn-pagination active">1</button>
-            <button class="btn-pagination">2</button>
-            <button class="btn-pagination">
-                <i class="fas fa-chevron-right"></i>
-            </button>
+            @if (ViewBag.HasPreviousPage)
+            {
+                <a href="@Url.Action("AuditPage", new { page = ViewBag.CurrentPage - 1 })" class="btn-pagination">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            }
+            else
+            {
+                <button class="btn-pagination" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            }
+            
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                if (i == ViewBag.CurrentPage)
+                {
+                    <button class="btn-pagination active">@i</button>
+                }
+                else
+                {
+                    <a href="@Url.Action("AuditPage", new { page = i })" class="btn-pagination">@i</a>
+                }
+            }
+            
+            @if (ViewBag.HasNextPage)
+            {
+                <a href="@Url.Action("AuditPage", new { page = ViewBag.CurrentPage + 1 })" class="btn-pagination">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            }
+            else
+            {
+                <button class="btn-pagination" disabled>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            }
         </div>
     </div>
 </div>
@@ -248,6 +317,14 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-pagination:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.btn-pagination {
+    text-decoration: none;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    text-decoration: none;
 }
 
 @@media (max-width: 768px) {

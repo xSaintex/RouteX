@@ -2,34 +2,38 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using RouteX.Data;
 using RouteX.Models;
+using RouteX.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace RouteX.Controllers
+
 {
+
     public class AccountController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
-
+        private readonly IAuditService _auditService;
         public AccountController(
+
             ApplicationDbContext context,
             SignInManager<IdentityUser> signInManager,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            IAuditService auditService)
         {
             _context = context;
             _signInManager = signInManager;
             _userManager = userManager;
+            _auditService = auditService;
         }
 
-        // GET: Account/LoginPage
         [HttpGet]
         public IActionResult LoginPage()
         {
             return View();
         }
 
-        // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(User model)
@@ -40,32 +44,54 @@ namespace RouteX.Controllers
                 return View("LoginPage", model);
             }
 
-            // Use Identity to sign in
-            var result = await _signInManager.PasswordSignInAsync(
-                model.Email, 
-                model.Password, 
-                isPersistent: false, 
-                lockoutOnFailure: false);
-
-            if (result.Succeeded)
+            var customUser = _context.Users.FirstOrDefault(u => u.Email == model.Email);
+            if (customUser != null && (customUser.Status == UserStatus.Inactive.ToString() || customUser.Status == UserStatus.Archived.ToString()))
             {
-                // Get the user from Identity
-                var identityUser = await _userManager.FindByEmailAsync(model.Email);
+                ViewBag.ErrorMessage = "This account is inactive or archived. Please contact an administrator.";
+                return View("LoginPage", model);
+            }
 
+            var result = await _signInManager.PasswordSignInAsync(
+                model.Email,
+                model.Password,
+                isPersistent: false,
+                lockoutOnFailure: false);
+            if (result.Succeeded)
+
+            {
+
+                var identityUser = await _userManager.FindByEmailAsync(model.Email);
                 if (identityUser != null)
                 {
-                    // Store additional info in session for compatibility
-                    var customUser = _context.Users.FirstOrDefault(u => u.Email == model.Email);
                     if (customUser != null)
                     {
                         HttpContext.Session.SetString("UserEmail", customUser.Email);
                         HttpContext.Session.SetString("UserName", $"{customUser.FirstName} {customUser.LastName}");
                         HttpContext.Session.SetInt32("UserId", customUser.UserId);
                         HttpContext.Session.SetString("UserRole", customUser.Role);
+                        
+                        // Log successful login
+                        await _auditService.LogActionAsync(customUser.Email, "Login");
+                    }
+                    else
+                    {
+                        // Log successful login for Identity user without custom user
+                        await _auditService.LogActionAsync(model.Email, "Login");
+                    }
+                }
+                if (customUser != null)
+                {
+                    if (customUser.Role == "OperationsStaff")
+                    {
+                        return RedirectToAction("OpStaffDashboard", "Home");
+                    }
+
+                    if (customUser.Role == "Finance" || customUser.Role == "Admin")
+                    {
+                        return RedirectToAction("FinanceDashboard", "Home");
                     }
                 }
 
-                // Redirect to home/dashboard
                 return RedirectToAction("Index", "Home");
             }
             else
@@ -75,17 +101,21 @@ namespace RouteX.Controllers
             }
         }
 
-        // GET: Account/Logout
         public async Task<IActionResult> Logout()
         {
-            // Sign out from Identity
+            var userEmail = HttpContext.Session.GetString("UserEmail");
+            
             await _signInManager.SignOutAsync();
-
-            // Clear session
             HttpContext.Session.Clear();
-
-            // Redirect to login page
+            
+            // Log logout if we have user information
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                await _auditService.LogActionAsync(userEmail, "Logout");
+            }
+            
             return RedirectToAction("LoginPage");
         }
     }
 }
+

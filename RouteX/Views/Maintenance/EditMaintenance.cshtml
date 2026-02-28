@@ -112,7 +112,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 }
 </style>
 
-<div class="edit-maintenance-container">
+<div class="maintenance-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div class="breadcrumb">
         <a href="@Url.Action("MaintenancePage", "Maintenance")">
             <i class="fas fa-wrench"></i>
@@ -123,7 +140,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
         <span>Edit Maintenance</span>
     </div>
 
-    <form class="edit-maintenance-form" method="post" asp-action="EditMaintenance">
+    <form class="edit-maintenance-form" method="post" asp-action="EditMaintenance" asp-route-id="@Model?.Id">
+        <input type="hidden" name="Id" value="@Model?.Id" />
         <div class="form-grid">
             <div class="form-group">
                 <label for="vehicle">Vehicle (Plate #) *</label>
@@ -165,13 +183,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
             <div class="form-group">
                 <label for="serviceDate">Service Date *</label>
-                <input type="date" id="serviceDate" name="ServiceDate" value="@(Model?.ServiceDate.ToString("yyyy-MM-dd") ?? "")" required />
+                <input type="date" id="serviceDate" name="ServiceDate" value="@(Model != null && Model.ServiceDate != default ? Model.ServiceDate.ToString("yyyy-MM-dd") : "")" required />
                 <span class="validation-message">Please select service date</span>
             </div>
 
             <div class="form-group">
                 <label for="cost">Cost (₱) *</label>
-                <input type="number" id="cost" name="Cost" value="@(Model?.Cost.ToString().Replace(',', '.') ?? "")" placeholder="e.g., 2500.00" step="0.01" min="0" required />
+                <input type="number" id="cost" name="Cost" value="@(Model?.Cost?.ToString("0.00") ?? "")" placeholder="e.g., 2500.00" step="0.01" min="0" required />
                 <span class="validation-message">Please enter cost</span>
             </div>
 
@@ -186,13 +204,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                 <select id="status" name="Status" required>
                     <option value="">Select Status</option>
                     @{
-                        var statuses = new[] { "Pending", "Ongoing", "Completed", "Overdue" };
-                        foreach (var status in statuses)
+                        var statusOptions = new[] { 
+                            new { Value = "0", Text = "Pending" },
+                            new { Value = "1", Text = "Ongoing" },
+                            new { Value = "2", Text = "Completed" },
+                            new { Value = "3", Text = "Overdue" }
+                        };
+                        foreach (var status in statusOptions)
                         {
-                            if (Model?.Status.ToString() == status) {
-                                <option value="@status" selected>@status</option>
+                            if (Model?.Status?.ToString() == status.Value) {
+                                <option value="@status.Value" selected>@status.Text</option>
                             } else {
-                                <option value="@status">@status</option>
+                                <option value="@status.Value">@status.Text</option>
                             }
                         }
                     }
@@ -202,19 +225,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
             <div class="form-group">
                 <label for="odometerAtService">Odometer at Service *</label>
-                <input type="number" id="odometerAtService" name="OdometerAtService" value="@(Model?.OdometerAtService.ToString() ?? "")" placeholder="e.g., 25000" min="0" required />
+                <input type="number" id="odometerAtService" name="OdometerAtService" value="@(Model?.OdometerAtService?.ToString() ?? "")" placeholder="e.g., 25000" min="0" required />
                 <span class="validation-message">Please enter odometer reading</span>
             </div>
 
             <div class="form-group">
-                <label for="nextServiceDue">Next Service Due *</label>
-                <input type="date" id="nextServiceDue" name="NextServiceDue" value="@(Model?.NextServiceDue.ToString("yyyy-MM-dd") ?? "")" required />
-                <span class="validation-message">Please select next service due date</span>
+                <label for="nextServiceDue">Next Service Due</label>
+                <input type="date" id="nextServiceDue" name="NextServiceDue" value="@(Model?.NextServiceDue?.ToString("yyyy-MM-dd") ?? "")" />
             </div>
-
             <div class="form-group full">
                 <label for="description">Description</label>
-                <textarea id="description" name="Description" placeholder="e.g., Replaced front brake pads; rear pads still have 40% life.">@(Model?.Description ?? "")</textarea>
+                <textarea id="description" name="Description" placeholder="Describe the maintenance work performed">@(Model?.Description ?? "")</textarea>
             </div>
         </div>
 
@@ -237,45 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nextDue.setMonth(nextDue.getMonth() + 3); // Add 3 months by default
         nextServiceDueInput.value = nextDue.toISOString().split('T')[0];
     });
-
-    // Form validation
-    const form = document.querySelector('.edit-maintenance-form');
-    const inputs = form.querySelectorAll('input[required], select[required]');
-    
-    function validateField(field) {
-        const validationMessage = field.parentElement.querySelector('.validation-message');
-        if (field.value.trim() === '') {
-            field.style.borderColor = '#dc3545';
-            if (validationMessage) validationMessage.style.display = 'block';
-            return false;
-        } else {
-            field.style.borderColor = '#28a745';
-            if (validationMessage) validationMessage.style.display = 'none';
-            return true;
-        }
-    }
-
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => validateField(input));
-        input.addEventListener('input', () => {
-            if (input.style.borderColor === '#dc3545') {
-                validateField(input);
-            }
-        });
-    });
-
-    // Hide validation messages initially
-    document.querySelectorAll('.validation-message').forEach(msg => msg.style.display = 'none');
-
-    form.addEventListener('submit', function(e) {
-        const requiredFields = form.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!validateField(field)) {
-                isValid = false;
-            }
-        });
+});
 
         if (!isValid) {
             e.preventDefault();

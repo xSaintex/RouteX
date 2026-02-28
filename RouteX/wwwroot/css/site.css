@@ -54,8 +54,33 @@ body {
     box-shadow: 0 6px 18px rgba(255, 107, 53, 0.35);
 }
 
+/* Mobile Menu Toggle in Topbar */
+.mobile-menu-toggle-topbar {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+    transition: all 0.3s ease;
+    display: none;
+    font-size: 0.9rem;
+    margin-right: 15px;
+}
+
+.mobile-menu-toggle-topbar:hover {
+    background: linear-gradient(135deg, #e55a2b, #ff7733);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);
+}
+
 @media (max-width: 768px) {
     .mobile-menu-toggle {
+        display: none !important;
+    }
+
+    .mobile-menu-toggle-topbar {
         display: block !important;
     }
 }
@@ -468,19 +493,52 @@ a.menu-link:active {
     }
     
     .sidebar.collapsed {
-        left: 0;
-        width: 80px !important;
+        left: -280px !important;
+        width: 280px !important;
         transform: translateX(0) !important;
     }
-    
+
     .sidebar.mobile-open {
         transform: translateX(280px) !important;
     }
-    
+
     .sidebar.mobile-open.collapsed {
-        transform: translateX(80px) !important;
+        transform: translateX(280px) !important;
     }
-    
+
+    /* Fix: Ensure menu text is visible when sidebar is open in mobile */
+    .sidebar.mobile-open .menu-text {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    .sidebar.mobile-open .sidebar-brand {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Fix: Maintain proper sidebar header layout in mobile */
+    .sidebar.mobile-open .sidebar-header {
+        justify-content: space-between !important;
+    }
+
+    .sidebar.mobile-open .sidebar-brand-container {
+        display: flex !important;
+        align-items: center !important;
+        flex: 1 !important;
+        gap: 15px !important;
+    }
+
+    .sidebar.mobile-open .sidebar-logo {
+        margin-left: 20px !important;
+        margin-right: 0 !important;
+    }
+
+    .sidebar.mobile-open .sidebar-brand {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+    }
+
     .main-content {
         margin-left: 0 !important;
     }
@@ -496,57 +554,94 @@ a.menu-link:active {
     .vehicles-actions {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
     }
-    
+
     .topbar {
-        padding: 0 20px;
-        height: 70px;
+        padding: 0 15px;
+        height: 60px;
     }
-    
-    /* Mobile table optimizations */
+
+    .page-title {
+        font-size: 1.3rem;
+    }
+
+    /* Mobile table optimizations - ENABLE HORIZONTAL SCROLL */
     .table-responsive {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    
-    .table {
-        font-size: 0.85rem;
-        margin-bottom: 0;
+
+    .vehicles-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
     }
-    
+
+    .table, .vehicles-table {
+        font-size: 0.7rem;
+        margin-bottom: 0;
+        table-layout: auto;
+        min-width: 100%;
+        width: max-content;
+    }
+
     .table th,
-    .table td {
-        padding: 8px 6px;
+    .table td,
+    .vehicles-table th,
+    .vehicles-table td {
+        padding: 6px 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.65rem;
+    }
+
+    .table th,
+    .vehicles-table th {
+        font-size: 0.6rem;
+        font-weight: 600;
+        padding: 8px 4px;
+    }
+
+    /* Specific column min-widths for mobile - allows better fitting */
+    .vehicles-table th,
+    .vehicles-table td {
+        min-width: 70px;
         white-space: nowrap;
     }
-    
-    .table th {
-        font-size: 0.8rem;
-        font-weight: 600;
+
+    /* Actions column - ensure proper spacing */
+    .vehicles-table th:last-child,
+    .vehicles-table td:last-child {
+        min-width: 90px;
     }
     
     /* Mobile button optimizations */
     .btn {
-        padding: 8px 12px;
-        font-size: 0.85rem;
-        border-radius: 6px;
-    }
-    
-    .btn-sm {
         padding: 6px 10px;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
+        border-radius: 4px;
     }
-    
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.65rem;
+    }
+
     .btn-primary {
-        padding: 8px 14px;
-        font-size: 0.85rem;
-    }
-    
-    .btn-outline-secondary {
         padding: 8px 12px;
-        font-size: 0.85rem;
+        font-size: 0.7rem;
+        width: auto;
+        max-width: 140px;
+        text-align: center;
     }
-    
+
+    .btn-outline-secondary {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+    }
+
     /* Form controls for mobile */
     .form-control {
         font-size: 0.85rem;
@@ -558,13 +653,54 @@ a.menu-link:active {
         max-width: 200px;
     }
     
+    /* Table actions for mobile - left aligned add button */
+    .table-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .table-actions > a:first-child {
+        order: 1; /* Add button appears first (left-aligned) */
+        align-self: flex-start;
+    }
+    
+    .table-actions .search-filter {
+        order: 2; /* Search/filter appears second */
+        justify-content: flex-end;
+        width: 100%;
+    }
+    
+    .search-filter {
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .search-filter .form-control {
+        flex: 1;
+        min-width: 120px;
+        max-width: none;
+    }
+    
+    .search-filter .btn {
+        flex-shrink: 0;
+    }
+
     /* Action buttons in tables */
     .action-buttons {
         display: flex;
         gap: 4px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        justify-content: center;
     }
-    
+
+    .action-buttons .action-btn {
+        padding: 6px 8px;
+        font-size: 0.85rem;
+        min-width: auto;
+    }
+
     .action-buttons .btn {
         padding: 4px 8px;
         font-size: 0.75rem;
@@ -717,6 +853,8 @@ a.menu-link:active {
 .vehicles-container {
     max-width: 1400px;
     margin: 0 auto;
+    position: relative;
+    padding-top: 60px;
 }
 
 .vehicles-header {
@@ -1400,9 +1538,9 @@ opacity: 1;
 
 /* Back Button Top Left */
 .back-button-top-left {
-    position: fixed;
-    top: 100px;
-    left: 320px;
+    position: absolute;
+    top: 20px;
+    left: 20px;
     background: #ff6b35;
     border: none;
     padding: 10px 16px;
@@ -1421,6 +1559,21 @@ opacity: 1;
 .back-button-top-left:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(255, 107, 53, 0.3);
+}
+
+/* Mobile responsive for back button */
+@media (max-width: 768px) {
+    .back-button-top-left {
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+        font-size: 14px;
+        z-index: 1000; /* Higher z-index for mobile */
+    }
+
+    .back-button-top-left i {
+        font-size: 12px;
+    }
 }
 
 /* Modern Tab Buttons */
@@ -1604,5 +1757,80 @@ opacity: 1;
     .modal-content {
         width: 95%;
         margin: 10% auto;
+    }
+    
+    /* Mobile chart optimizations */
+    .chart-container-full {
+        margin: 60px 10px 20px !important;
+        padding: 20px !important;
+    }
+    
+    .chart-canvas {
+        height: 300px !important;
+        margin-bottom: 20px;
+    }
+    
+    .chart-header {
+        margin-bottom: 15px !important;
+    }
+    
+    .chart-title {
+        font-size: 16px !important;
+    }
+    
+    .chart-subtitle {
+        font-size: 12px !important;
+    }
+    
+    .chart-tabs-below-header {
+        margin-bottom: 15px !important;
+    }
+    
+    .tab-btn-small {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+    }
+    
+    .chart-legend {
+        margin-bottom: 15px !important;
+    }
+    
+    .chart-stats {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        margin-top: 20px !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+    }
+
+    .stat-card {
+        padding: 12px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        border-radius: 6px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .stat-label {
+        font-size: 10px !important;
+    }
+    
+    .stat-value {
+        font-size: 14px !important;
+    }
+    
+    .chart-export-buttons {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        margin-bottom: 15px;
+        justify-content: center;
+    }
+    
+    .btn-export-small {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
     }
 }

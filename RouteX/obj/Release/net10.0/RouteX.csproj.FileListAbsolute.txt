@@ -213,7 +213,6 @@ C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\a3ygkwa
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\nezrqnk58p-{0}-muycvpuwrr-muycvpuwrr.gz
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\v0zgfp0y55-{0}-87fc7y1x7t-87fc7y1x7t.gz
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\yfc7ypekbg-{0}-mlv21k5csn-mlv21k5csn.gz
-C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\ycmo70mm9s-{0}-l5wwyq0gqc-l5wwyq0gqc.gz
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\vgnq3my9qm-{0}-61n19gt1b8-61n19gt1b8.gz
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\t6agy2mxwt-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\aa5lhijad2-{0}-agp80tu62r-agp80tu62r.gz
@@ -286,3 +285,5 @@ C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\refint\RouteX.dll
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\RouteX.pdb
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\RouteX.genruntimeconfig.cache
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\ref\RouteX.dll
+C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\RouteX.sourcelink.json
+C:\Users\acerh\source\repos\RouteX\RouteX\obj\Release\net10.0\compressed\ycmo70mm9s-{0}-bdn6qjohfy-bdn6qjohfy.gz

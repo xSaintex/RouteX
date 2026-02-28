@@ -33,9 +33,30 @@
 .pagination-info { color:#333; font-size:14px; }
 .table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
 .table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+
+/* Archive button style */
+.archive-btn { color: #6c757d; }
+.archive-btn:hover { color: #495057; background-color: #f8f9fa; }
 </style>
 
 <div class="vehicles-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div class="vehicles-header">
         <p>Manage user accounts and permissions</p>
     </div>
@@ -45,6 +66,10 @@
             <i class="fas fa-plus"></i>
             Add User
         </a>
+        <button type="button" class="btn btn-outline-secondary" id="bulkArchiveUsers" style="display:none;">
+            <i class="fas fa-archive"></i>
+            Archive Selected
+        </button>
         <div class="search-filter">
             <input type="text" class="form-control" id="userSearch" placeholder="Search users...">
             <button id="userFilterToggle" class="btn btn-outline-secondary" title="Filters" type="button" aria-haspopup="true" aria-expanded="false">
@@ -72,6 +97,9 @@
         <table class="vehicles-table">
             <thead>
                 <tr>
+                    <th>
+                        <input type="checkbox" id="selectAllUsers" />
+                    </th>
                     <th>User ID</th>
                     <th>First Name</th>
                     <th>Last Name</th>
@@ -85,6 +113,9 @@
                 @foreach (var user in Model)
                 {
                     <tr class="user-row" data-first="@user.FirstName.ToLower()" data-last="@user.LastName.ToLower()" data-email="@user.Email.ToLower()" data-status="@(user.Status.ToString().ToLower())">
+                        <td>
+                            <input type="checkbox" class="user-select" value="@user.UserId" />
+                        </td>
                         <td>@user.UserId</td>
                         <td>@user.FirstName</td>
                         <td>@user.LastName</td>
@@ -103,6 +134,9 @@
                                 <a href="@Url.Action("ViewUser", "Users", new { id = user.UserId })" class="action-btn view-btn" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                <button class="action-btn archive-btn" title="Archive User" onclick="archiveUser(@user.UserId)">
+                                    <i class="fas fa-archive"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -110,12 +144,12 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="table-pagination">
                             <div class="pagination-info">Showing 0 of 0 entries</div>
                             <div class="pagination-controls">
                                 <button class="page-link prev" type="button">&lt;</button>
-                                <button class="page-link page-number active" type="button">1</button>
+                                <div class="page-numbers"></div>
                                 <button class="page-link next" type="button">&gt;</button>
                             </div>
                         </div>
@@ -173,11 +207,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const prevBtn = document.querySelector('.pagination-controls .prev');
         const nextBtn = document.querySelector('.pagination-controls .next');
-        prevBtn.style.display = currentPage > 1 ? '' : 'none';
-        nextBtn.style.display = visibleCount > currentPage * itemsPerPage ? '' : 'none';
+        const totalPages = Math.max(1, Math.ceil(visibleCount / itemsPerPage));
+        prevBtn.style.display = totalPages > 1 && currentPage > 1 ? '' : 'none';
+        nextBtn.style.display = totalPages > 1 && currentPage < totalPages ? '' : 'none';
 
-        const pageNumberBtn = document.querySelector('.pagination-controls .page-number');
-        pageNumberBtn.textContent = currentPage.toString();
+        const pageNumbers = document.querySelector('.pagination-controls .page-numbers');
+        pageNumbers.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `page-link page-number${i === currentPage ? ' active' : ''}`;
+            btn.textContent = i.toString();
+            btn.addEventListener('click', function () {
+                if (currentPage !== i) {
+                    currentPage = i;
+                    filterUsers();
+                }
+            });
+            pageNumbers.appendChild(btn);
+        }
     }
 
     function filterUsers() {
@@ -198,5 +246,116 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // initial
     currentPage = 1; filterUsers();
+
+    const selectAllUsers = document.getElementById('selectAllUsers');
+    const bulkArchiveUsers = document.getElementById('bulkArchiveUsers');
+
+    function updateUserBulkVisibility() {
+        const anyChecked = document.querySelectorAll('.user-select:checked').length > 0;
+        bulkArchiveUsers.style.display = anyChecked ? '' : 'none';
+    }
+
+    if (selectAllUsers) {
+        selectAllUsers.addEventListener('change', function () {
+            document.querySelectorAll('.user-select').forEach(cb => {
+                cb.checked = selectAllUsers.checked;
+            });
+            updateUserBulkVisibility();
+        });
+    }
+
+    tbody.addEventListener('change', function (event) {
+        if (event.target.classList.contains('user-select')) {
+            const allChecks = document.querySelectorAll('.user-select');
+            const checked = document.querySelectorAll('.user-select:checked');
+            if (selectAllUsers) {
+                selectAllUsers.checked = allChecks.length > 0 && checked.length === allChecks.length;
+            }
+            updateUserBulkVisibility();
+        }
+    });
+
+    if (bulkArchiveUsers) {
+        bulkArchiveUsers.addEventListener('click', function () {
+            const selected = Array.from(document.querySelectorAll('.user-select:checked'));
+            if (selected.length === 0) {
+                alert('Please select at least one user to archive.');
+                return;
+            }
+
+            if (!confirm(`Archive ${selected.length} selected users?`)) {
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            Promise.all(selected.map(cb => {
+                const userId = cb.value;
+                return fetch('/Users/ArchiveUser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': token
+                    },
+                    body: `id=${userId}`
+                }).then(response => response.json()).then(data => ({ data, userId }));
+            })).then(results => {
+                results.forEach(result => {
+                    if (result.data.success) {
+                        const row = document.querySelector(`tr:has([value="${result.userId}"])`);
+                        if (row) {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while archiving users.');
+            });
+        });
+    }
+
+
+    // Archive user function
+    window.archiveUser = function(userId) {
+        if (confirm('Are you sure you want to archive this user account? This action can be undone later.')) {
+            fetch('/Users/ArchiveUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `id=${userId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.querySelector(`tr:has([onclick="archiveUser(${userId})"])`);
+                    if (row) {
+                        row.style.display = 'none';
+                    }
+
+                    const container = document.querySelector('.vehicles-container');
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle"></i>
+                        ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    container.insertBefore(alertDiv, container.firstChild);
+
+                    setTimeout(() => {
+                        alertDiv.style.display = 'none';
+                    }, 5000);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while archiving the user.');
+            });
+        }
+    };
 });
 </script>

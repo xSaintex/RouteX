@@ -11,14 +11,16 @@ namespace RouteX.Models
         public string UnitModel { get; set; } = string.Empty;
         public string PlateNumber { get; set; } = string.Empty;
         public string VehicleType { get; set; } = string.Empty;
-        public VehicleStatus Status { get; set; }
+        public VehicleStatus Status { get; set; } = VehicleStatus.Active;
         public int Mileage { get; set; }
+        public bool IsArchived { get; set; }
     }
 
     public enum VehicleStatus
     {
         Active,
         Maintenance,
-        Inactive
+        Inactive,
+        Archived
     }
 }

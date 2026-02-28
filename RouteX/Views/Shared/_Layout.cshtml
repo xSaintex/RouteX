@@ -1,4 +1,14 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@{
+    var userRole = Context.Session.GetString("UserRole") ?? "Administrator";
+    var userName = Context.Session.GetString("UserName") ?? "Admin User";
+    var isOperationsStaff = userRole == "OperationsStaff";
+    var isSuperAdmin = userRole == "SuperAdmin";
+    var isFinance = userRole == "Finance";
+    var isAdmin = userRole == "Admin";
+    var showBudget = isFinance || isAdmin || isSuperAdmin;
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -10,12 +20,7 @@
     <link rel="stylesheet" href="~/RouteX.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <div class="app-container">
-        <!-- Mobile Menu Toggle -->
-        <button class="mobile-menu-toggle" id="mobileMenuToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        
+    <div class="app-container">        
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -32,11 +37,15 @@
             
             <ul class="sidebar-menu">
                 <li class="menu-item">
-                    <a href="@Url.Action("Index", "Home")" class="menu-link @(ViewData["Title"]?.ToString() == "Dashboard" ? "active" : "")">
+                    <a href="@Url.Action(isOperationsStaff ? "OpStaffDashboard" : (isFinance || isAdmin ? "FinanceDashboard" : "Index"), "Home")" class="menu-link @((ViewData["Title"]?.ToString() == "Dashboard" || ViewData["Title"]?.ToString() == "Operations Dashboard" || ViewData["Title"]?.ToString() == "Finance Dashboard") ? "active" : "")">
                         <i class="fas fa-tachometer-alt menu-icon"></i>
                         <span class="menu-text">Dashboard</span>
                     </a>
                 </li>
+                
+                <!-- Vehicles, Fuel, Maintenance - Available to all users except Finance -->
+                @if (!isFinance)
+                {
                 <li class="menu-item">
                     <a href="@Url.Action("VehiclePage", "Vehicles")" class="menu-link @(ViewData["Title"]?.ToString() == "Vehicle Management" ? "active" : "")">
                         <i class="fas fa-truck menu-icon"></i>
@@ -55,18 +64,42 @@
                         <span class="menu-text">Maintenance</span>
                     </a>
                 </li>
+                }
+                
+                <!-- Finance - Available to all users except Operations Staff -->
+                @if (!isOperationsStaff)
+                {
                 <li class="menu-item">
                     <a href="@Url.Action("FinancePage", "Finance")" class="menu-link @(ViewData["Title"]?.ToString() == "Finance" ? "active" : "")">
                         <i class="fas fa-dollar-sign menu-icon"></i>
                         <span class="menu-text">Finance</span>
                     </a>
                 </li>
+                @if (showBudget)
+                {
+                <li class="menu-item">
+                    <a href="@Url.Action("Index", "Budget")" class="menu-link @(ViewData["Title"]?.ToString() == "Budget" ? "active" : "")">
+                        <i class="fas fa-wallet menu-icon"></i>
+                        <span class="menu-text">Budget</span>
+                    </a>
+                </li>
+                }
+                }
+                
+                <!-- Reports - Available to all users except Operations Staff -->
+                @if (!isOperationsStaff)
+                {
                 <li class="menu-item">
                     <a href="@Url.Action("ReportsPage", "Reports")" class="menu-link @(ViewData["Title"]?.ToString() == "Reports" ? "active" : "")">
                         <i class="fas fa-chart-bar menu-icon"></i>
                         <span class="menu-text">Reports</span>
                     </a>
                 </li>
+                }
+                
+                <!-- Users and Audit - Super Admin only -->
+                @if (isSuperAdmin)
+                {
                 <li class="menu-item">
                     <a href="@Url.Action("AuditPage", "Audit")" class="menu-link @(ViewData["Title"]?.ToString() == "Audit Logs" ? "active" : "")">
                         <i class="fas fa-clipboard-list menu-icon"></i>
@@ -79,6 +112,13 @@
                         <span class="menu-text">Users</span>
                     </a>
                 </li>
+                <li class="menu-item">
+                    <a href="@Url.Action("ArchivePage", "Archive")" class="menu-link @(ViewData["Title"]?.ToString() == "Archive" ? "active" : "")">
+                        <i class="fas fa-archive menu-icon"></i>
+                        <span class="menu-text">Archive</span>
+                    </a>
+                </li>
+                }
             </ul>
             
             <div class="sidebar-footer">
@@ -94,11 +134,15 @@
             <!-- Topbar -->
             <header class="topbar">
                 <div class="topbar-content">
+                    <!-- Mobile Menu Toggle - moved to topbar -->
+                    <button class="mobile-menu-toggle-topbar" id="mobileMenuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <h1 class="page-title">@ViewData["Title"]</h1>
                     <div class="topbar-actions">
                         <div class="user-menu">
                             <i class="fas fa-user-circle user-avatar"></i>
-                            <span class="user-name">Admin User</span>
+                            <span class="user-name">@userName</span>
                         </div>
                     </div>
                 </div>
@@ -131,30 +175,42 @@
             if (mobileMenuToggle) {
                 mobileMenuToggle.addEventListener('click', function() {
                     sidebar.classList.toggle('mobile-open');
+                    // Hide mobile menu button when sidebar is opened
+                    updateMobileMenuToggleVisibility();
                 });
             }
-            
+
+            // Function to show/hide mobile menu toggle based on sidebar state
+            function updateMobileMenuToggleVisibility() {
+                if (window.innerWidth <= 768 && mobileMenuToggle) {
+                    const isSidebarOpen = sidebar.classList.contains('mobile-open');
+                    if (isSidebarOpen) {
+                        mobileMenuToggle.style.display = 'none';
+                    } else {
+                        mobileMenuToggle.style.display = 'block';
+                    }
+                }
+            }
+
             // Close mobile menu when clicking outside
             document.addEventListener('click', function(event) {
                 if (window.innerWidth <= 768) {
                     if (!sidebar.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
                         sidebar.classList.remove('mobile-open');
+                        updateMobileMenuToggleVisibility();
                     }
                 }
             });
-            
+
             // Handle sidebar collapse in mobile view
             document.getElementById('sidebarCollapseBtn').addEventListener('click', function() {
                 if (window.innerWidth <= 768) {
-                    // In mobile view, just toggle collapsed state but keep mobile-open if it was open
-                    const wasMobileOpen = sidebar.classList.contains('mobile-open');
-                    sidebar.classList.toggle('collapsed');
-                    if (wasMobileOpen) {
-                        sidebar.classList.add('mobile-open');
-                    }
+                    // In mobile view, close the sidebar completely instead of collapsing
+                    sidebar.classList.remove('mobile-open');
                 } else {
                     toggleSidebar();
                 }
+                updateMobileMenuToggleVisibility();
             });
             
             document.getElementById('sidebarLogoToggle').addEventListener('click', function() {
@@ -171,7 +227,11 @@
                         toggleSidebar();
                     }
                 }
+                updateMobileMenuToggleVisibility();
             });
+
+            // Initialize mobile menu toggle visibility
+            updateMobileMenuToggleVisibility();
         });
         
         function toggleSidebar() {

@@ -23,6 +23,7 @@ CREATE TABLE dbo.Vehicles
     PlateNumber NVARCHAR(50) NOT NULL,
     VehicleType NVARCHAR(50) NOT NULL,
     Status INT NOT NULL, -- 0=Active, 1=Maintenance, 2=Inactive (VehicleStatus enum)
+    IsArchived BIT NOT NULL DEFAULT 0,
     Mileage INT NOT NULL DEFAULT 0,
     CreatedDate DATETIME2 NOT NULL DEFAULT GETDATE(),
     ModifiedDate DATETIME2 NOT NULL DEFAULT GETDATE()
@@ -92,6 +93,8 @@ CREATE TABLE dbo.FuelEntries
     FuelType NVARCHAR(50) NOT NULL DEFAULT 'Regular',
     FullTank BIT NOT NULL DEFAULT 1,
     Notes NVARCHAR(1000) NULL,
+    Status INT NOT NULL DEFAULT 0, -- 0=Active, 1=Archived (FuelEntryStatus enum)
+    IsArchived BIT NOT NULL DEFAULT 0,
     -- Legacy properties for backward compatibility
     UnitModel NVARCHAR(100) NULL,
     PlateNumber NVARCHAR(50) NULL,
@@ -123,6 +126,7 @@ CREATE TABLE dbo.MaintenanceEntries
     Cost DECIMAL(18,2) NOT NULL,
     TechnicianName NVARCHAR(200) NOT NULL,
     Status INT NOT NULL, -- 0=Pending, 1=Ongoing, 2=Completed, 3=Overdue (MaintenanceStatus enum)
+    IsArchived BIT NOT NULL DEFAULT 0,
     OdometerAtService INT NOT NULL,
     NextServiceDue DATETIME2 NULL,
     Description NVARCHAR(1000) NULL,

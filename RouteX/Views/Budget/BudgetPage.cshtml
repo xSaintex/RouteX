@@ -1,0 +1,279 @@
+@model RouteX.ViewModels.BudgetPageViewModel
+@{
+    ViewData["Title"] = "Budget";
+}
+
+<div class="vehicles-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <div class="vehicles-header">
+        <p>Set monthly budget targets</p>
+    </div>
+
+    <form method="post" class="budget-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        <div class="budget-inputs">
+            <div class="budget-field">
+                <label for="MonthValue">Month</label>
+                <select id="MonthValue" name="MonthValue" class="form-control">
+                    @for (var month = 1; month <= 12; month++)
+                    {
+                        <option value="@month" selected="@(Model.MonthValue == month)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)</option>
+                    }
+                </select>
+            </div>
+            <div class="budget-field">
+                <label for="Year">Year</label>
+                <input type="number" id="Year" name="Year" class="form-control" min="2000" value="@(Model.Year ?? DateTime.Today.Year)" />
+            </div>
+            <div class="budget-field">
+                <label for="Amount">Budget Amount</label>
+                <div class="input-group">
+                    <span class="input-group-text">₱</span>
+                    <input type="number" id="Amount" name="Amount" class="form-control" min="0" step="0.01" value="@(Model.Amount?.ToString("0.00"))" />
+                </div>
+            </div>
+            <div class="budget-field budget-action">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-primary budget-save"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="finance-section">
+        <h3>Monthly Budget</h3>
+        <div class="vehicles-table-container">
+            <table class="vehicles-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Budget Amount</th>
+                        <th>Created By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.Entries)
+                    {
+                        var monthParts = entry.Month?.Split('-') ?? new[] { "", "" };
+                        var rowYear = monthParts.Length > 0 && int.TryParse(monthParts[0], out var parsedYear) ? parsedYear : DateTime.Today.Year;
+                        var rowMonth = monthParts.Length > 1 && int.TryParse(monthParts[1], out var parsedMonth) ? parsedMonth : DateTime.Today.Month;
+                        var updateFormId = $"updateBudgetForm{entry.Id}";
+                        <tr>
+                            <td>
+                                <span class="budget-display">@entry.Month</span>
+                                <div class="budget-edit d-none">
+                                    <select name="monthValue" class="form-control form-control-sm edit-month" form="@updateFormId">
+                                        @for (var month = 1; month <= 12; month++)
+                                        {
+                                            <option value="@month" selected="@(rowMonth == month)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)</option>
+                                        }
+                                    </select>
+                                    <input type="number" name="year" class="form-control form-control-sm edit-year" min="2000" value="@rowYear" form="@updateFormId" />
+                                </div>
+                            </td>
+                            <td>
+                                <span class="budget-display">₱@entry.BudgetAmount.ToString("N2")</span>
+                                <div class="budget-edit d-none">
+                                    <input type="number" name="amount" class="form-control form-control-sm edit-amount" min="0" step="0.01" value="@entry.BudgetAmount.ToString("0.00")" form="@updateFormId" />
+                                </div>
+                            </td>
+                            <td>@entry.CreatedBy</td>
+                            <td>
+                                <form asp-action="UpdateBudget" method="post" class="d-inline budget-edit-form" id="@updateFormId">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@entry.Id" />
+                                    <button type="button" class="action-btn edit-btn" onclick="startBudgetEdit(this)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="submit" class="action-btn save-btn d-none">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                    <button type="button" class="action-btn cancel-btn d-none" onclick="cancelBudgetEdit(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                                <form asp-action="ArchiveBudget" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@entry.Id" />
+                                    <button type="submit" class="action-btn archive-btn">
+                                        <i class="fas fa-archive"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.budget-form {
+    margin-bottom: 24px;
+}
+
+.budget-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.budget-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.budget-action {
+    display: flex;
+    align-items: flex-end;
+}
+
+.budget-save {
+    background: #ff6b35;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    box-shadow: 0 6px 14px rgba(255, 107, 53, 0.25);
+}
+
+.budget-save:hover {
+    filter: brightness(0.95);
+}
+
+.action-btn {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    padding: 4px 6px;
+    border-radius: 6px;
+}
+
+.edit-btn,
+.save-btn {
+    color: #ff6b35;
+}
+
+.action-btn:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+.budget-edit {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.budget-edit .form-control-sm {
+    min-width: 120px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const monthSelect = document.getElementById('MonthValue');
+    const yearInput = document.getElementById('Year');
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    yearInput.max = currentYear.toString();
+    if (parseInt(yearInput.value || '0', 10) > currentYear) {
+        yearInput.value = currentYear.toString();
+    }
+
+    function updateMonthAvailability() {
+        const selectedYear = parseInt(yearInput.value || currentYear.toString(), 10);
+        Array.from(monthSelect.options).forEach(option => {
+            const monthValue = parseInt(option.value, 10);
+            const isFutureYear = selectedYear > currentYear;
+            const isFutureMonth = selectedYear === currentYear && monthValue > currentMonth;
+            option.disabled = isFutureYear || isFutureMonth;
+        });
+
+        if (monthSelect.selectedOptions.length && monthSelect.selectedOptions[0].disabled) {
+            monthSelect.value = currentMonth.toString();
+        }
+    }
+
+    yearInput.addEventListener('input', updateMonthAvailability);
+    updateMonthAvailability();
+
+    document.querySelectorAll('.budget-edit').forEach(section => {
+        const row = section.closest('tr');
+        const yearInputRow = row.querySelector('.edit-year');
+        if (yearInputRow) {
+            yearInputRow.addEventListener('input', () => updateRowMonthAvailability(row));
+        }
+    });
+});
+
+function startBudgetEdit(button) {
+    const row = button.closest('tr');
+    row.querySelectorAll('.budget-display').forEach(el => el.classList.add('d-none'));
+    row.querySelectorAll('.budget-edit').forEach(el => el.classList.remove('d-none'));
+    row.querySelector('.edit-btn').classList.add('d-none');
+    row.querySelector('.archive-btn').classList.add('d-none');
+    row.querySelector('.save-btn').classList.remove('d-none');
+    row.querySelector('.cancel-btn').classList.remove('d-none');
+    updateRowMonthAvailability(row);
+}
+
+function cancelBudgetEdit(button) {
+    const row = button.closest('tr');
+    row.querySelectorAll('.budget-display').forEach(el => el.classList.remove('d-none'));
+    row.querySelectorAll('.budget-edit').forEach(el => el.classList.add('d-none'));
+    row.querySelector('.edit-btn').classList.remove('d-none');
+    row.querySelector('.archive-btn').classList.remove('d-none');
+    row.querySelector('.save-btn').classList.add('d-none');
+    row.querySelector('.cancel-btn').classList.add('d-none');
+}
+
+function updateRowMonthAvailability(row) {
+    const yearInput = row.querySelector('.edit-year');
+    const monthSelect = row.querySelector('.edit-month');
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    yearInput.max = currentYear.toString();
+    if (parseInt(yearInput.value || '0', 10) > currentYear) {
+        yearInput.value = currentYear.toString();
+    }
+
+    Array.from(monthSelect.options).forEach(option => {
+        const monthValue = parseInt(option.value, 10);
+        const isFutureYear = parseInt(yearInput.value, 10) > currentYear;
+        const isFutureMonth = parseInt(yearInput.value, 10) === currentYear && monthValue > currentMonth;
+        option.disabled = isFutureYear || isFutureMonth;
+    });
+}
+</script>
+</script>

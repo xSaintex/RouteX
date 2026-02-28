@@ -154,6 +154,23 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 </style>
 
 <div class="edit-finance-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div class="breadcrumb">
         <a href="@Url.Action("FinancePage", "Finance")">
             <i class="fas fa-chart-line"></i>
@@ -189,35 +206,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group">
-                <label for="expenseType">Expense Type *</label>
-                <select id="expenseType" name="ExpenseType" required>
-                    <option value="">Select Expense Type</option>
-                    @if (Model?.ExpenseType == "Fuel")
-                    {
-                        <option value="Fuel" selected>Fuel</option>
-                    }
-                    else
-                    {
-                        <option value="Fuel">Fuel</option>
-                    }
-                    @if (Model?.ExpenseType == "Maintenance")
-                    {
-                        <option value="Maintenance" selected>Maintenance</option>
-                    }
-                    else
-                    {
-                        <option value="Maintenance">Maintenance</option>
-                    }
-                    @if (Model?.ExpenseType == "Other")
-                    {
-                        <option value="Other" selected>Other</option>
-                    }
-                    else
-                    {
-                        <option value="Other">Other</option>
-                    }
-                </select>
-                <span class="validation-message">Please select expense type</span>
+                <label for="expenseType">Expense Type</label>
+                <input type="text" id="expenseType" name="ExpenseType" value="@(Model?.ExpenseType ?? "OTHER")" readonly style="background-color: #f8f9fa; color: #666; cursor: not-allowed;" />
             </div>
 
             <div class="form-group">
@@ -233,21 +223,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group full">
-                <label for="description">Description</label>
-                <textarea id="description" name="Description" placeholder="e.g., Regular fuel fill-up or Toll fees and parking">@(Model?.Description ?? "")</textarea>
+                <label for="description">Description @(Model?.ExpenseType == "Other" ? "*" : "")</label>
+                <textarea id="description" name="Description" placeholder="e.g., Regular fuel fill-up or Toll fees and parking" @(Model?.ExpenseType == "Other" ? "required" : "")>@(Model?.Description ?? "")</textarea>
+                <span class="validation-message" style="display: @(Model?.ExpenseType == "Other" ? "block" : "none");">Please enter description</span>
             </div>
 
             <div class="form-group" id="referenceIdGroup" style="display: @(Model?.ExpenseType == "Fuel" || Model?.ExpenseType == "Maintenance" ? "flex" : "none");">
                 <label for="referenceId">Reference ID</label>
-                <input type="number" id="referenceId" name="ReferenceId" placeholder="Enter Fuel ID or Maintenance ID" value="@(Model?.ReferenceId ?? (int?)null)" @(Model?.ExpenseType == "Fuel" || Model?.ExpenseType == "Maintenance" ? "required" : "") />
-                <span class="validation-message">Please enter reference ID</span>
+                <input type="number" id="referenceId" name="ReferenceId" placeholder="Enter Fuel ID or Maintenance ID" value="@(Model?.ReferenceId ?? (int?)null)" readonly style="background-color: #f8f9fa; color: #666; cursor: not-allowed;" />
+                <span class="validation-message">Reference ID cannot be edited</span>
             </div>
 
             <div class="form-group full">
                 <label for="attachment">Attachment/Receipt</label>
                 <div class="file-upload-group">
                     <div class="file-upload-wrapper">
-                        <input type="file" id="attachment" name="Attachment" class="file-upload-input" accept="image/*,.pdf" />
+                        <input type="file" id="attachment" name="attachment" class="file-upload-input" accept="image/*,.pdf" />
                         <button type="button" class="file-upload-button" onclick="document.getElementById('attachment').click()">
                             <i class="fas fa-upload"></i> Choose File
                         </button>

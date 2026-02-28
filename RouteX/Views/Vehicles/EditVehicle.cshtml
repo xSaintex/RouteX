@@ -143,9 +143,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             <div class="form-group">
                 <label asp-for="Status">Status</label>
                 <select asp-for="Status" id="status" required>
-                    <option value="Active">Active</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="">Select Status</option>
+                    <option value="Active" selected="@(Model?.Status == VehicleStatus.Active)">Active</option>
+                    <option value="Maintenance" selected="@(Model?.Status == VehicleStatus.Maintenance)">Maintenance</option>
+                    <option value="Inactive" selected="@(Model?.Status == VehicleStatus.Inactive)">Inactive</option>
                 </select>
                 <span class="validation-message">Please select a status</span>
             </div>

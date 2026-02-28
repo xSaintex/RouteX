@@ -1,34 +1,56 @@
 using Microsoft.AspNetCore.Mvc;
 using RouteX.Models;
+using RouteX.Services;
 using System.Linq;
 
 namespace RouteX.Controllers
 {
     public class AuditController : Controller
     {
-        public IActionResult AuditPage()
-        {
-            // Sample audit data - in real app, this would come from database
-            var auditLogs = new List<AuditLog>
-            {
-                new AuditLog { UserId = "admin@routex.com", Action = "Login", ActionDate = DateTime.Now.AddMinutes(-5) },
-                new AuditLog { UserId = "john.doe@routex.com", Action = "Created Vehicle", ActionDate = DateTime.Now.AddMinutes(-15) },
-                new AuditLog { UserId = "admin@routex.com", Action = "Updated Route", ActionDate = DateTime.Now.AddMinutes(-30) },
-                new AuditLog { UserId = "jane.smith@routex.com", Action = "Deleted Maintenance Record", ActionDate = DateTime.Now.AddMinutes(-45) },
-                new AuditLog { UserId = "mike.wilson@routex.com", Action = "Generated Report", ActionDate = DateTime.Now.AddHours(-1) },
-                new AuditLog { UserId = "admin@routex.com", Action = "Modified User", ActionDate = DateTime.Now.AddHours(-2) },
-                new AuditLog { UserId = "sarah.jones@routex.com", Action = "Added Fuel Record", ActionDate = DateTime.Now.AddHours(-3) },
-                new AuditLog { UserId = "john.doe@routex.com", Action = "Exported Data", ActionDate = DateTime.Now.AddHours(-4) },
-                new AuditLog { UserId = "admin@routex.com", Action = "System Backup", ActionDate = DateTime.Now.AddHours(-5) },
-                new AuditLog { UserId = "david.brown@routex.com", Action = "Updated Vehicle Status", ActionDate = DateTime.Now.AddHours(-6) },
-                new AuditLog { UserId = "jane.smith@routex.com", Action = "Created Route", ActionDate = DateTime.Now.AddDays(-1) },
-                new AuditLog { UserId = "mike.wilson@routex.com", Action = "Deleted Vehicle", ActionDate = DateTime.Now.AddDays(-1) },
-                new AuditLog { UserId = "sarah.jones@routex.com", Action = "Modified Maintenance", ActionDate = DateTime.Now.AddDays(-2) },
-                new AuditLog { UserId = "admin@routex.com", Action = "User Login", ActionDate = DateTime.Now.AddDays(-2) },
-                new AuditLog { UserId = "david.brown@routex.com", Action = "Report Generation", ActionDate = DateTime.Now.AddDays(-3) }
-            };
+        private readonly IAuditService _auditService;
 
-            return View(auditLogs);
+        public AuditController(IAuditService auditService)
+        {
+            _auditService = auditService;
+        }
+
+        public async Task<IActionResult> AuditPage(int page = 1)
+        {
+            try
+            {
+                ViewData["Title"] = "Audit Logs";
+                
+                const int pageSize = 15;
+                var (auditLogs, totalCount) = await _auditService.GetAuditLogsPagedAsync(page, pageSize);
+                
+                // Calculate pagination info
+                var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+                
+                // Pass pagination data to ViewBag
+                ViewBag.CurrentPage = page;
+                ViewBag.TotalPages = totalPages;
+                ViewBag.TotalCount = totalCount;
+                ViewBag.PageSize = pageSize;
+                ViewBag.HasPreviousPage = page > 1;
+                ViewBag.HasNextPage = page < totalPages;
+                
+                // Log that someone viewed the audit page
+                await _auditService.LogActionAsync(User, "Viewed Audit Page");
+                
+                return View(auditLogs);
+            }
+            catch (Exception)
+            {
+                // If there's an error, return empty list with pagination info
+                ViewBag.CurrentPage = 1;
+                ViewBag.TotalPages = 1;
+                ViewBag.TotalCount = 0;
+                ViewBag.PageSize = 15;
+                ViewBag.HasPreviousPage = false;
+                ViewBag.HasNextPage = false;
+                
+                return View(new List<AuditLog>());
+            }
         }
     }
 }

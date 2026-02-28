@@ -40,6 +40,24 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.finance-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.finance-card-link:focus-visible .finance-card {
+    outline: 2px solid #ff6b35;
+    outline-offset: 2px;
+}
+
+.finance-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    border-color: #ff6b35;
 }
 
 .finance-card-icon {
@@ -218,6 +236,36 @@
     .finance-summary-grid {
         grid-template-columns: 1fr;
     }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+  
+    .chart-container {
+        padding: 15px !important;
+        margin-bottom: 20px;
+    }
+    
+    .fuel-chart {
+        height: 250px !important;
+        margin-bottom: 15px;
+    }
+    
+    .status-chart {
+        height: 250px !important;
+        margin-bottom: 15px;
+    }
+    
+    .chart-title {
+        font-size: 16px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .chart-subtitle {
+        font-size: 12px !important;
+        margin-bottom: 15px !important;
+    }
 }
 </style>
 
@@ -227,52 +275,58 @@
         <p>Manage your vehicle fleet efficiently</p>
     </div>
     
-    <!-- Summary Cards -->
     <div class="finance-summary-grid">
-        <div class="finance-card">
-            <div class="finance-card-icon">
-                <i class="fas fa-truck"></i>
+        <a class="finance-card-link" href="@Url.Action("VehiclePage", "Vehicles")" aria-label="Total vehicles">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>@Model.TotalVehicles</h3>
+                    <p>Total Vehicles</p>
+                </div>
             </div>
-            <div class="finance-card-content">
-                <h3>24</h3>
-                <p>Total Vehicles</p>
-            </div>
-        </div>
+        </a>
         
-        <div class="finance-card">
-            <div class="finance-card-icon">
-                <i class="fas fa-check-circle"></i>
+        <a class="finance-card-link" href="@Url.Action("VehiclePage", "Vehicles", new { status = "Active" })" aria-label="Active vehicles">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>@Model.ActiveVehicles</h3>
+                    <p>Active Vehicles</p>
+                </div>
             </div>
-            <div class="finance-card-content">
-                <h3>18</h3>
-                <p>Active Vehicles</p>
-            </div>
-        </div>
+        </a>
         
-        <div class="finance-card">
-            <div class="finance-card-icon">
-                <i class="fas fa-wrench"></i>
+        <a class="finance-card-link" href="@Url.Action("MaintenancePage", "Maintenance", new { status = "Pending" })" aria-label="Pending maintenance">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>@Model.PendingMaintenance</h3>
+                    <p>Pending Maintenance</p>
+                </div>
             </div>
-            <div class="finance-card-content">
-                <h3>8</h3>
-                <p>Pending Maintenance</p>
-            </div>
-        </div>
+        </a>
         
-        <div class="finance-card">
-            <div class="finance-card-icon">
-                <i class="fas fa-money-bill-wave"></i>
+        <a class="finance-card-link" href="@Url.Action("TotalExpensesAllTime", "Finance")" aria-label="Total expenses">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>₱@Model.TotalExpenses.ToString("N0")</h3>
+                    <p>Total Expenses</p>
+                </div>
             </div>
-            <div class="finance-card-content">
-                <h3>₱45,678</h3>
-                <p>Total Expenses</p>
-            </div>
-        </div>
+        </a>
     </div>
     
-    <!-- Charts Section -->
+
     <div class="charts-grid">
-        <!-- Fuel Consumption Trend Chart -->
         <div class="chart-container">
             <h3 class="chart-title">Fuel Consumption Trend</h3>
             <p class="chart-subtitle">Total Fuel Spend vs. Distance Traveled (Last 30 Days)</p>
@@ -281,7 +335,6 @@
             </div>
         </div>
         
-        <!-- Vehicle Status Distribution Chart -->
         <div class="chart-container">
             <h3 class="chart-title">Vehicle Status Distribution</h3>
             <p class="chart-subtitle">Current fleet status overview</p>
@@ -290,7 +343,6 @@
             </div>
         </div>
         
-        <!-- Most Active Vehicles -->
         <div class="chart-container active-vehicles">
             <h3 class="chart-title">Top 5 Most Active Vehicles</h3>
             <p class="chart-subtitle">Vehicles clocking the most kilometers</p>
@@ -323,7 +375,6 @@
         </div>
     </div>
     
-    <!-- Recent Activity Section -->
     <div class="dashboard-content">
         <div class="content-section">
             <h3>Recent Activity</h3>
@@ -345,23 +396,33 @@
     </div>
 </div>
 
-<!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Fuel Consumption Line Chart
+   
     const fuelCtx = document.getElementById('fuelChart').getContext('2d');
-    const fuelData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FuelConsumptionData.Select(d => new { d.Date, d.TotalFuelSpend, d.DistanceTraveled })));
+    
+    const sampleFuelData = [
+        { Date: "2024-01-01", TotalFuelSpend: 2500, DistanceTraveled: 450 },
+        { Date: "2024-01-05", TotalFuelSpend: 3200, DistanceTraveled: 580 },
+        { Date: "2024-01-10", TotalFuelSpend: 2800, DistanceTraveled: 520 },
+        { Date: "2024-01-15", TotalFuelSpend: 3500, DistanceTraveled: 620 },
+        { Date: "2024-01-20", TotalFuelSpend: 4100, DistanceTraveled: 750 },
+        { Date: "2024-01-25", TotalFuelSpend: 3800, DistanceTraveled: 680 },
+        { Date: "2024-01-30", TotalFuelSpend: 4500, DistanceTraveled: 820 }
+    ];
+    
+    const fuelData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FuelConsumptionData?.Select(d => new { d.Date, d.TotalFuelSpend, d.DistanceTraveled }))) ?? sampleFuelData;
     
     new Chart(fuelCtx, {
         type: 'line',
         data: {
-            labels: fuelData.map(d => d.date),
+            labels: fuelData.map(d => d.Date),
             datasets: [
                 {
                     label: 'Total Fuel Spend (₱)',
-                    data: fuelData.map(d => d.totalFuelSpend),
+                    data: fuelData.map(d => d.TotalFuelSpend),
                     borderColor: '#ff6b35',
                     backgroundColor: 'rgba(255, 107, 53, 0.1)',
                     borderWidth: 2,
@@ -370,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 {
                     label: 'Distance Traveled (km)',
-                    data: fuelData.map(d => d.distanceTraveled),
+                    data: fuelData.map(d => d.DistanceTraveled),
                     borderColor: '#1976d2',
                     backgroundColor: 'rgba(25, 118, 210, 0.1)',
                     borderWidth: 2,
@@ -425,9 +486,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Vehicle Status Donut Chart
+
     const statusCtx = document.getElementById('statusChart').getContext('2d');
-    const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VehicleStatusData));
+    
+    const sampleStatusData = [
+        { Status: "Active", Count: 18, Percentage: 75 },
+        { Status: "Maintenance", Count: 4, Percentage: 17 },
+        { Status: "Inactive", Count: 2, Percentage: 8 }
+    ];
+    
+    const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VehicleStatusData)) ?? sampleStatusData;
     
     new Chart(statusCtx, {
         type: 'doughnut',
@@ -436,9 +504,9 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 data: statusData.map(d => d.Count),
                 backgroundColor: [
-                    '#28a745', // Active - Green
-                    '#ffc107', // Maintenance - Yellow  
-                    '#dc3545'  // Inactive - Red
+                    '#28a745', 
+                    '#ffc107',  
+                    '#dc3545'  
                 ],
                 borderWidth: 2,
                 borderColor: '#ffffff'

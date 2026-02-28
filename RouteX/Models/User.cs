@@ -9,12 +9,17 @@ namespace RouteX.Models
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         
-        [NotMapped]
         public string Password { get; set; } = string.Empty;
         
-        [NotMapped]
         public string Role { get; set; } = string.Empty;
         
         public string Status { get; set; } = string.Empty;
+    }
+
+    public enum UserStatus
+    {
+        Active,
+        Inactive,
+        Archived
     }
 }

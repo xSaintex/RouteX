@@ -112,7 +112,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 }
 </style>
 
-<div class="add-maintenance-container">
+<div class="maintenance-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div class="breadcrumb">
         <a href="@Url.Action("MaintenancePage", "Maintenance")">
             <i class="fas fa-wrench"></i>
@@ -178,10 +195,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                 <label for="status">Status *</label>
                 <select id="status" name="Status" required>
                     <option value="">Select Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Overdue">Overdue</option>
+                    @{
+                        var statusOptions = new[] { 
+                            new { Value = "0", Text = "Pending" },
+                            new { Value = "1", Text = "Ongoing" },
+                            new { Value = "2", Text = "Completed" },
+                            new { Value = "3", Text = "Overdue" }
+                        };
+                        foreach (var status in statusOptions)
+                        {
+                            if (Model?.Status?.ToString() == status.Value) {
+                                <option value="@status.Value" selected>@status.Text</option>
+                            } else {
+                                <option value="@status.Value">@status.Text</option>
+                            }
+                        }
+                    }
                 </select>
                 <span class="validation-message">Please select status</span>
             </div>
@@ -193,14 +222,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group">
-                <label for="nextServiceDue">Next Service Due *</label>
-                <input type="date" id="nextServiceDue" name="NextServiceDue" required />
-                <span class="validation-message">Please select next service due date</span>
+                <label for="nextServiceDue">Next Service Due</label>
+                <input type="date" id="nextServiceDue" name="NextServiceDue" />
             </div>
-
             <div class="form-group full">
                 <label for="description">Description</label>
-                <textarea id="description" name="Description" placeholder="e.g., Replaced front brake pads; rear pads still have 40% life."></textarea>
+                <textarea id="description" name="Description" placeholder="Describe the maintenance work performed"></textarea>
             </div>
         </div>
 
@@ -226,34 +253,5 @@ document.addEventListener('DOMContentLoaded', function() {
         nextDue.setMonth(nextDue.getMonth() + 3); // Add 3 months by default
         nextServiceDueInput.value = nextDue.toISOString().split('T')[0];
     });
-
-    // Form validation
-    const form = document.querySelector('.add-maintenance-form');
-    const inputs = form.querySelectorAll('input[required], select[required]');
-    
-    function validateField(field) {
-        const validationMessage = field.parentElement.querySelector('.validation-message');
-        if (field.value.trim() === '') {
-            field.style.borderColor = '#dc3545';
-            if (validationMessage) validationMessage.style.display = 'block';
-            return false;
-        } else {
-            field.style.borderColor = '#28a745';
-            if (validationMessage) validationMessage.style.display = 'none';
-            return true;
-        }
-    }
-
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => validateField(input));
-        input.addEventListener('input', () => {
-            if (input.style.borderColor === '#dc3545') {
-                validateField(input);
-            }
-        });
-    });
-
-    // Hide validation messages initially
-    document.querySelectorAll('.validation-message').forEach(msg => msg.style.display = 'none');
 });
 </script>

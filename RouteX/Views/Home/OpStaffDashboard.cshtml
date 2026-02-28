@@ -1,0 +1,305 @@
+@model RouteX.ViewModels.OpStaffDashboardViewModel
+@{
+    ViewData["Title"] = "Operations Dashboard";
+}
+
+<style>
+.dashboard-container {
+    padding: 20px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    margin-bottom: 24px;
+}
+
+.dashboard-header h2 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.dashboard-header p {
+    color: #6c757d;
+    margin: 0;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.finance-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.finance-card-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 140, 66, 0.08));
+    border-radius: 12px;
+    font-size: 1.8rem;
+    color: #ff6b35;
+}
+
+.finance-card-content h3 {
+    color: #000000;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.finance-card-content p {
+    color: #666666;
+    font-size: 0.9rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.card-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.card-subtitle {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 16px;
+}
+
+.card-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.card-table th,
+.card-table td {
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+    text-align: left;
+    font-size: 14px;
+}
+
+.card-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.rank-badge {
+    background: #ff6b35;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.distance-badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-chart {
+    height: 260px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.section-list {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+    margin-bottom: 24px;
+}
+
+.trip-status-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+@@media (max-width: 1024px) {
+    .trip-status-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+.section-subtitle {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 16px;
+}
+</style>
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Operations Staff Dashboard</h2>
+        <p>Monitor active trips, vehicle status, and maintenance needs.</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <a class="card-link" href="@Url.Action("VehiclePage", "Vehicles", new { status = "Active" })">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>@Model.ActiveVehicles.Count</h3>
+                    <p>Active Vehicles</p>
+                </div>
+            </div>
+        </a>
+
+        <a class="card-link" href="@Url.Action("VehiclePage", "Vehicles", new { status = "Inactive" })">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-pause-circle"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>@Model.IdleVehicles.Count</h3>
+                    <p>Idle Vehicles</p>
+                </div>
+            </div>
+        </a>
+
+        <a class="card-link" href="@Url.Action("VehiclePage", "Vehicles", new { status = "Maintenance" })">
+            <div class="finance-card">
+                <div class="finance-card-icon">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <div class="finance-card-content">
+                    <h3>@Model.MaintenanceVehicles.Count</h3>
+                    <p>Maintenance Vehicles</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="trip-status-grid">
+        <a class="card-link" href="@Url.Action("VehiclePage", "Vehicles")">
+            <div class="card-container">
+                <div class="card-title">Top 5 Most Active Vehicles</div>
+                <div class="card-subtitle">Vehicles with the highest mileage</div>
+                <table class="card-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Vehicle</th>
+                            <th>Model</th>
+                            <th>Mileage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var rank = 1;
+                        }
+                        @foreach (var vehicle in Model.ActiveTripsToday)
+                        {
+                            <tr>
+                                <td><span class="rank-badge">@rank</span></td>
+                                <td><strong>@vehicle.PlateNumber</strong></td>
+                                <td>@vehicle.UnitModel</td>
+                                <td><span class="distance-badge">@vehicle.Mileage.ToString("N0") km</span></td>
+                            </tr>
+                            rank++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </a>
+
+        <div class="card-container">
+            <div class="card-title">Vehicle Status Distribution</div>
+            <div class="card-subtitle">Current fleet status overview</div>
+            <div class="status-chart">
+                <canvas id="statusChart" width="220" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VehicleStatusData));
+    const ctx = document.getElementById('statusChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: statusData.map(d => d.Status),
+            datasets: [{
+                data: statusData.map(d => d.Count),
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const data = statusData[context.dataIndex];
+                            return `${data.Status}: ${data.Count} vehicles (${data.Percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>

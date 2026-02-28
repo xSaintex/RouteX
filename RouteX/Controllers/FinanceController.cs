@@ -1,138 +1,208 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using RouteX.Data;
 using RouteX.Models;
+using RouteX.Services;
 using System.Globalization;
 
 namespace RouteX.Controllers
 {
     public class FinanceController : Controller
     {
+        private readonly ApplicationDbContext _context;
+        private readonly IAuditService _auditService;
+
+        public FinanceController(ApplicationDbContext context, IAuditService auditService)
+        {
+            _context = context;
+            _auditService = auditService;
+        }
+
         private static string FormatPhilippinePeso(decimal amount)
         {
             return amount.ToString("C", new CultureInfo("en-PH"));
         }
-        public IActionResult FinancePage()
+        private async Task<List<FinanceEntry>> GetFuelFinanceEntriesAsync()
+        {
+            return await _context.FinanceEntries
+                .AsNoTracking()
+                .Where(f => f.ExpenseType == "Fuel" || f.ExpenseType == "FUEL" || f.ExpenseType == "fuel")
+                .ToListAsync();
+        }
+        public async Task<IActionResult> FinancePage()
         {
             ViewData["Title"] = "Finance";
 
-            // Dashboard summary data
+            // Get all finance entries from database (active for table)
+            var financeEntries = await _context.FinanceEntries
+                .Include(f => f.Vehicle)
+                .Where(f => !f.IsArchived)
+                .OrderByDescending(f => f.ExpenseDate)
+                .ToListAsync();
+
+            var financeEntriesAll = await _context.FinanceEntries
+                .Include(f => f.Vehicle)
+                .OrderByDescending(f => f.ExpenseDate)
+                .ToListAsync();
+
+            // Get fuel entries
+            var fuelEntries = await _context.FuelEntries
+                .Include(f => f.Vehicle)
+                .Where(f => !f.IsArchived)
+                .OrderByDescending(f => f.DateTime)
+                .ToListAsync();
+
+            var fuelEntriesAll = await _context.FuelEntries
+                .Include(f => f.Vehicle)
+                .OrderByDescending(f => f.DateTime)
+                .ToListAsync();
+
+            // Get completed maintenance entries
+            var maintenanceEntries = await _context.MaintenanceEntries
+                .Include(m => m.Vehicle)
+                .Where(m => (m.IsArchived == null || m.IsArchived == false) && m.Status == 2)
+                .OrderByDescending(m => m.Date)
+                .ToListAsync();
+
+            var maintenanceEntriesAll = await _context.MaintenanceEntries
+                .Include(m => m.Vehicle)
+                .Where(m => m.Status == 2)
+                .OrderByDescending(m => m.Date)
+                .ToListAsync();
+
+            // Create combined expense records
+            var allExpenseRecords = new List<ExpenseRecord>();
+            ExpenseRecord recentEntry = null;
+
+            // Add finance entries
+            allExpenseRecords.AddRange(financeEntries.Select(f => new ExpenseRecord
+            {
+                ExpenseId = f.Id,
+                Vehicle = $"{f.Vehicle?.PlateNumber} - {f.Vehicle?.UnitModel}",
+                ExpenseType = f.ExpenseType,
+                Amount = f.Amount,
+                ExpenseDate = f.ExpenseDate,
+                Description = f.Description ?? "No description",
+                CreatedDate = f.ExpenseDate
+            }));
+
+            // Add fuel entries
+            allExpenseRecords.AddRange(fuelEntries.Select(f => new ExpenseRecord
+            {
+                ExpenseId = f.Id,
+                Vehicle = $"{f.Vehicle?.PlateNumber} - {f.Vehicle?.UnitModel}",
+                ExpenseType = "FUEL",
+                Amount = f.TotalCost,
+                ExpenseDate = f.DateTime,
+                Description = f.Notes ?? "Fuel purchase",
+                CreatedDate = f.DateTime
+            }));
+
+            // Add completed maintenance entries
+            allExpenseRecords.AddRange(maintenanceEntries.Select(m => new ExpenseRecord
+            {
+                ExpenseId = m.Id,
+                Vehicle = $"{m.Vehicle?.PlateNumber} - {m.Vehicle?.UnitModel}",
+                ExpenseType = "MAINTENANCE",
+                Amount = m.Cost ?? 0,
+                ExpenseDate = m.Date ?? default,
+                Description = m.Description ?? "Maintenance service",
+                CreatedDate = m.Date ?? default
+            }));
+
+            // Check if there's a recently added finance entry and remove it from list
+            var recentFinanceId = TempData["RecentFinanceId"] as int?;
+            var recentFinanceAction = TempData["RecentFinanceAction"] as string;
+            
+            Console.WriteLine($"TempData check - RecentFinanceId: {recentFinanceId}, RecentFinanceAction: {recentFinanceAction}");
+            
+            if (recentFinanceId.HasValue && !string.IsNullOrEmpty(recentFinanceAction))
+            {
+                // Look for recent entry in the finance entries list first
+                var recentFinanceEntry = financeEntries.FirstOrDefault(f => f.Id == recentFinanceId.Value);
+                if (recentFinanceEntry != null)
+                {
+                    Console.WriteLine($"Found recent finance entry: ID={recentFinanceEntry.Id}, Type={recentFinanceEntry.ExpenseType}, Amount={recentFinanceEntry.Amount}");
+                    
+                    // Convert to ExpenseRecord
+                    recentEntry = new ExpenseRecord
+                    {
+                        ExpenseId = recentFinanceEntry.Id,
+                        Vehicle = $"{recentFinanceEntry.Vehicle?.PlateNumber} - {recentFinanceEntry.Vehicle?.UnitModel}",
+                        ExpenseType = recentFinanceEntry.ExpenseType,
+                        Amount = recentFinanceEntry.Amount,
+                        ExpenseDate = recentFinanceEntry.ExpenseDate,
+                        Description = recentFinanceEntry.Description ?? "No description",
+                        CreatedDate = recentFinanceEntry.ExpenseDate
+                    };
+                    
+                    // Remove from combined list and add back separately
+                    allExpenseRecords.RemoveAll(e => e.ExpenseId == recentFinanceId.Value);
+                    Console.WriteLine($"Removed all entries with ID {recentFinanceId.Value} from combined list");
+                }
+                else
+                {
+                    Console.WriteLine($"Recent finance entry ID {recentFinanceId.Value} not found in finance entries");
+                }
+            }
+
+            // Sort all records by date (most recent first)
+            var expenseRecords = allExpenseRecords
+                .OrderByDescending(e => e.ExpenseDate)
+                .ThenByDescending(e => e.CreatedDate)
+                .ToList();
+
+            // If there's a recent entry, insert it at the very top
+            if (recentEntry != null)
+            {
+                expenseRecords.Insert(0, recentEntry);
+                // Add recent entry back to allExpenseRecords for summary calculation
+                allExpenseRecords.Add(recentEntry);
+                // Debug: Log that we inserted recent entry at top
+                Console.WriteLine($"Inserted recent entry at top: ID={recentEntry.ExpenseId}, Type={recentEntry.ExpenseType}, Amount={recentEntry.Amount}");
+            }
+
+            var last24Start = DateTime.Today.AddMonths(-24);
+            var financeLast24 = financeEntriesAll
+                .Where(f => f.ExpenseDate >= last24Start)
+                .ToList();
+
+            // Get fuel entries for accurate fuel cost data (including archived and non-archived)
+            var allFuelEntries = await _context.FuelEntries
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Calculate summary data from FinanceEntries over the last 24 months
             var summary = new FinanceSummary
             {
-                TotalExpensesAllTime = 45678.90m,
-                TotalFuelCost = 12345.67m,
-                TotalMaintenanceCost = 8765.43m,
-                AverageCostPerVehicle = 9135.78m,
-                HighestCostVehicle = "Vehicle 001"
+                TotalExpensesAllTime = financeLast24.Sum(f => f.Amount),
+                TotalFuelCost = allFuelEntries.Sum(f => f.TotalCost), // Use real fuel data
+                TotalMaintenanceCost = allExpenseRecords.Where(e => e.ExpenseType == "MAINTENANCE").Sum(e => e.Amount),
+                AverageCostPerVehicle = financeLast24.Any()
+                    ? financeLast24.GroupBy(f => $"{f.Vehicle?.PlateNumber} - {f.Vehicle?.UnitModel}")
+                        .Average(g => g.Sum(x => x.Amount))
+                    : 0,
+                HighestCostVehicle = financeLast24.Any()
+                    ? financeLast24.GroupBy(f => $"{f.Vehicle?.PlateNumber} - {f.Vehicle?.UnitModel}")
+                        .OrderByDescending(g => g.Sum(x => x.Amount))
+                        .Select(g => g.Key)
+                        .FirstOrDefault() ?? "No vehicles"
+                    : "No vehicles"
             };
 
             // Cost per vehicle data
-            var costPerVehicle = new List<VehicleCostSummary>
-            {
-                new VehicleCostSummary 
-                { 
-                    Vehicle = "TRK-001 - Isuzu N-Series", 
-                    FuelCost = 3456.78m, 
-                    MaintenanceCost = 1234.56m, 
-                    OtherExpenses = 567.89m, 
-                    TotalCost = 5259.23m 
-                },
-                new VehicleCostSummary 
-                { 
-                    Vehicle = "VAN-002 - Toyota HiAce", 
-                    FuelCost = 2345.67m, 
-                    MaintenanceCost = 890.12m, 
-                    OtherExpenses = 345.67m, 
-                    TotalCost = 3581.46m 
-                },
-                new VehicleCostSummary 
-                { 
-                    Vehicle = "TRK-003 - Hino 300", 
-                    FuelCost = 2890.34m, 
-                    MaintenanceCost = 1567.89m, 
-                    OtherExpenses = 234.56m, 
-                    TotalCost = 4692.79m 
-                },
-                new VehicleCostSummary 
-                { 
-                    Vehicle = "CAR-004 - Toyota Corolla", 
-                    FuelCost = 1234.56m, 
-                    MaintenanceCost = 456.78m, 
-                    OtherExpenses = 123.45m, 
-                    TotalCost = 1814.79m 
-                },
-                new VehicleCostSummary 
-                { 
-                    Vehicle = "TRK-005 - Mitsubishi Canter", 
-                    FuelCost = 3123.45m, 
-                    MaintenanceCost = 987.65m, 
-                    OtherExpenses = 456.78m, 
-                    TotalCost = 4567.88m 
-                }
-            };
-
-            // Expense records data (limited to 6 items)
-            var expenseRecords = new List<ExpenseRecord>
-            {
-                new ExpenseRecord 
-                { 
-                    ExpenseId = 1001, 
-                    Vehicle = "TRK-001 - Isuzu N-Series", 
-                    ExpenseType = "Fuel", 
-                    Amount = 185.75m, 
-                    ExpenseDate = new DateTime(2025, 12, 10), 
-                    Description = "Regular fuel fill-up", 
-                    CreatedDate = new DateTime(2025, 12, 10)
-                },
-                new ExpenseRecord 
-                { 
-                    ExpenseId = 1002, 
-                    Vehicle = "VAN-002 - Toyota HiAce", 
-                    ExpenseType = "Maintenance", 
-                    Amount = 450.00m, 
-                    ExpenseDate = new DateTime(2025, 12, 08), 
-                    Description = "Brake pad replacement", 
-                    CreatedDate = new DateTime(2025, 12, 08)
-                },
-                new ExpenseRecord 
-                { 
-                    ExpenseId = 1003, 
-                    Vehicle = "TRK-003 - Hino 300", 
-                    ExpenseType = "Other", 
-                    Amount = 1200.00m, 
-                    ExpenseDate = new DateTime(2025, 12, 01), 
-                    Description = "Annual insurance premium", 
-                    CreatedDate = new DateTime(2025, 12, 01)
-                },
-                new ExpenseRecord 
-                { 
-                    ExpenseId = 1004, 
-                    Vehicle = "CAR-004 - Toyota Corolla", 
-                    ExpenseType = "Fuel", 
-                    Amount = 350.00m, 
-                    ExpenseDate = new DateTime(2025, 12, 05), 
-                    Description = "Premium gasoline", 
-                    CreatedDate = new DateTime(2025, 12, 05)
-                },
-                new ExpenseRecord 
-                { 
-                    ExpenseId = 1005, 
-                    Vehicle = "TRK-005 - Mitsubishi Canter", 
-                    ExpenseType = "Maintenance", 
-                    Amount = 75.50m, 
-                    ExpenseDate = new DateTime(2025, 12, 12), 
-                    Description = "Oil change service", 
-                    CreatedDate = new DateTime(2025, 12, 12)
-                },
-                new ExpenseRecord 
-                { 
-                    ExpenseId = 1006, 
-                    Vehicle = "TRK-001 - Isuzu N-Series", 
-                    ExpenseType = "Other", 
-                    Amount = 220.30m, 
-                    ExpenseDate = new DateTime(2025, 12, 15), 
-                    Description = "Toll fees and parking", 
-                    CreatedDate = new DateTime(2025, 12, 15)
-                }
-            };
+            var costPerVehicle = allExpenseRecords
+                .GroupBy(e => e.Vehicle)
+                .Select(g => new VehicleCostSummary
+                {
+                    Vehicle = g.Key,
+                    FuelCost = g.Where(e => e.ExpenseType == "FUEL").Sum(e => e.Amount),
+                    MaintenanceCost = g.Where(e => e.ExpenseType == "MAINTENANCE").Sum(e => e.Amount),
+                    OtherExpenses = g.Where(e => e.ExpenseType != "FUEL" && e.ExpenseType != "MAINTENANCE").Sum(e => e.Amount),
+                    TotalCost = g.Sum(e => e.Amount)
+                })
+                .ToList();
 
             var viewModel = new FinanceViewModel
             {
@@ -144,34 +214,50 @@ namespace RouteX.Controllers
             return View(viewModel);
         }
 
-        public IActionResult TotalExpensesAllTime()
+        public async Task<IActionResult> TotalExpensesAllTime()
         {
             ViewData["Title"] = "Total Expenses (All-Time)";
-            
-            // Generate time series data for all-time expenses
-            var timeSeriesData = GetTimeSeriesExpenseData();
-            
+
+            var timeSeriesData = await GetTimeSeriesExpenseDataAsync();
+
             return View(timeSeriesData);
         }
 
-        private List<ExpenseTimeSeriesData> GetTimeSeriesExpenseData()
+        private async Task<List<ExpenseTimeSeriesData>> GetTimeSeriesExpenseDataAsync()
         {
             var data = new List<ExpenseTimeSeriesData>();
-            var random = new Random();
-            
-            // Generate monthly data for the last 24 months
-            for (int i = 23; i >= 0; i--)
+            var currentMonthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var startMonth = currentMonthStart.AddMonths(-23);
+            var endMonthExclusive = currentMonthStart.AddMonths(1);
+
+            var monthlyTotals = await _context.FinanceEntries
+                .AsNoTracking()
+                .Where(f => f.ExpenseDate >= startMonth && f.ExpenseDate < endMonthExclusive)
+                .GroupBy(f => new { f.ExpenseDate.Year, f.ExpenseDate.Month })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Month,
+                    Total = g.Sum(x => x.Amount)
+                })
+                .ToListAsync();
+
+            var monthlyLookup = monthlyTotals.ToDictionary(
+                x => new DateTime(x.Year, x.Month, 1),
+                x => x.Total);
+
+            for (int i = 0; i < 24; i++)
             {
-                var date = DateTime.Now.AddMonths(-i);
-                var monthlyTotal = random.NextDouble() * 50000 + 10000; // Random between 10,000-60,000
-                
+                var month = startMonth.AddMonths(i);
+                monthlyLookup.TryGetValue(month, out var total);
+
                 data.Add(new ExpenseTimeSeriesData
                 {
-                    Month = date.ToString("MMM yyyy"),
-                    ExpenseAmount = Math.Round(monthlyTotal, 2)
+                    Month = month.ToString("MMM yyyy"),
+                    ExpenseAmount = Math.Round((double)total, 2)
                 });
             }
-            
+
             return data;
         }
 
@@ -184,10 +270,26 @@ namespace RouteX.Controllers
             var monthlyData = GetMonthlyFuelData();
             var annualData = GetAnnualFuelData();
             
+            // Get all fuel entries for statistics
+            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            
+            // Calculate statistics
+            var totalFuelCost = allFuelEntries.Sum(f => f.TotalCost);
+            var avgFuelCost = allFuelEntries.Any() ? totalFuelCost / allFuelEntries.Count : 0;
+            
+            // Calculate highest and lowest months (2026 data)
+            var monthlyCosts2026 = monthlyData.Where(m => m.Period.Contains("2026")).ToList();
+            var highestMonth = monthlyCosts2026.Any() ? monthlyCosts2026.OrderByDescending(m => m.FuelCost).First() : null;
+            var lowestMonth = monthlyCosts2026.Where(m => m.FuelCost > 0).Any() ? monthlyCosts2026.Where(m => m.FuelCost > 0).OrderBy(m => m.FuelCost).First() : null;
+            
             // Pass data to view via ViewBag
             ViewBag.WeeklyData = weeklyData;
             ViewBag.MonthlyData = monthlyData;
             ViewBag.AnnualData = annualData;
+            ViewBag.TotalFuelCost = totalFuelCost;
+            ViewBag.AvgFuelCost = avgFuelCost;
+            ViewBag.HighestMonth = highestMonth;
+            ViewBag.LowestMonth = lowestMonth;
             
             return View();
         }
@@ -195,18 +297,24 @@ namespace RouteX.Controllers
         private List<FuelTimeSeriesData> GetWeeklyFuelData()
         {
             var data = new List<FuelTimeSeriesData>();
-            var random = new Random();
             
-            // Generate data for last 12 weeks
-            for (int i = 11; i >= 0; i--)
+            // Get real fuel data for last 12 weeks
+            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var endDate = DateTime.Now;
+            
+            for (int i = 0; i < 12; i++)
             {
-                var date = DateTime.Now.AddDays(-i * 7);
-                var fuelCost = Math.Round(random.NextDouble() * 8000 + 2000, 2);
+                var startDate = endDate.AddDays(-i * 7);
+                var weekEnd = startDate.AddDays(7);
+                
+                var weekFuelCost = (double)(allFuelEntries
+                    .Where(f => f.DateTime >= startDate && f.DateTime < weekEnd)
+                    .Sum(f => f.TotalCost));
                 
                 data.Add(new FuelTimeSeriesData
                 {
-                    Period = date.ToString("MMM dd"),
-                    FuelCost = fuelCost
+                    Period = startDate.ToString("MMM dd"),
+                    FuelCost = weekFuelCost
                 });
             }
             
@@ -216,18 +324,24 @@ namespace RouteX.Controllers
         private List<FuelTimeSeriesData> GetMonthlyFuelData()
         {
             var data = new List<FuelTimeSeriesData>();
-            var random = new Random();
             
-            // Generate data for last 12 months
-            for (int i = 11; i >= 0; i--)
+            // Get real fuel data for 2026 months
+            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var currentYear = 2026;
+            
+            // Show all months of 2026 (January to December)
+            for (int month = 1; month <= 12; month++)
             {
-                var date = DateTime.Now.AddMonths(-i);
-                var fuelCost = Math.Round(random.NextDouble() * 30000 + 5000, 2);
+                var monthDate = new DateTime(currentYear, month, 1);
+                
+                var monthFuelCost = (double)(allFuelEntries
+                    .Where(f => f.DateTime.Year == currentYear && f.DateTime.Month == month)
+                    .Sum(f => f.TotalCost));
                 
                 data.Add(new FuelTimeSeriesData
                 {
-                    Period = date.ToString("MMM yyyy"),
-                    FuelCost = fuelCost
+                    Period = monthDate.ToString("MMM yyyy"),
+                    FuelCost = monthFuelCost
                 });
             }
             
@@ -237,18 +351,23 @@ namespace RouteX.Controllers
         private List<FuelTimeSeriesData> GetAnnualFuelData()
         {
             var data = new List<FuelTimeSeriesData>();
-            var random = new Random();
             
-            // Generate data for last 5 years
-            for (int i = 4; i >= 0; i--)
+            // Get real fuel data for last 5 years
+            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var currentYear = DateTime.Now.Year;
+            
+            for (int i = 0; i < 5; i++)
             {
-                var year = DateTime.Now.Year - i;
-                var fuelCost = Math.Round(random.NextDouble() * 300000 + 50000, 2);
+                var year = currentYear - i;
+                
+                var yearFuelCost = (double)(allFuelEntries
+                    .Where(f => f.DateTime.Year == year)
+                    .Sum(f => f.TotalCost));
                 
                 data.Add(new FuelTimeSeriesData
                 {
                     Period = year.ToString(),
-                    FuelCost = fuelCost
+                    FuelCost = yearFuelCost
                 });
             }
             
@@ -258,26 +377,132 @@ namespace RouteX.Controllers
         public IActionResult TotalMaintenance()
         {
             ViewData["Title"] = "Total Maintenance Expenses";
+            
+            // Get real maintenance data from MaintenancePage table (including archived)
+            var allMaintenanceEntries = _context.MaintenanceEntries
+                .AsNoTracking()
+                .Include(m => m.Vehicle)
+                .ToList();
+            
+            // Filter only completed maintenance entries
+            var completedMaintenance = allMaintenanceEntries
+                .Where(m => m.Status.HasValue && (int)m.Status.Value == (int)MaintenanceStatus.Completed)
+                .ToList();
+            
+            // Generate time series data for different periods
+            var weeklyData = GetWeeklyMaintenanceData(completedMaintenance);
+            var monthlyData = GetMonthlyMaintenanceData(completedMaintenance);
+            var annualData = GetAnnualMaintenanceData(completedMaintenance);
+            
+            // Calculate statistics
+            var totalMaintenanceCost = completedMaintenance.Sum(m => m.Cost);
+            var avgMaintenanceCost = completedMaintenance.Any() ? totalMaintenanceCost / completedMaintenance.Count : 0;
+            
+            // Calculate highest and lowest periods (2026 data)
+            var monthlyCosts2026 = monthlyData.Where(m => m.Period.Contains("2026")).ToList();
+            var highestPeriod = monthlyCosts2026.Any() ? monthlyCosts2026.OrderByDescending(m => m.MaintenanceCost).First() : null;
+            var lowestPeriod = monthlyCosts2026.Where(m => m.MaintenanceCost > 0).Any() ? monthlyCosts2026.Where(m => m.MaintenanceCost > 0).OrderBy(m => m.MaintenanceCost).First() : null;
+            
+            // Pass data to view via ViewBag
+            ViewBag.WeeklyData = weeklyData;
+            ViewBag.MonthlyData = monthlyData;
+            ViewBag.AnnualData = annualData;
+            ViewBag.TotalMaintenanceCost = totalMaintenanceCost;
+            ViewBag.AvgMaintenanceCost = avgMaintenanceCost;
+            ViewBag.HighestPeriod = highestPeriod;
+            ViewBag.LowestPeriod = lowestPeriod;
+            
             return View();
         }
 
+        private List<MaintenanceTimeSeriesData> GetWeeklyMaintenanceData(List<MaintenanceEntry> completedMaintenance)
+        {
+            var data = new List<MaintenanceTimeSeriesData>();
+            
+            // Get real maintenance data for last 12 weeks
+            var endDate = DateTime.Now;
+            
+            for (int i = 0; i < 12; i++)
+            {
+                var startDate = endDate.AddDays(-i * 7);
+                var weekEnd = startDate.AddDays(7);
+                
+                var weekMaintenanceCost = (double)(completedMaintenance
+                    .Where(m => m.Date.HasValue && m.Date.Value >= startDate && m.Date.Value < weekEnd)
+                    .Sum(m => m.Cost));
+                
+                data.Add(new MaintenanceTimeSeriesData
+                {
+                    Period = startDate.ToString("MMM dd"),
+                    MaintenanceCost = weekMaintenanceCost
+                });
+            }
+            
+            return data;
+        }
+
+        private List<MaintenanceTimeSeriesData> GetMonthlyMaintenanceData(List<MaintenanceEntry> completedMaintenance)
+        {
+            var data = new List<MaintenanceTimeSeriesData>();
+            
+            // Get real maintenance data for 2026 months
+            var currentYear = 2026;
+            
+            // Show all months of 2026 (January to December)
+            for (int month = 1; month <= 12; month++)
+            {
+                var monthDate = new DateTime(currentYear, month, 1);
+                
+                var monthMaintenanceCost = (double)(completedMaintenance
+                    .Where(m => m.Date.HasValue && m.Date.Value.Year == currentYear && m.Date.Value.Month == month)
+                    .Sum(m => m.Cost));
+                
+                data.Add(new MaintenanceTimeSeriesData
+                {
+                    Period = monthDate.ToString("MMM yyyy"),
+                    MaintenanceCost = monthMaintenanceCost
+                });
+            }
+            
+            return data;
+        }
+
+        private List<MaintenanceTimeSeriesData> GetAnnualMaintenanceData(List<MaintenanceEntry> completedMaintenance)
+        {
+            var data = new List<MaintenanceTimeSeriesData>();
+            
+            // Get real maintenance data for last 5 years
+            var currentYear = DateTime.Now.Year;
+            
+            for (int i = 0; i < 5; i++)
+            {
+                var year = currentYear - i;
+                
+                var yearMaintenanceCost = (double)(completedMaintenance
+                    .Where(m => m.Date.HasValue && m.Date.Value.Year == year)
+                    .Sum(m => m.Cost));
+                
+                data.Add(new MaintenanceTimeSeriesData
+                {
+                    Period = year.ToString(),
+                    MaintenanceCost = yearMaintenanceCost
+                });
+            }
+            
+            return data;
+        }
+
         // GET: Finance/AddFinance
-        public IActionResult AddFinance()
+        public async Task<IActionResult> AddFinance()
         {
             ViewData["Title"] = "Add Finance";
             
-            // Get all vehicles from vehicle table list, exclude inactive vehicles
-            var allVehicles = new List<Vehicle>
-            {
-                new Vehicle { Id = 1, PlateNumber = "TRK-001", UnitModel = "Isuzu N-Series", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 15420 },
-                new Vehicle { Id = 2, PlateNumber = "VAN-002", UnitModel = "Toyota HiAce", VehicleType = "Van", Status = VehicleStatus.Maintenance, Mileage = 28950 },
-                new Vehicle { Id = 3, PlateNumber = "TRK-003", UnitModel = "Hino 300", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 8760 },
-                new Vehicle { Id = 4, PlateNumber = "CAR-004", UnitModel = "Toyota Corolla", VehicleType = "Car", Status = VehicleStatus.Inactive, Mileage = 45230 },
-                new Vehicle { Id = 5, PlateNumber = "TRK-005", UnitModel = "Mitsubishi Canter", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 12340 }
-            };
-            
-            // Filter out inactive vehicles
-            var activeVehicles = allVehicles.Where(v => v.Status != VehicleStatus.Inactive).ToList();
+            // Get all vehicles from database, exclude archived vehicles
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .OrderBy(v => v.PlateNumber)
+                .ToListAsync();
             
             ViewBag.Vehicles = activeVehicles;
             return View();
@@ -286,60 +511,132 @@ namespace RouteX.Controllers
         // POST: Finance/AddFinance
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult AddFinance(FinanceEntry financeEntry, IFormFile? attachment)
+        public async Task<IActionResult> AddFinance(FinanceEntry financeEntry, IFormFile? attachment)
         {
+            // Custom validation: Description is required only for "Other" expense type
+            if (financeEntry.ExpenseType == "Other" && string.IsNullOrWhiteSpace(financeEntry.Description))
+            {
+                ModelState.AddModelError("Description", "Description is required for 'Other' expense type");
+            }
+
             if (ModelState.IsValid)
             {
-                // Handle file upload if provided
-                if (attachment != null && attachment.Length > 0)
+                try
                 {
-                    // In a real application, you would save the file to storage
-                    // For now, we'll just store the filename
-                    financeEntry.AttachmentPath = attachment.FileName;
+                    // Handle file upload if provided (optional)
+                    if (attachment != null && attachment.Length > 0)
+                    {
+                        // In a real application, you would save the file to storage
+                        // For now, we'll just store the filename
+                        financeEntry.AttachmentPath = attachment.FileName;
+                    }
+                    else
+                    {
+                        financeEntry.AttachmentPath = null; // Explicitly set to null since it's optional
+                    }
+                    
+                    financeEntry.IsArchived = false;
+                    
+                    // Use raw SQL to avoid OUTPUT clause issues with triggers
+                    var sql = @"INSERT INTO FinanceEntries (VehicleId, ExpenseType, Amount, ExpenseDate, Description, ReferenceId, AttachmentPath, IsArchived)
+                              VALUES (@VehicleId, @ExpenseType, @Amount, @ExpenseDate, @Description, @ReferenceId, @AttachmentPath, @IsArchived);
+                              SELECT CAST(SCOPE_IDENTITY() as int);";
+                    
+                    var parameters = new[]
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", financeEntry.VehicleId),
+                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseType", financeEntry.ExpenseType),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Amount", financeEntry.Amount),
+                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseDate", financeEntry.ExpenseDate),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", financeEntry.IsArchived)
+                    };
+                    
+                    var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+                    financeEntry.Id = id;
+
+                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    await _auditService.LogActionAsync(actingUser, $"Create:Finance:{financeEntry.Id}");
+                    
+                    TempData["FinanceSuccess"] = "Finance record added successfully!";
+                    TempData["RecentFinanceId"] = financeEntry.Id; // Track recently added finance entry
+                    TempData["RecentFinanceAction"] = "Added"; // Track action type
+                    return RedirectToAction(nameof(FinancePage));
                 }
-                
-                // In a real application, you would save to database here
-                // For now, we'll just redirect back to FinancePage with success message
-                TempData["Success"] = "Finance record added successfully!";
-                return RedirectToAction(nameof(FinancePage));
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", $"Error adding finance record: {ex.Message}");
+                }
             }
             
             // If validation fails, reload vehicles and return to view
-            // Get all vehicles from vehicle table list, exclude inactive vehicles
-            var allVehicles = new List<Vehicle>
-            {
-                new Vehicle { Id = 1, PlateNumber = "TRK-001", UnitModel = "Isuzu N-Series", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 15420 },
-                new Vehicle { Id = 2, PlateNumber = "VAN-002", UnitModel = "Toyota HiAce", VehicleType = "Van", Status = VehicleStatus.Maintenance, Mileage = 28950 },
-                new Vehicle { Id = 3, PlateNumber = "TRK-003", UnitModel = "Hino 300", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 8760 },
-                new Vehicle { Id = 4, PlateNumber = "CAR-004", UnitModel = "Toyota Corolla", VehicleType = "Car", Status = VehicleStatus.Inactive, Mileage = 45230 },
-                new Vehicle { Id = 5, PlateNumber = "TRK-005", UnitModel = "Mitsubishi Canter", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 12340 }
-            };
-            
-            // Filter out inactive vehicles
-            var activeVehicles = allVehicles.Where(v => v.Status != VehicleStatus.Inactive).ToList();
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .OrderBy(v => v.PlateNumber)
+                .ToListAsync();
             
             ViewBag.Vehicles = activeVehicles;
             return View(financeEntry);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LogExport(string report, string format)
+        {
+            if (string.IsNullOrWhiteSpace(report) || string.IsNullOrWhiteSpace(format))
+            {
+                return BadRequest();
+            }
+
+            var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+            await _auditService.LogActionAsync(actingUser, $"Export:Finance:{report}:{format}");
+            return Ok();
+        }
+
+        // POST: Finance/ArchiveFinance/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ArchiveFinance(int id)
+        {
+            var financeEntry = await _context.FinanceEntries.FindAsync(id);
+            if (financeEntry == null)
+            {
+                return Json(new { success = false, message = "Finance entry not found." });
+            }
+
+            try
+            {
+                var sql = "UPDATE FinanceEntries SET IsArchived = 1 WHERE Id = @Id";
+                var parameters = new[]
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@Id", financeEntry.Id)
+                };
+
+                await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+
+                var archivedBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+                await _auditService.LogActionAsync(archivedBy, $"Archive:Finance:{financeEntry.Id}");
+
+                return Json(new { success = true, message = "Finance entry archived successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error archiving finance entry: {ex.Message}" });
+            }
+        }
+
         // GET: Finance/EditFinance/5
-        public IActionResult EditFinance(int id)
+        public async Task<IActionResult> EditFinance(int id)
         {
             ViewData["Title"] = "Edit Finance";
             
-            // Get all finance entries (sample data matching FinancePage)
-            var allFinanceEntries = new List<FinanceEntry>
-            {
-                new FinanceEntry { Id = 1001, VehicleId = 1, ExpenseType = "Fuel", Amount = 185.75m, ExpenseDate = new DateTime(2025, 12, 10), Description = "Regular fuel fill-up", ReferenceId = 1, AttachmentPath = "receipt_001.jpg" },
-                new FinanceEntry { Id = 1002, VehicleId = 2, ExpenseType = "Maintenance", Amount = 450.00m, ExpenseDate = new DateTime(2025, 12, 08), Description = "Brake pad replacement", ReferenceId = 102, AttachmentPath = "maintenance_002.pdf" },
-                new FinanceEntry { Id = 1003, VehicleId = 3, ExpenseType = "Other", Amount = 1200.00m, ExpenseDate = new DateTime(2025, 12, 01), Description = "Annual insurance premium", ReferenceId = null, AttachmentPath = "insurance_003.pdf" },
-                new FinanceEntry { Id = 1004, VehicleId = 4, ExpenseType = "Fuel", Amount = 350.00m, ExpenseDate = new DateTime(2025, 12, 05), Description = "Premium gasoline", ReferenceId = 4, AttachmentPath = "fuel_004.jpg" },
-                new FinanceEntry { Id = 1005, VehicleId = 5, ExpenseType = "Maintenance", Amount = 75.50m, ExpenseDate = new DateTime(2025, 12, 12), Description = "Oil change service", ReferenceId = 105, AttachmentPath = "oil_005.pdf" },
-                new FinanceEntry { Id = 1006, VehicleId = 1, ExpenseType = "Other", Amount = 220.30m, ExpenseDate = new DateTime(2025, 12, 15), Description = "Toll fees and parking", ReferenceId = null, AttachmentPath = "toll_006.jpg" }
-            };
-            
-            // Find the specific finance entry by ID
-            var financeEntry = allFinanceEntries.FirstOrDefault(f => f.Id == id);
+            // Find the finance entry by ID
+            var financeEntry = await _context.FinanceEntries
+                .Include(f => f.Vehicle)
+                .FirstOrDefaultAsync(f => f.Id == id);
             
             // If not found, create a default entry
             if (financeEntry == null)
@@ -357,18 +654,12 @@ namespace RouteX.Controllers
                 };
             }
             
-            // Get all vehicles from vehicle table list, exclude inactive vehicles
-            var allVehicles = new List<Vehicle>
-            {
-                new Vehicle { Id = 1, PlateNumber = "TRK-001", UnitModel = "Isuzu N-Series", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 15420 },
-                new Vehicle { Id = 2, PlateNumber = "VAN-002", UnitModel = "Toyota HiAce", VehicleType = "Van", Status = VehicleStatus.Maintenance, Mileage = 28950 },
-                new Vehicle { Id = 3, PlateNumber = "TRK-003", UnitModel = "Hino 300", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 8760 },
-                new Vehicle { Id = 4, PlateNumber = "CAR-004", UnitModel = "Toyota Corolla", VehicleType = "Car", Status = VehicleStatus.Inactive, Mileage = 45230 },
-                new Vehicle { Id = 5, PlateNumber = "TRK-005", UnitModel = "Mitsubishi Canter", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 12340 }
-            };
-            
-            // Filter out inactive vehicles
-            var activeVehicles = allVehicles.Where(v => v.Status != VehicleStatus.Inactive).ToList();
+            // Get all vehicles from database, exclude archived vehicles
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .OrderBy(v => v.PlateNumber)
+                .ToListAsync();
             
             ViewBag.Vehicles = activeVehicles;
             return View(financeEntry);
@@ -377,60 +668,87 @@ namespace RouteX.Controllers
         // POST: Finance/EditFinance/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult EditFinance(FinanceEntry financeEntry, IFormFile? attachment)
+        public async Task<IActionResult> EditFinance(FinanceEntry financeEntry, IFormFile? attachment)
         {
+            // Custom validation: Description is required only for "Other" expense type
+            if (financeEntry.ExpenseType == "Other" && string.IsNullOrWhiteSpace(financeEntry.Description))
+            {
+                ModelState.AddModelError("Description", "Description is required for 'Other' expense type");
+            }
+
             if (ModelState.IsValid)
             {
-                // Handle file upload if provided
-                if (attachment != null && attachment.Length > 0)
+                try
                 {
-                    // In a real application, you would save the file to storage
-                    // For now, we'll just store the filename
-                    financeEntry.AttachmentPath = attachment.FileName;
+                    // Handle file upload if provided (optional)
+                    if (attachment != null && attachment.Length > 0)
+                    {
+                        // In a real application, you would save the file to storage
+                        // For now, we'll just store the filename
+                        financeEntry.AttachmentPath = attachment.FileName;
+                    }
+                    // If no new attachment is provided, keep the existing one
+                    // AttachmentPath will remain unchanged in the database
+                    
+                    // Use raw SQL to avoid OUTPUT clause issues with triggers
+                    var sql = @"UPDATE FinanceEntries
+                              SET VehicleId = @VehicleId,
+                                  ExpenseType = @ExpenseType,
+                                  Amount = @Amount,
+                                  ExpenseDate = @ExpenseDate,
+                                  Description = @Description,
+                                  ReferenceId = @ReferenceId,
+                                  AttachmentPath = @AttachmentPath
+                              WHERE Id = @Id";
+
+                    var parameters = new[]
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", financeEntry.VehicleId),
+                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseType", financeEntry.ExpenseType),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Amount", financeEntry.Amount),
+                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseDate", financeEntry.ExpenseDate),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Id", financeEntry.Id)
+                    };
+
+                    await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+
+                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    await _auditService.LogActionAsync(actingUser, $"Update:Finance:{financeEntry.Id}");
+                    
+                    TempData["FinanceSuccess"] = "Finance record updated successfully!";
+                    TempData["RecentFinanceId"] = financeEntry.Id; // Track recently edited finance entry
+                    TempData["RecentFinanceAction"] = "Edited"; // Track action type
+                    return RedirectToAction(nameof(FinancePage));
                 }
-                
-                // In a real application, you would update the database here
-                // For now, we'll just redirect back to FinancePage with success message
-                TempData["Success"] = "Finance record updated successfully!";
-                return RedirectToAction(nameof(FinancePage));
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", $"Error updating finance record: {ex.Message}");
+                }
             }
             
             // If validation fails, reload vehicles and return to view
-            // Get all vehicles from vehicle table list, exclude inactive vehicles
-            var allVehicles = new List<Vehicle>
-            {
-                new Vehicle { Id = 1, PlateNumber = "TRK-001", UnitModel = "Isuzu N-Series", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 15420 },
-                new Vehicle { Id = 2, PlateNumber = "VAN-002", UnitModel = "Toyota HiAce", VehicleType = "Van", Status = VehicleStatus.Maintenance, Mileage = 28950 },
-                new Vehicle { Id = 3, PlateNumber = "TRK-003", UnitModel = "Hino 300", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 8760 },
-                new Vehicle { Id = 4, PlateNumber = "CAR-004", UnitModel = "Toyota Corolla", VehicleType = "Car", Status = VehicleStatus.Inactive, Mileage = 45230 },
-                new Vehicle { Id = 5, PlateNumber = "TRK-005", UnitModel = "Mitsubishi Canter", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 12340 }
-            };
-            
-            // Filter out inactive vehicles
-            var activeVehicles = allVehicles.Where(v => v.Status != VehicleStatus.Inactive).ToList();
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .OrderBy(v => v.PlateNumber)
+                .ToListAsync();
             
             ViewBag.Vehicles = activeVehicles;
             return View(financeEntry);
         }
 
         // GET: Finance/ViewFinance/5
-        public IActionResult ViewFinance(int id)
+        public async Task<IActionResult> ViewFinance(int id)
         {
             ViewData["Title"] = "View Finance";
             
-            // Get all finance entries (same data as FinancePage and EditFinance)
-            var allFinanceEntries = new List<FinanceEntry>
-            {
-                new FinanceEntry { Id = 1001, VehicleId = 1, ExpenseType = "Fuel", Amount = 185.75m, ExpenseDate = new DateTime(2025, 12, 10), Description = "Regular fuel fill-up", ReferenceId = 1, AttachmentPath = "receipt_001.jpg" },
-                new FinanceEntry { Id = 1002, VehicleId = 2, ExpenseType = "Maintenance", Amount = 450.00m, ExpenseDate = new DateTime(2025, 12, 08), Description = "Brake pad replacement", ReferenceId = 102, AttachmentPath = "maintenance_002.pdf" },
-                new FinanceEntry { Id = 1003, VehicleId = 3, ExpenseType = "Other", Amount = 1200.00m, ExpenseDate = new DateTime(2025, 12, 01), Description = "Annual insurance premium", ReferenceId = null, AttachmentPath = "insurance_003.pdf" },
-                new FinanceEntry { Id = 1004, VehicleId = 4, ExpenseType = "Fuel", Amount = 350.00m, ExpenseDate = new DateTime(2025, 12, 05), Description = "Premium gasoline", ReferenceId = 4, AttachmentPath = "fuel_004.jpg" },
-                new FinanceEntry { Id = 1005, VehicleId = 5, ExpenseType = "Maintenance", Amount = 75.50m, ExpenseDate = new DateTime(2025, 12, 12), Description = "Oil change service", ReferenceId = 105, AttachmentPath = "oil_005.pdf" },
-                new FinanceEntry { Id = 1006, VehicleId = 1, ExpenseType = "Other", Amount = 220.30m, ExpenseDate = new DateTime(2025, 12, 15), Description = "Toll fees and parking", ReferenceId = null, AttachmentPath = "toll_006.jpg" }
-            };
-            
-            // Find the specific finance entry by ID
-            var financeEntry = allFinanceEntries.FirstOrDefault(f => f.Id == id);
+            // Find the finance entry by ID
+            var financeEntry = await _context.FinanceEntries
+                .Include(f => f.Vehicle)
+                .FirstOrDefaultAsync(f => f.Id == id);
             
             // If not found, create a default entry
             if (financeEntry == null)
@@ -448,18 +766,12 @@ namespace RouteX.Controllers
                 };
             }
             
-            // Get all vehicles from vehicle table list, exclude inactive vehicles
-            var allVehicles = new List<Vehicle>
-            {
-                new Vehicle { Id = 1, PlateNumber = "TRK-001", UnitModel = "Isuzu N-Series", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 15420 },
-                new Vehicle { Id = 2, PlateNumber = "VAN-002", UnitModel = "Toyota HiAce", VehicleType = "Van", Status = VehicleStatus.Maintenance, Mileage = 28950 },
-                new Vehicle { Id = 3, PlateNumber = "TRK-003", UnitModel = "Hino 300", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 8760 },
-                new Vehicle { Id = 4, PlateNumber = "CAR-004", UnitModel = "Toyota Corolla", VehicleType = "Car", Status = VehicleStatus.Inactive, Mileage = 45230 },
-                new Vehicle { Id = 5, PlateNumber = "TRK-005", UnitModel = "Mitsubishi Canter", VehicleType = "Truck", Status = VehicleStatus.Active, Mileage = 12340 }
-            };
-            
-            // Filter out inactive vehicles
-            var activeVehicles = allVehicles.Where(v => v.Status != VehicleStatus.Inactive).ToList();
+            // Get all vehicles from database, exclude archived vehicles
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .OrderBy(v => v.PlateNumber)
+                .ToListAsync();
             
             ViewBag.Vehicles = activeVehicles;
             return View(financeEntry);

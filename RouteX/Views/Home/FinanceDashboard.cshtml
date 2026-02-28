@@ -1,0 +1,354 @@
+@model RouteX.ViewModels.FinanceDashboardViewModel
+@{
+    ViewData["Title"] = "Finance Dashboard";
+}
+
+<style>
+.dashboard-container {
+    padding: 20px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    margin-bottom: 24px;
+}
+
+.dashboard-header h2 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.dashboard-header p {
+    color: #6c757d;
+    margin: 0;
+}
+
+.dashboard-content {
+    margin-top: 32px;
+}
+
+.content-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.content-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.chart-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.chart-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.fuel-chart {
+    height: 300px;
+}
+
+.comparison-chart {
+    height: 300px;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.activity-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.activity-desc {
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.activity-amount {
+    font-weight: 600;
+    color: #ff6b35;
+}
+
+.view-all-btn {
+    margin-top: 16px;
+    background: #ff6b35;
+    border: none;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.expense-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+}
+
+.expense-table th,
+.expense-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 13px;
+}
+
+.expense-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.recent-expenses-panel {
+    margin-top: 24px;
+}
+
+.hidden {
+    display: none;
+}
+
+@@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .finance-summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+@@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 16px;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h2>Finance Dashboard</h2>
+        <p>Monitor fuel, maintenance, and expense trends</p>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-container">
+            <h3 class="chart-title">Fuel Consumption Trend</h3>
+            <p class="chart-subtitle">Total Fuel Spend vs. Distance Traveled (Last 30 Days)</p>
+            <div class="fuel-chart">
+                <canvas id="fuelChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3 class="chart-title">Fuel vs Maintenance vs Other</h3>
+            <p class="chart-subtitle">Expense distribution overview</p>
+            <div class="comparison-chart">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="content-section">
+            <h3>Recent Expenses</h3>
+            <div class="activity-list">
+                @foreach (var expense in Model.RecentExpenses.Take(3))
+                {
+                    <div class="activity-item">
+                        <div>
+                            <div class="activity-desc">@expense.Category - @expense.Vehicle</div>
+                            <div class="activity-time">@expense.Date.ToString("MMM dd, yyyy")</div>
+                        </div>
+                        <span class="activity-amount">@expense.Amount.ToString("C", new System.Globalization.CultureInfo("en-PH"))</span>
+                    </div>
+                }
+            </div>
+            <button class="view-all-btn" type="button" onclick="toggleRecentExpenses()">View Top 10</button>
+        </div>
+    </div>
+
+    <div class="chart-container hidden recent-expenses-panel" id="recentExpensesPanel">
+        <h3 class="chart-title">Top 10 Recent Fuel & Maintenance</h3>
+        <table class="expense-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Vehicle</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var expense in Model.RecentExpenses)
+                {
+                    <tr>
+                        <td>@expense.Category</td>
+                        <td>@expense.Vehicle</td>
+                        <td>@expense.Amount.ToString("C", new System.Globalization.CultureInfo("en-PH"))</td>
+                        <td>@expense.Date.ToString("MMM dd, yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+function toggleRecentExpenses() {
+    const panel = document.getElementById('recentExpensesPanel');
+    panel.classList.toggle('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fuelData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FuelConsumptionData?.Select(d => new { d.Date, d.TotalFuelSpend, d.DistanceTraveled }))) ?? [];
+    const fuelCtx = document.getElementById('fuelChart').getContext('2d');
+
+    new Chart(fuelCtx, {
+        type: 'line',
+        data: {
+            labels: fuelData.map(d => d.Date),
+            datasets: [
+                {
+                    label: 'Total Fuel Spend (₱)',
+                    data: fuelData.map(d => d.TotalFuelSpend),
+                    borderColor: '#ff6b35',
+                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Distance Traveled (km)',
+                    data: fuelData.map(d => d.DistanceTraveled),
+                    borderColor: '#1976d2',
+                    backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Fuel Spend (₱)'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Distance (km)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    const comparisonData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CostComparison)) ?? [];
+    const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+
+    new Chart(comparisonCtx, {
+        type: 'doughnut',
+        data: {
+            labels: comparisonData.map(d => d.Category),
+            datasets: [{
+                data: comparisonData.map(d => d.Amount),
+                backgroundColor: ['#ff6b35', '#ffb300', '#6c757d'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+});
+</script>

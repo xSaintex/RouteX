@@ -103,7 +103,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 }
 </style>
 
-<div class="add-vehicle-container">
+<div class="vehicles-container">
+    @Html.AntiForgeryToken()
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div class="breadcrumb">
         <a href="@Url.Action("VehiclePage", "Vehicles")">
             <i class="fas fa-car"></i>
@@ -140,9 +157,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group">
-                <label asp-for="Status">Status</label>
-                <div class="status-badge status-default" aria-hidden="true">Active</div>
-                <input asp-for="Status" type="hidden" value="Active" />
+                <label>Status</label>
+                <div class="status-badge status-active">Active</div>
+                <input type="hidden" asp-for="Status" value="Active" />
             </div>
 
             <div class="form-group full">
@@ -175,18 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let isValid = true;
         inputs.forEach(input => { if (!validateField(input)) isValid = false; });
 
-        if (isValid) {
-            const plateNumber = document.getElementById('plateNumber').value;
-            checkPlateNumberUniqueness(plateNumber).then(isUnique => {
-                if (isUnique) {
-                    // Remove the event listener to allow normal form submission
-                    form.removeEventListener('submit', arguments.callee);
-                    form.submit();
-                } else {
-                    showPlateNumberError();
-                }
-            });
-        } else {
+        if (!isValid) {
             e.preventDefault();
         }
     });
@@ -223,33 +229,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
 
-    async function checkPlateNumberUniqueness(plateNumber) {
-        // Simulate API call to check uniqueness
-        const existingPlates = ['ABC-1234', 'XYZ-5678', 'DEF-9012']; // Sample existing plates
-        return !existingPlates.includes(plateNumber.toUpperCase());
-    }
-
-    function showPlateNumberError() {
-        const plateField = document.getElementById('plateNumber');
-        const formGroup = plateField.parentElement;
-        const validationMessage = formGroup.querySelector('.validation-message');
-
-        validationMessage.textContent = 'This plate number already exists';
-        formGroup.classList.add('error');
-        formGroup.classList.remove('success');
-    }
-
-    // Auto-format plate number
     document.getElementById('plateNumber').addEventListener('input', function(e) {
         let value = e.target.value.toUpperCase();
         value = value.replace(/[^A-Z0-9-]/g, '');
 
-        // Auto-add hyphen after 3 letters
         if (value.length === 3 && !value.includes('-')) {
             value += '-';
         }
 
-        // Limit to 8 characters (ABC-1234)
         if (value.length > 8) {
             value = value.substring(0, 8);
         }
