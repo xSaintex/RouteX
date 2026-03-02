@@ -22,6 +22,10 @@ namespace RouteX.Models
         public string? ApprovedByUserEmail { get; set; }
         public DateTime? ApprovalDate { get; set; }
         public DateTime? CreatedDate { get; set; }
+
+        // Branch relationship - Vehicle belongs to one branch
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
     }
 
     public enum VehicleStatus

@@ -34,40 +34,88 @@ namespace RouteX.Controllers
         {
             ViewData["Title"] = "Finance";
 
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
             // Get all finance entries from database (active for table)
-            var financeEntries = await _context.FinanceEntries
+            var financeQuery = _context.FinanceEntries
                 .Include(f => f.Vehicle)
-                .Where(f => !f.IsArchived)
+                .Where(f => !f.IsArchived);
+
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                financeQuery = financeQuery.Where(f => f.BranchId == userBranchId.Value);
+            }
+
+            var financeEntries = await financeQuery
                 .OrderByDescending(f => f.ExpenseDate)
                 .ToListAsync();
 
-            var financeEntriesAll = await _context.FinanceEntries
-                .Include(f => f.Vehicle)
+            IQueryable<FinanceEntry> financeQueryAll = _context.FinanceEntries
+                .Include(f => f.Vehicle);
+
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                financeQueryAll = financeQueryAll.Where(f => f.BranchId == userBranchId.Value);
+            }
+
+            var financeEntriesAll = await financeQueryAll
                 .OrderByDescending(f => f.ExpenseDate)
                 .ToListAsync();
 
             // Get fuel entries
-            var fuelEntries = await _context.FuelEntries
+            var fuelQuery = _context.FuelEntries
                 .Include(f => f.Vehicle)
-                .Where(f => !f.IsArchived)
+                .Where(f => !f.IsArchived);
+
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                fuelQuery = fuelQuery.Where(f => f.BranchId == userBranchId.Value);
+            }
+
+            var fuelEntries = await fuelQuery
                 .OrderByDescending(f => f.DateTime)
                 .ToListAsync();
 
-            var fuelEntriesAll = await _context.FuelEntries
-                .Include(f => f.Vehicle)
+            IQueryable<FuelEntry> fuelQueryAll = _context.FuelEntries
+                .Include(f => f.Vehicle);
+
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                fuelQueryAll = fuelQueryAll.Where(f => f.BranchId == userBranchId.Value);
+            }
+
+            var fuelEntriesAll = await fuelQueryAll
                 .OrderByDescending(f => f.DateTime)
                 .ToListAsync();
 
             // Get completed maintenance entries
-            var maintenanceEntries = await _context.MaintenanceEntries
+            var maintenanceQuery = _context.MaintenanceEntries
                 .Include(m => m.Vehicle)
-                .Where(m => (m.IsArchived == null || m.IsArchived == false) && m.Status == 2)
+                .Where(m => (m.IsArchived == null || m.IsArchived == false) && m.Status == 2);
+
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                maintenanceQuery = maintenanceQuery.Where(m => m.BranchId == userBranchId.Value);
+            }
+
+            var maintenanceEntries = await maintenanceQuery
                 .OrderByDescending(m => m.Date)
                 .ToListAsync();
 
-            var maintenanceEntriesAll = await _context.MaintenanceEntries
+            var maintenanceQueryAll = _context.MaintenanceEntries
                 .Include(m => m.Vehicle)
-                .Where(m => m.Status == 2)
+                .Where(m => m.Status == 2);
+
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                maintenanceQueryAll = maintenanceQueryAll.Where(m => m.BranchId == userBranchId.Value);
+            }
+
+            var maintenanceEntriesAll = await maintenanceQueryAll
                 .OrderByDescending(m => m.Date)
                 .ToListAsync();
 

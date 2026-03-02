@@ -39,10 +39,21 @@ namespace RouteX.Controllers
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
             ViewBag.UserRole = userRole;
 
+            // Get user's branch for filtering
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             // Base query - exclude archived and pending approval vehicles for main list
             var query = _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived && !v.IsPendingApproval);
+
+            // Filter by branch if not SuperAdmin
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                query = query.Where(v => v.BranchId == userBranchId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<VehicleStatus>(status, true, out var parsedStatus))
             {
@@ -59,9 +70,17 @@ namespace RouteX.Controllers
                 userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ||
                 userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
             {
-                var pendingVehicles = await _context.Vehicles
+                var pendingQuery = _context.Vehicles
                     .AsNoTracking()
-                    .Where(v => v.IsPendingApproval && !v.IsArchived)
+                    .Where(v => v.IsPendingApproval && !v.IsArchived);
+
+                // Filter by branch if not SuperAdmin
+                if (!isSuperAdmin && userBranchId.HasValue)
+                {
+                    pendingQuery = pendingQuery.Where(v => v.BranchId == userBranchId.Value);
+                }
+
+                var pendingVehicles = await pendingQuery
                     .OrderByDescending(v => v.CreatedDate)
                     .ToListAsync();
                 ViewBag.PendingVehicles = pendingVehicles;
@@ -71,27 +90,51 @@ namespace RouteX.Controllers
             // Also show their own pending vehicles
             if (userRole.Equals("OperationsStaff", StringComparison.OrdinalIgnoreCase))
             {
-                var recentlyApprovedVehicles = await _context.Vehicles
+                var recentlyApprovedQuery = _context.Vehicles
                     .AsNoTracking()
                     .Where(v => v.AddedByUserEmail == userEmail && 
                                !v.IsPendingApproval && 
                                v.ApprovalDate != null &&
-                               v.ApprovalDate > DateTime.Now.AddDays(-1))
-                    .ToListAsync();
+                               v.ApprovalDate > DateTime.Now.AddDays(-1));
+
+                // Filter by branch
+                if (userBranchId.HasValue)
+                {
+                    recentlyApprovedQuery = recentlyApprovedQuery.Where(v => v.BranchId == userBranchId.Value);
+                }
+
+                var recentlyApprovedVehicles = await recentlyApprovedQuery.ToListAsync();
                 ViewBag.RecentlyApprovedVehicles = recentlyApprovedVehicles;
 
                 // Show their own pending vehicles
-                var myPendingVehicles = await _context.Vehicles
+                var myPendingQuery = _context.Vehicles
                     .AsNoTracking()
-                    .Where(v => v.AddedByUserEmail == userEmail && v.IsPendingApproval && !v.IsArchived)
+                    .Where(v => v.AddedByUserEmail == userEmail && v.IsPendingApproval && !v.IsArchived);
+
+                // Filter by branch
+                if (userBranchId.HasValue)
+                {
+                    myPendingQuery = myPendingQuery.Where(v => v.BranchId == userBranchId.Value);
+                }
+
+                var myPendingVehicles = await myPendingQuery
                     .OrderByDescending(v => v.CreatedDate)
                     .ToListAsync();
                 ViewBag.MyPendingVehicles = myPendingVehicles;
             }
 
-            var mileageByVehicleId = await _context.RouteTrips
+            // Get mileage filtered by branch
+            var mileageQuery = _context.RouteTrips
                 .AsNoTracking()
-                .Where(r => r.Status == RouteTripStatus.Completed)
+                .Where(r => r.Status == RouteTripStatus.Completed);
+
+            // Filter by branch if not SuperAdmin
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                mileageQuery = mileageQuery.Where(r => r.BranchId == userBranchId.Value);
+            }
+
+            var mileageByVehicleId = await mileageQuery
                 .GroupBy(r => r.VehicleId)
                 .Select(group => new
                 {
@@ -106,8 +149,24 @@ namespace RouteX.Controllers
         }
 
         // GET: Vehicles/AddVehicle
-        public IActionResult AddVehicle()
+        public async Task<IActionResult> AddVehicle()
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            // Get branches for dropdown (SuperAdmin only)
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+            if (isSuperAdmin)
+            {
+                var branches = await _context.Branches
+                    .Where(b => !b.IsArchived && b.Status == BranchStatus.Active)
+                    .OrderBy(b => b.BranchName)
+                    .ToListAsync();
+                ViewBag.Branches = branches;
+            }
+
+            ViewBag.UserBranchId = user?.BranchId;
+
             return View();
         }
 
@@ -133,6 +192,13 @@ namespace RouteX.Controllers
                 var userRole = HttpContext.Session.GetString("UserRole") ?? "";
                 var userEmail = HttpContext.Session.GetString("UserEmail") ?? "System";
                 var userId = HttpContext.Session.GetString("UserId") ?? "";
+
+                // Auto-assign branch from user (if not SuperAdmin with manual selection)
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                if (user?.BranchId.HasValue == true && vehicle.BranchId == null)
+                {
+                    vehicle.BranchId = user.BranchId;
+                }
 
                 // Set created date
                 vehicle.CreatedDate = DateTime.Now;

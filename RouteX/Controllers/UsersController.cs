@@ -124,20 +124,27 @@ namespace RouteX.Controllers
         }
 
         // GET: Users/AddUser
-        public IActionResult AddUser()
+        public async Task<IActionResult> AddUser()
         {
             ViewData["Title"] = "Add User";
-            
+
             // Get active roles from RolesController sample data
             var activeRoles = GetActiveRoles();
             ViewBag.ActiveRoles = activeRoles;
-            
+
+            // Get active branches for dropdown
+            var activeBranches = await _context.Branches
+                .Where(b => !b.IsArchived && b.Status == BranchStatus.Active)
+                .OrderBy(b => b.BranchName)
+                .ToListAsync();
+            ViewBag.ActiveBranches = activeBranches;
+
             var viewModel = new CreateUserViewModel
             {
                 Status = UserStatus.Active.ToString(),
                 IsEditMode = false
             };
-            
+
             return View(viewModel);
         }
 
@@ -184,7 +191,8 @@ namespace RouteX.Controllers
                                 Email = viewModel.Email,
                                 Password = passwordHash, // Store hashed password
                                 Role = viewModel.Role,
-                                Status = viewModel.Status
+                                Status = viewModel.Status,
+                                BranchId = viewModel.BranchId // Assign branch
                             };
                             
                             _context.Users.Add(customUser);

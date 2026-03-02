@@ -13,5 +13,9 @@ namespace RouteX.Models
         public string CreatedBy { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
+
+        // Branch relationship - BudgetEntry belongs to one branch
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
     }
 }

@@ -22,14 +22,18 @@ namespace RouteX.Models
         public string? Description { get; set; }
         public bool? IsArchived { get; set; }
         public int? Status { get; set; } // Use int instead of enum to match database schema
-        
+
         // Navigation property
         public Vehicle? Vehicle { get; set; }
-        
+
         // Legacy properties for backward compatibility
         public int? MaintenanceId { get; set; } // Keep for existing code
         public string? UnitModel { get; set; }
         public DateTime? Date { get; set; }
+
+        // Branch relationship - MaintenanceEntry belongs to one branch
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
     }
 
     public enum MaintenanceStatus
