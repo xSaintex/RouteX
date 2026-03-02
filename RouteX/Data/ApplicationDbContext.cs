@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using RouteX.Models;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,10 @@ namespace RouteX.Data
                 }
 
             }
+
+            // Suppress pending model changes warning to prevent migration issues with existing tables
+            optionsBuilder.ConfigureWarnings(warnings =>
+                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         }
 
         public DbSet<Vehicle> Vehicles { get; set; } = null!;
@@ -113,6 +118,7 @@ namespace RouteX.Data
                 entity.ToTable("RouteTrips");
                 entity.Property(e => e.StartAddress).HasMaxLength(256);
                 entity.Property(e => e.EndAddress).HasMaxLength(256);
+                entity.Property(e => e.DistanceKm).HasPrecision(18, 2);
                 entity.HasOne(e => e.Vehicle)
                       .WithMany()
                       .HasForeignKey(e => e.VehicleId)

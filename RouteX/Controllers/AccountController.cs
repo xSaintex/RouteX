@@ -86,7 +86,7 @@ namespace RouteX.Controllers
                         return RedirectToAction("OpStaffDashboard", "Home");
                     }
 
-                    if (customUser.Role == "Finance" || customUser.Role == "Admin")
+                    if (customUser.Role == "Finance")
                     {
                         return RedirectToAction("FinanceDashboard", "Home");
                     }

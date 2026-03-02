@@ -28,44 +28,44 @@
 
 <style>
 /* Reuse vehicle/fuel popover styles for consistency */
-.search-filter { position: relative; display:flex; align-items:center; gap:8px; }
+.search-filter { position: relative; display:flex; align-items:center; gap:6px; }
 .filter-popover {
     position: absolute;
     right: 0;
-    top: calc(100% + 8px);
-    width: 320px;
+    top: calc(100% + 6px);
+    width: 260px;
     background: #ffffff; /* white panel */
     border: 1px solid #eee;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border-radius: 6px;
-    padding: 12px;
+    padding: 10px;
     z-index: 1200;
     color: #111; /* black text */
 }
 .filter-popover::before {
     content: '';
     position: absolute;
-    top: -8px;
-    right: 16px;
-    border-width: 8px 8px 0 8px;
+    top: -6px;
+    right: 14px;
+    border-width: 6px 6px 0 6px;
     border-style: solid;
     border-color: #fff transparent transparent transparent;
 }
-.filter-row { display:flex; gap:12px; align-items:center; }
+.filter-row { display:flex; gap:8px; align-items:center; }
 .filter-row > div { flex: 1; }
-.filter-label { display:block; font-size:12px; margin-bottom:6px; color:#222; }
-.filter-select, .filter-input { width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; }
-.filter-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
-.btn-apply { background:#ff7a00; color: #fff; border: none; padding:8px 12px; border-radius:4px; }
+.filter-label { display:block; font-size:0.7rem; margin-bottom:4px; color:#222; }
+.filter-select, .filter-input { width:100%; padding:4px 6px; border:1px solid #ddd; border-radius:4px; font-size:0.75rem; }
+.filter-actions { display:flex; gap:6px; justify-content:flex-end; margin-top:6px; }
+.btn-apply { background:#ff7a00; color: #fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-apply:hover { filter: brightness(0.95); }
-.btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
+.btn-clear { background:#111; color:#fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-clear:hover { opacity:0.95; }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
-.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 4px; align-items: center; }
-.pagination-info { color:#333; font-size:14px; }
-.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
-.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
+.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.pagination-info { color:#333; font-size:0.75rem; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
+.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
 .table-pagination .page-numbers { display: flex; gap: 2px; }
 /* remove bg from status-badge on maintenance page specifically and set text colors */
 .maintenance-status-text { background: transparent !important; padding: 0 !important; border: none !important; box-shadow: none !important; }
@@ -195,9 +195,18 @@
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <a href="@Url.Action("EditMaintenance", "Maintenance", new { id = entry.Id })" class="action-btn edit-btn" title="Edit Schedule">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+                                @if ((MaintenanceStatus)statusValue != MaintenanceStatus.Completed)
+                                {
+                                    <a href="@Url.Action("EditMaintenance", "Maintenance", new { id = entry.Id })" class="action-btn edit-btn" title="Edit Schedule">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="action-btn edit-btn" style="opacity: 0.4; cursor: not-allowed;" title="Cannot edit completed maintenance">
+                                        <i class="fas fa-edit"></i>
+                                    </span>
+                                }
                                 <a href="@Url.Action("ViewMaintenance", "Maintenance", new { id = entry.Id })" class="action-btn view-btn" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>

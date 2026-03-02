@@ -107,6 +107,12 @@ builder.Services.AddRazorPages();
 // Add Audit Service
 builder.Services.AddScoped<IAuditService, AuditService>();
 
+// Add Fuel Price Service
+builder.Services.AddScoped<IFuelPriceService, FuelPriceService>();
+builder.Services.AddScoped<IRouteDistanceService, TomTomService>();
+builder.Services.AddMemoryCache(); // Required for fuel price caching
+builder.Services.AddHttpClient(); // Required for FuelPriceService
+
 
 
 var app = builder.Build();

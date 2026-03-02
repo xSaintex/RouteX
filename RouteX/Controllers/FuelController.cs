@@ -11,11 +11,13 @@ namespace RouteX.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
+        private readonly IFuelPriceService _fuelPriceService;
 
-        public FuelController(ApplicationDbContext context, IAuditService auditService)
+        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService)
         {
             _context = context;
             _auditService = auditService;
+            _fuelPriceService = fuelPriceService;
         }
 
         public async Task<IActionResult> FuelPage()
@@ -291,6 +293,52 @@ namespace RouteX.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = $"Error archiving fuel entry: {ex.Message}" });
+            }
+        }
+
+        // GET: Fuel/GetCurrentPrices
+        [HttpGet]
+        public async Task<JsonResult> GetCurrentPrices()
+        {
+            try
+            {
+                var prices = await _fuelPriceService.GetAllFuelPricesAsync();
+                return Json(new { success = true, prices, lastUpdated = DateTime.Now });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // GET: Fuel/GetPrice/{fuelType}
+        [HttpGet]
+        public async Task<JsonResult> GetPrice(string fuelType)
+        {
+            try
+            {
+                var price = await _fuelPriceService.GetCurrentFuelPriceAsync(fuelType);
+                return Json(new { success = true, price, fuelType, lastUpdated = DateTime.Now });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // POST: Fuel/RefreshPrices
+        [HttpPost]
+        public async Task<JsonResult> RefreshPrices()
+        {
+            try
+            {
+                _fuelPriceService.ClearCache();
+                var prices = await _fuelPriceService.GetAllFuelPricesAsync();
+                return Json(new { success = true, prices, lastUpdated = DateTime.Now, message = "Fuel prices refreshed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
             }
         }
 

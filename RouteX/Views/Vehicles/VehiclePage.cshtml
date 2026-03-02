@@ -1,9 +1,11 @@
 @model IEnumerable<RouteX.Models.Vehicle>
+@using System.Collections.Generic
 @{
     ViewData["Title"] = "Vehicle Management";
     var types = Model.Select(v => v.VehicleType).Distinct().ToList();
     var statuses = Model.Select(v => v.Status.ToString()).Distinct().ToList();
     var initialStatusFilter = ViewBag.InitialStatusFilter as string;
+    var mileageByVehicleId = ViewBag.MileageByVehicleId as IDictionary<int, decimal> ?? new Dictionary<int, decimal>();
 }
 
 <style>
@@ -14,38 +16,33 @@
 .status-inactive { color: #dc3545 !important; }
 
 /* Filter popover and pagination styles (reuse from other pages) */
-.search-filter { position: relative; display:flex; align-items:center; gap:8px; }
+.search-filter { position: relative; display:flex; align-items:center; gap:6px; }
 .filter-popover {
     position: absolute;
     right: 0;
-    top: calc(100% + 8px);
-    width: 320px;
+    top: calc(100% + 6px);
+    width: 260px;
     background: #ffffff;
     border: 1px solid #eee;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border-radius: 6px;
-    padding: 12px;
+    padding: 10px;
     z-index: 1200;
     color: #111;
 }
-.filter-popover::before { content: ''; position: absolute; top: -8px; right: 16px; border-width: 8px 8px 0 8px; border-style: solid; border-color: #fff transparent transparent transparent; }
-.filter-label { display:block; font-size:12px; margin-bottom:6px; color:#222; }
-.filter-select, .filter-input { width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; }
-.filter-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
-.btn-apply { background:#ff7a00; color: #fff; border: none; padding:8px 12px; border-radius:4px; }
-.btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
+.filter-popover::before { content: ''; position: absolute; top: -6px; right: 14px; border-width: 6px 6px 0 6px; border-style: solid; border-color: #fff transparent transparent transparent; }
+.filter-label { display:block; font-size:0.7rem; margin-bottom:4px; color:#222; }
+.filter-select, .filter-input { width:100%; padding:4px 6px; border:1px solid #ddd; border-radius:4px; font-size:0.75rem; }
+.filter-actions { display:flex; gap:6px; justify-content:flex-end; margin-top:6px; }
+.btn-apply { background:#ff7a00; color: #fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
+.btn-clear { background:#111; color:#fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
-.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 4px; align-items: center; }
-.pagination-info { color:#333; font-size:14px; }
-.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
-.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
+.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.pagination-info { color:#333; font-size:0.75rem; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
+.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
 .table-pagination .page-numbers { display: flex; gap: 2px; }
-
-/* Alert styles */
-.alert { padding: 12px 16px; margin-bottom: 16px; border: 1px solid transparent; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
-.alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
-.alert-dismissible .btn-close { position: relative; top: -2px; right: -12px; padding: 4px 8px; color: inherit; background: transparent; border: none; font-size: 16px; cursor: pointer; }
 
 /* Archive button style */
 .archive-btn { color: #6c757d; }
@@ -55,25 +52,166 @@
 .action-buttons form { margin: 0; }
 </style>
 
-<div class="vehicles-container">
+<div class="vehicles-container" style="padding-top: 10px;">
     @Html.AntiForgeryToken()
+    @{
+        var userRole = ViewBag.UserRole as string ?? "";
+        var pendingVehicles = ViewBag.PendingVehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
+        var recentlyApprovedVehicles = ViewBag.RecentlyApprovedVehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
+        var myPendingVehicles = ViewBag.MyPendingVehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
+        var isAdminOrSuperAdmin = userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) || 
+                                   userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ||
+                                   userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase);
+    }
+
+    @* Notification for OperationsStaff when their vehicle is approved *@
+    @if (recentlyApprovedVehicles.Any())
+    {
+        foreach (var vehicle in recentlyApprovedVehicles)
+        {
+            var notifId = $"approved-vehicle-{vehicle.Id}";
+            <div class="notification notification-success notification-fixed" id="@notifId" style="display:none;">
+                <i class="fas fa-check-circle notification-icon"></i>
+                <span><strong>Vehicle Approved!</strong> Your vehicle <strong>@vehicle.PlateNumber (@vehicle.UnitModel)</strong> has been approved by @vehicle.ApprovedByUserEmail and is now visible in the fleet.</span>
+                <button type="button" class="notification-close" onclick="dismissNotification('@notifId')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <script>
+                (function() {
+                    var notifId = '@notifId';
+                    if (!sessionStorage.getItem(notifId)) {
+                        document.getElementById(notifId).style.display = 'flex';
+                    }
+                })();
+            </script>
+        }
+    }
+
+    @* Show OperationsStaff their own pending vehicles *@
+    @if (userRole.Equals("OperationsStaff", StringComparison.OrdinalIgnoreCase) && myPendingVehicles.Any())
+    {
+        <div class="notification notification-warning" style="position: relative; margin-bottom: 16px; flex-direction: column; align-items: flex-start;">
+            <div style="display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 10px;">
+                <i class="fas fa-hourglass-half notification-icon"></i>
+                <span><strong>@myPendingVehicles.Count Vehicle(s) Pending Approval</strong> - Waiting for Admin/SuperAdmin review.</span>
+                <button type="button" class="notification-close" onclick="this.parentElement.style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="width: 100%; overflow-x: auto;">
+                <table class="vehicles-table" style="margin: 0; font-size: 0.75rem; background: rgba(255,255,255,0.9); border-radius: 6px;">
+                    <thead>
+                        <tr>
+                            <th>Plate Number</th>
+                            <th>Unit Model</th>
+                            <th>Type</th>
+                            <th>Submitted Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pv in myPendingVehicles)
+                        {
+                            <tr>
+                                <td>@pv.PlateNumber</td>
+                                <td>@pv.UnitModel</td>
+                                <td>@pv.VehicleType</td>
+                                <td>@(pv.CreatedDate?.ToString("MMM dd, yyyy HH:mm") ?? "N/A")</td>
+                                <td><span class="status-badge" style="background: #ffc107; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">PENDING</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @* Pending Vehicles Notification for Admin/SuperAdmin/Administrator *@
+    @if (isAdminOrSuperAdmin && pendingVehicles.Any())
+    {
+        <div class="notification notification-warning" style="position: relative; margin-bottom: 16px; flex-direction: column; align-items: flex-start;">
+            <div style="display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 10px;">
+                <i class="fas fa-clock notification-icon"></i>
+                <span><strong>@pendingVehicles.Count Vehicle(s) Pending Approval</strong> - Operations Staff submitted vehicle(s) for your review.</span>
+                <button type="button" class="notification-close" onclick="this.parentElement.style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="width: 100%; overflow-x: auto;">
+                <table class="vehicles-table" style="margin: 0; font-size: 0.75rem; background: rgba(255,255,255,0.9); border-radius: 6px;">
+                    <thead>
+                        <tr>
+                            <th>Plate Number</th>
+                            <th>Unit Model</th>
+                            <th>Type</th>
+                            <th>Submitted By</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pv in pendingVehicles)
+                        {
+                            <tr id="pending-row-@pv.Id">
+                                <td>@pv.PlateNumber</td>
+                                <td>@pv.UnitModel</td>
+                                <td>@pv.VehicleType</td>
+                                <td>@pv.AddedByUserEmail</td>
+                                <td>@(pv.CreatedDate?.ToString("MMM dd, yyyy HH:mm") ?? "N/A")</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn" style="color: #28a745;" title="Approve" onclick="approveVehicle(@pv.Id)">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="action-btn" style="color: #dc3545;" title="Reject" onclick="rejectVehicle(@pv.Id)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i>
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        var successNotifId = $"success-notif-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+        <div class="notification notification-success notification-fixed" id="@successNotifId">
+            <i class="fas fa-check-circle notification-icon"></i>
+            <span>@TempData["Success"]</span>
+            <button type="button" class="notification-close" onclick="dismissNotification('@successNotifId')">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
+        <script>
+            setTimeout(function() { 
+                var el = document.getElementById('@successNotifId');
+                if (el) el.style.display = 'none';
+            }, 5000);
+        </script>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i>
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        var errorNotifId = $"error-notif-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+        <div class="notification notification-error notification-fixed" id="@errorNotifId">
+            <i class="fas fa-exclamation-triangle notification-icon"></i>
+            <span>@TempData["Error"]</span>
+            <button type="button" class="notification-close" onclick="dismissNotification('@errorNotifId')">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
+        <script>
+            setTimeout(function() { 
+                var el = document.getElementById('@errorNotifId');
+                if (el) el.style.display = 'none';
+            }, 5000);
+        </script>
     }
-    
+
     <div class="vehicles-header">
         <p>Manage and monitor your vehicle fleet</p>
     </div>
@@ -170,7 +308,10 @@
                                 @vehicle.Status
                             </span>
                         </td>
-                        <td>@vehicle.Mileage.ToString("N0") km</td>
+                        @{
+                            var totalMileage = mileageByVehicleId.TryGetValue(vehicle.Id, out var totalKm) ? totalKm : 0m;
+                        }
+                        <td>@totalMileage.ToString("N2") km</td>
                         <td>
                             <div class="action-buttons">
                                 <a href="@Url.Action("EditVehicle", "Vehicles", new { id = vehicle.Id })" class="action-btn edit-btn" title="Edit Vehicle">
@@ -209,6 +350,15 @@
 </div>
 
 <script>
+// Dismiss notification and store in sessionStorage to prevent showing again
+function dismissNotification(notifId) {
+    var el = document.getElementById(notifId);
+    if (el) {
+        el.style.display = 'none';
+        sessionStorage.setItem(notifId, 'dismissed');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     let currentPage = 1;
     const itemsPerPage = 10;
@@ -454,6 +604,90 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred while archiving the vehicle.');
+            });
+        }
+    };
+
+    // Approve vehicle function
+    window.approveVehicle = function(vehicleId) {
+        if (confirm('Are you sure you want to approve this vehicle? It will be added to the fleet.')) {
+            fetch('/Vehicles/ApproveVehicle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `id=${vehicleId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide the pending row
+                    const row = document.getElementById(`pending-row-${vehicleId}`);
+                    if (row) {
+                        row.style.display = 'none';
+                    }
+
+                    // Check if no more pending vehicles
+                    const pendingRows = document.querySelectorAll('[id^="pending-row-"]:not([style*="display: none"])');
+                    if (pendingRows.length === 0) {
+                        const pendingNotification = document.querySelector('.notification-warning');
+                        if (pendingNotification) {
+                            pendingNotification.style.display = 'none';
+                        }
+                    }
+
+                    // Show success message and reload page to show new vehicle
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while approving the vehicle.');
+            });
+        }
+    };
+
+    // Reject vehicle function
+    window.rejectVehicle = function(vehicleId) {
+        if (confirm('Are you sure you want to reject this vehicle? It will be permanently removed.')) {
+            fetch('/Vehicles/RejectVehicle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `id=${vehicleId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide the pending row
+                    const row = document.getElementById(`pending-row-${vehicleId}`);
+                    if (row) {
+                        row.style.display = 'none';
+                    }
+
+                    // Check if no more pending vehicles
+                    const pendingRows = document.querySelectorAll('[id^="pending-row-"]:not([style*="display: none"])');
+                    if (pendingRows.length === 0) {
+                        const pendingNotification = document.querySelector('.notification-warning');
+                        if (pendingNotification) {
+                            pendingNotification.style.display = 'none';
+                        }
+                    }
+
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while rejecting the vehicle.');
             });
         }
     };

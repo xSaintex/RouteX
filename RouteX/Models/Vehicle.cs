@@ -12,8 +12,16 @@ namespace RouteX.Models
         public string PlateNumber { get; set; } = string.Empty;
         public string VehicleType { get; set; } = string.Empty;
         public VehicleStatus Status { get; set; } = VehicleStatus.Active;
-        public int Mileage { get; set; }
         public bool IsArchived { get; set; }
+
+        // Pending approval workflow fields
+        public bool IsPendingApproval { get; set; } = false;
+        public string? AddedByUserId { get; set; }
+        public string? AddedByUserEmail { get; set; }
+        public string? ApprovedByUserId { get; set; }
+        public string? ApprovedByUserEmail { get; set; }
+        public DateTime? ApprovalDate { get; set; }
+        public DateTime? CreatedDate { get; set; }
     }
 
     public enum VehicleStatus

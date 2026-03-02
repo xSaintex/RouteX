@@ -5,7 +5,7 @@
     var isOperationsStaff = userRole == "OperationsStaff";
     var isSuperAdmin = userRole == "SuperAdmin";
     var isFinance = userRole == "Finance";
-    var isAdmin = userRole == "Admin";
+    var isAdmin = userRole == "Admin" || userRole == "Administrator";
     var showBudget = isFinance || isAdmin || isSuperAdmin;
 }
 <!DOCTYPE html>

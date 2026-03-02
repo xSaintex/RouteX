@@ -250,7 +250,7 @@ async function exportToPDF() {
         startY: 30
     });
 
-    doc.save(`${reportType}_Report.pdf`);
+    doc.save(`${reportType}_Report_` + new Date().toISOString().split('T')[0] + `.pdf`);
     await logReportExport('PDF');
     showNotification('PDF exported successfully!', 'success');
 }
@@ -304,7 +304,7 @@ function exportChartsPdf() {
         });
     }
 
-    doc.save('ReportVisualization.pdf');
+    doc.save('Report_Visualization_' + new Date().toISOString().split('T')[0] + '.pdf');
 }
 
 async function logReportExport(format) {

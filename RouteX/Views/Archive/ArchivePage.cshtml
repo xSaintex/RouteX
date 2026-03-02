@@ -15,9 +15,9 @@
 
 .archive-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
     gap: 20px;
     flex-wrap: wrap;
 }
@@ -27,6 +27,7 @@
     font-weight: 600;
     color: #2c3e50;
     margin: 0;
+    display: none;
 }
 
 .archive-controls {
@@ -34,7 +35,6 @@
     gap: 15px;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 25px;
 }
 
 .search-filter {
@@ -247,8 +247,6 @@
 
 <div class="archive-container">
     <div class="archive-header">
-        <h1 class="archive-title">Archive</h1>
-        
         <div class="archive-controls">
             <div class="search-filter">
                 <div class="search-box">
@@ -262,6 +260,7 @@
                         <option value="Fuel">Fuel</option>
                         <option value="Maintenance">Maintenance</option>
                         <option value="Finance">Finance</option>
+                        <option value="Trip">Trip</option>
                         <option value="User">User</option>
                     </select>
                 </div>
@@ -310,7 +309,7 @@
             </tbody>
         </table>
 
-        @if (!Model.ArchivedVehicles.Any() && !Model.ArchivedFuel.Any() && !Model.ArchivedMaintenance.Any() && !Model.ArchivedFinance.Any() && !Model.ArchivedUsers.Any())
+        @if (!Model.ArchivedVehicles.Any() && !Model.ArchivedFuel.Any() && !Model.ArchivedMaintenance.Any() && !Model.ArchivedFinance.Any() && !Model.ArchivedUsers.Any() && !Model.ArchivedTrips.Any())
         {
             <div class="empty-state">
                 <i class="fas fa-archive"></i>
@@ -322,7 +321,7 @@
 
     <div class="archive-pagination">
         <div class="pagination-info">
-            <span>Showing 1-10 of @(Model.ArchivedVehicles.Count() + Model.ArchivedFuel.Count() + Model.ArchivedMaintenance.Count() + Model.ArchivedFinance.Count() + Model.ArchivedUsers.Count()) entries</span>
+            <span>Showing 1-10 of @(Model.ArchivedVehicles.Count() + Model.ArchivedFuel.Count() + Model.ArchivedMaintenance.Count() + Model.ArchivedFinance.Count() + Model.ArchivedUsers.Count() + Model.ArchivedTrips.Count()) entries</span>
         </div>
         <div class="pagination-controls">
             <button class="btn-pagination" disabled>

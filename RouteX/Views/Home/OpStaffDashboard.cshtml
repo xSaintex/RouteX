@@ -45,6 +45,12 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finance-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
 .finance-card-icon {
@@ -234,15 +240,17 @@
                     </thead>
                     <tbody>
                         @{
+                            var mileageByVehicleId = ViewBag.MileageByVehicleId as IDictionary<int, decimal> ?? new Dictionary<int, decimal>();
                             var rank = 1;
                         }
                         @foreach (var vehicle in Model.ActiveTripsToday)
                         {
+                            var vehicleMileage = mileageByVehicleId.TryGetValue(vehicle.Id, out var totalKm) ? totalKm : 0m;
                             <tr>
                                 <td><span class="rank-badge">@rank</span></td>
                                 <td><strong>@vehicle.PlateNumber</strong></td>
                                 <td>@vehicle.UnitModel</td>
-                                <td><span class="distance-badge">@vehicle.Mileage.ToString("N0") km</span></td>
+                                <td><span class="distance-badge">@vehicleMileage.ToString("N0") km</span></td>
                             </tr>
                             rank++;
                         }

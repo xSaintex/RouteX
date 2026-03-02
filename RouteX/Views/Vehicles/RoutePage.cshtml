@@ -1,7 +1,9 @@
 @model RouteX.ViewModels.RoutePageViewModel
 @{
-    ViewData["Title"] = "Route";
+    ViewData["Title"] = "Route Management - " + Model.Vehicle.PlateNumber;
     var currentRoute = Model.CurrentRoute;
+    var hasOngoingTrip = currentRoute != null && currentRoute.Status == RouteTripStatus.Saved;
+    var isVehicleActive = Model.Vehicle.Status == VehicleStatus.Active;
 }
 
 
@@ -44,6 +46,8 @@
     padding: 10px 12px;
     border-radius: 8px;
     border: 1px solid #e0e0e0;
+    width: 100%;
+    min-width: 280px;
 }
 
 .route-actions {
@@ -51,6 +55,11 @@
     gap: 12px;
     align-items: center;
     margin-top: 4px;
+}
+
+.route-actions.stacked {
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .route-actions .btn {
@@ -74,6 +83,97 @@
     background: #ffffff;
     color: #111111;
     border: 1px solid #111111;
+}
+
+.route-actions .btn-primary {
+    background: #007bff;
+    color: #ffffff;
+}
+
+.route-actions .btn-danger {
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.trip-status-ongoing {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-top: 60px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    border-left: 4px solid #ff4500;
+}
+
+.status-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+}
+
+.status-content i {
+    font-size: 20px;
+    animation: pulse 2s infinite;
+}
+
+@@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.history-actions {
+    float: right;
+}
+
+.route-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-info {
+    text-align: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+}
+
+.table-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.pagination-controls {
+    margin-left: auto;
+    justify-content: flex-end;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.table-pagination .page-link {
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #fff;
+    color: #111;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.table-pagination .page-link.prev,
+.table-pagination .page-link.next {
+    min-width: 32px;
+}
+
+.table-pagination .page-numbers {
+    display: flex;
+    gap: 2px;
 }
 
 .route-map {
@@ -115,6 +215,25 @@
     font-weight: 600;
 }
 
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 6px;
+    color: #6c757d;
+}
+
+.action-btn:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
 @@media (max-width: 1024px) {
     .route-container {
         grid-template-columns: 1fr;
@@ -122,7 +241,8 @@
 }
 </style>
 
-<div class="vehicles-container">
+<div class="vehicles-container" style="padding-top: 50px;">
+    @Html.AntiForgeryToken()
     <button class="back-button-top-left" onclick="history.back()">
         <i class="fas fa-arrow-left"></i>
         Back
@@ -130,56 +250,99 @@
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i>
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="notification notification-success">
+            <i class="fas fa-check-circle notification-icon"></i>
+            <span>@TempData["Success"]</span>
+            <button type="button" class="notification-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i>
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="notification notification-error">
+            <i class="fas fa-exclamation-triangle notification-icon"></i>
+            <span>@TempData["Error"]</span>
+            <button type="button" class="notification-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    <!-- Vehicle Status Alert -->
+    @if (!isVehicleActive)
+    {
+        <div class="notification notification-warning">
+            <i class="fas fa-exclamation-triangle notification-icon"></i>
+            <span><strong>Vehicle Status: @Model.Vehicle.Status</strong> - This vehicle cannot start new trips while it is @Model.Vehicle.Status.ToString().ToLower().</span>
+            <button type="button" class="notification-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    <!-- Ongoing Trip Status Indicator -->
+    @if (hasOngoingTrip)
+    {
+        <div class="trip-status-ongoing">
+            <div class="status-content">
+                <i class="fas fa-route"></i>
+                <span><strong>TRIP IN PROGRESS</strong> - @currentRoute.StartAddress to @currentRoute.EndAddress</span>
+            </div>
         </div>
     }
 
     <div class="route-container">
         <div class="route-card">
             <div class="route-title">Route Details - @Model.Vehicle.PlateNumber</div>
-            <form class="route-form" asp-action="SaveRoute" asp-controller="Vehicles" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="vehicleId" value="@Model.Vehicle.Id" />
-                <div>
-                    <label for="startAddress">Start Destination</label>
-                    <input id="startAddress" name="startAddress" type="text" placeholder="Enter start destination" value="@currentRoute?.StartAddress" />
-                </div>
-                <div>
-                    <label for="endAddress">End Destination</label>
-                    <div class="route-actions">
-                        <input id="endAddress" name="endAddress" type="text" placeholder="Enter end destination" value="@currentRoute?.EndAddress" />
-                        <button type="submit" class="btn btn-save">Save</button>
-                    </div>
-                </div>
-            </form>
-
-            @if (currentRoute != null)
+            
+            @if (!hasOngoingTrip)
             {
-                <div class="route-status">
-                    <form asp-action="CompleteRoute" asp-controller="Vehicles" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="routeId" value="@currentRoute.Id" />
-                        <input type="hidden" name="vehicleId" value="@Model.Vehicle.Id" />
-                        <button type="submit" class="btn btn-secondary">Complete Route</button>
-                    </form>
-                    <form asp-action="CancelRoute" asp-controller="Vehicles" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="routeId" value="@currentRoute.Id" />
-                        <input type="hidden" name="vehicleId" value="@Model.Vehicle.Id" />
-                        <button type="submit" class="btn btn-cancel">Cancel</button>
-                    </form>
-                </div>
+                <form class="route-form" asp-action="StartTrip" asp-controller="Vehicles" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="vehicleId" value="@Model.Vehicle.Id" />
+                    <div>
+                        <label for="startAddress">Start Destination</label>
+                        <input id="startAddress" name="startAddress" type="text" placeholder="Enter start destination" value="" @(isVehicleActive ? "" : "disabled") />
+                    </div>
+                    <div>
+                        <label for="endAddress">End Destination</label>
+                        <input id="endAddress" name="endAddress" type="text" placeholder="Enter end destination" value="" @(isVehicleActive ? "" : "disabled") />
+                    </div>
+                    <div>
+                        <label for="mileage">Mileage (km)</label>
+                        <input id="mileage" type="text" readonly placeholder="Auto-calculated" value="" @(isVehicleActive ? "" : "disabled") />
+                    </div>
+                    <div class="route-actions">
+                        <button type="button" id="startTripBtn" class="btn btn-primary" @(isVehicleActive ? "" : "disabled")>Start Trip</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <form class="route-form" asp-action="CompleteTrip" asp-controller="Vehicles" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="vehicleId" value="@Model.Vehicle.Id" />
+                    <input type="hidden" name="routeId" value="@currentRoute.Id" />
+                    <input type="hidden" name="startAddress" value="@currentRoute.StartAddress" />
+                    <input type="hidden" name="endAddress" value="@currentRoute.EndAddress" />
+                    <div>
+                        <label for="startAddress">Start Destination</label>
+                        <input id="startAddress" type="text" readonly value="@currentRoute.StartAddress" />
+                    </div>
+                    <div>
+                        <label for="endAddress">End Destination</label>
+                        <input id="endAddress" type="text" readonly value="@currentRoute.EndAddress" />
+                    </div>
+                    <div>
+                        <label for="mileage">Mileage (km)</label>
+                        <input id="mileage" type="text" readonly placeholder="Auto-calculated" value="" />
+                    </div>
+                    <div class="route-actions stacked">
+                        <button type="submit" class="btn btn-danger" formaction="@Url.Action("CancelRoute", "Vehicles")" formmethod="post">Cancel Trip</button>
+                        <button type="button" id="completeTripBtn" class="btn btn-save">Complete Trip</button>
+                    </div>
+                </form>
             }
         </div>
 
@@ -190,7 +353,15 @@
     </div>
 
     <div class="route-history route-card">
-        <div class="route-title">Trip History</div>
+        <div class="route-title">
+            Trip History
+            <div class="history-actions">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="bulkArchiveTrips" style="display:none;">
+                    <i class="fas fa-archive"></i>
+                    Archive Selected
+                </button>
+            </div>
+        </div>
         @if (!Model.TripHistory.Any())
         {
             <p>No completed routes yet.</p>
@@ -200,21 +371,65 @@
             <table>
                 <thead>
                     <tr>
+                        <th>
+                            <input type="checkbox" id="selectAllTrips" />
+                        </th>
                         <th>Date</th>
                         <th>Start</th>
                         <th>End</th>
+                        <th>Mileage</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tripHistoryTableBody">
                 @foreach (var trip in Model.TripHistory)
                 {
-                    <tr>
+                    <tr data-trip-id="@trip.Id">
+                        <td>
+                            @if (!trip.IsArchived)
+                            {
+                                <input type="checkbox" class="trip-select" value="@trip.Id" />
+                            }
+                            else
+                            {
+                                <input type="checkbox" disabled />
+                            }
+                        </td>
                         <td>@(trip.CompletedAt?.ToString("MMM dd, yyyy") ?? trip.CreatedAt.ToString("MMM dd, yyyy"))</td>
                         <td>@trip.StartAddress</td>
                         <td>@trip.EndAddress</td>
+                        <td>@(trip.DistanceKm.HasValue ? $"{trip.DistanceKm.Value:N2} km" : "N/A")</td>
+                        <td class="trip-archive-cell">
+                            @if (!trip.IsArchived)
+                            {
+                                <div class="action-buttons">
+                                    <button type="button" class="action-btn" title="Archive Trip" onclick="archiveTrip(@trip.Id, @Model.Vehicle.Id)">
+                                        <i class="fas fa-archive"></i>
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Archived</span>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6">
+                            <div class="table-pagination">
+                                <div class="pagination-info">Showing 0 of 0 entries</div>
+                                <div class="pagination-controls">
+                                    <button class="page-link prev" type="button">&lt;</button>
+                                    <div class="page-numbers"></div>
+                                    <button class="page-link next" type="button">&gt;</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         }
     </div>
@@ -310,6 +525,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         
                         console.log('Route drawn successfully');
                         
+                        // Calculate mileage from OSRM route data
+                        const distanceMeters = route.distance;
+                        const distanceKm = distanceMeters / 1000;
+                        
+                        // Update mileage field
+                        const mileageField = document.getElementById('mileage');
+                        if (mileageField) {
+                            mileageField.value = `${distanceKm.toFixed(2)} km`;
+                            console.log('Mileage calculated from OSRM:', distanceKm);
+                        }
+                        
                         // Show success message briefly
                         const successDiv = document.createElement('div');
                         successDiv.style.cssText = `
@@ -341,6 +567,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 .catch(error => {
                     hideLoadingIndicator();
                     console.error('Error calculating route:', error);
+                    
+                    // Set mileage to N/A on error
+                    const mileageField = document.getElementById('mileage');
+                    if (mileageField) {
+                        mileageField.value = 'N/A';
+                    }
+                    
                     // Fallback: just show markers and fit bounds
                     const bounds = L.latLngBounds([start, end]);
                     map.fitBounds(bounds, { padding: [50, 50] });
@@ -464,14 +697,15 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (startInput && endInput) {
             let timeout;
+
             function updateMap() {
                 clearTimeout(timeout);
                 timeout = setTimeout(() => {
                     const startAddr = startInput.value.trim();
                     const endAddr = endInput.value.trim();
-                    
+
                     console.log('Checking addresses:', { startAddr, endAddr });
-                    
+
                     if (startAddr && endAddr) {
                         console.log('Both addresses present, drawing route...');
                         geocodeAndDraw(startAddr, endAddr);
@@ -508,6 +742,266 @@ document.addEventListener('DOMContentLoaded', function () {
                 setTimeout(updateMap, 500);
             }
         }
+
+        // Add Start Trip button event handler
+        const startTripBtn = document.getElementById('startTripBtn');
+        if (startTripBtn) {
+            startTripBtn.addEventListener('click', function() {
+                // Check if button is disabled (vehicle is not active)
+                if (this.disabled) {
+                    alert('Cannot start trip: Vehicle is currently ' + ('@Model.Vehicle.Status' || 'inactive').toLowerCase() + '. Only active vehicles can start new trips.');
+                    return;
+                }
+                
+                const startAddr = document.getElementById('startAddress').value.trim();
+                const endAddr = document.getElementById('endAddress').value.trim();
+                
+                if (!startAddr || !endAddr) {
+                    alert('Please enter both start and end destinations.');
+                    return;
+                }
+                
+                // Submit the form
+                const form = document.querySelector('.route-form');
+                if (form) {
+                    form.submit();
+                }
+            });
+        }
+
+        // Add Complete Trip button event handler
+        const completeTripBtn = document.getElementById('completeTripBtn');
+        if (completeTripBtn) {
+            completeTripBtn.addEventListener('click', function() {
+                const startAddr = document.getElementById('startAddress').value.trim();
+                const endAddr = document.getElementById('endAddress').value.trim();
+                const mileageField = document.getElementById('mileage');
+                const mileage = mileageField.value;
+                
+                if (!startAddr || !endAddr) {
+                    alert('Please enter both start and end destinations.');
+                    return;
+                }
+                
+                if (!mileage || mileage === 'Calculating...' || mileage === 'N/A') {
+                    alert('Please wait for mileage calculation to complete or check addresses.');
+                    return;
+                }
+                
+                // Extract numeric value from mileage field
+                const mileageKm = parseFloat(mileage.replace(' km', '').trim());
+                if (isNaN(mileageKm) || mileageKm <= 0) {
+                    alert('Invalid mileage value. Please wait for calculation to complete.');
+                    return;
+                }
+                
+                // Create a hidden input for mileage
+                let mileageInput = document.querySelector('input[name="distanceKm"]');
+                if (!mileageInput) {
+                    mileageInput = document.createElement('input');
+                    mileageInput.type = 'hidden';
+                    mileageInput.name = 'distanceKm';
+                    document.querySelector('.route-form').appendChild(mileageInput);
+                }
+                mileageInput.value = mileageKm;
+                
+                // Submit the form
+                const form = document.querySelector('.route-form');
+                if (form) {
+                    form.submit();
+                }
+            });
+        }
+
+        const selectAllTrips = document.getElementById('selectAllTrips');
+        const bulkArchiveTrips = document.getElementById('bulkArchiveTrips');
+        const tripTableBody = document.getElementById('tripHistoryTableBody');
+        const tripPaginationInfo = document.querySelector('.table-pagination .pagination-info');
+        const tripPrevButton = document.querySelector('.pagination-controls .prev');
+        const tripNextButton = document.querySelector('.pagination-controls .next');
+        const tripPageNumbers = document.querySelector('.pagination-controls .page-numbers');
+        let tripCurrentPage = 1;
+        const tripItemsPerPage = 8;
+        let tripRows = tripTableBody ? Array.from(tripTableBody.querySelectorAll('tr')) : [];
+
+        function renderTripRows() {
+            const start = (tripCurrentPage - 1) * tripItemsPerPage;
+            const end = start + tripItemsPerPage;
+            tripRows.forEach((row, index) => {
+                row.style.display = index >= start && index < end ? '' : 'none';
+            });
+        }
+
+        function updateTripPagination() {
+            const total = tripRows.length;
+            const totalPages = Math.max(1, Math.ceil(total / tripItemsPerPage));
+            tripCurrentPage = Math.min(tripCurrentPage, totalPages);
+            const start = total === 0 ? 0 : (tripCurrentPage - 1) * tripItemsPerPage + 1;
+            const end = Math.min(total, tripCurrentPage * tripItemsPerPage);
+
+            if (tripPaginationInfo) {
+                tripPaginationInfo.textContent = total === 0 ? 'Showing 0 of 0 entries' : `Showing ${start}-${end} of ${total} entries`;
+            }
+
+            if (tripPrevButton) {
+                tripPrevButton.style.display = totalPages > 1 && tripCurrentPage > 1 ? '' : 'none';
+            }
+            if (tripNextButton) {
+                tripNextButton.style.display = totalPages > 1 && tripCurrentPage < totalPages ? '' : 'none';
+            }
+
+            if (tripPageNumbers) {
+                tripPageNumbers.innerHTML = '';
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `page-link page-number${i === tripCurrentPage ? ' active' : ''}`;
+                    btn.textContent = i.toString();
+                    btn.addEventListener('click', function () {
+                        if (tripCurrentPage !== i) {
+                            tripCurrentPage = i;
+                            renderTripRows();
+                            updateTripPagination();
+                        }
+                    });
+                    tripPageNumbers.appendChild(btn);
+                }
+            }
+        }
+
+        function refreshTripRows() {
+            tripRows = tripTableBody ? Array.from(tripTableBody.querySelectorAll('tr')) : [];
+            if (selectAllTrips) {
+                selectAllTrips.checked = false;
+            }
+            renderTripRows();
+            updateTripPagination();
+        }
+
+        function updateTripBulkVisibility() {
+            const anyChecked = document.querySelectorAll('.trip-select:checked').length > 0;
+            if (bulkArchiveTrips) {
+                bulkArchiveTrips.style.display = anyChecked ? '' : 'none';
+            }
+        }
+
+        if (tripPrevButton) {
+            tripPrevButton.addEventListener('click', function () {
+                if (tripCurrentPage > 1) {
+                    tripCurrentPage--;
+                    renderTripRows();
+                    updateTripPagination();
+                }
+            });
+        }
+
+        if (tripNextButton) {
+            tripNextButton.addEventListener('click', function () {
+                const totalPages = Math.max(1, Math.ceil(tripRows.length / tripItemsPerPage));
+                if (tripCurrentPage < totalPages) {
+                    tripCurrentPage++;
+                    renderTripRows();
+                    updateTripPagination();
+                }
+            });
+        }
+
+        if (selectAllTrips) {
+            selectAllTrips.addEventListener('change', function () {
+                document.querySelectorAll('.trip-select').forEach(cb => {
+                    cb.checked = selectAllTrips.checked;
+                });
+                updateTripBulkVisibility();
+            });
+        }
+
+        if (tripTableBody) {
+            tripTableBody.addEventListener('change', function (event) {
+                if (event.target.classList.contains('trip-select')) {
+                    const allChecks = document.querySelectorAll('.trip-select');
+                    const checked = document.querySelectorAll('.trip-select:checked');
+                    if (selectAllTrips) {
+                        selectAllTrips.checked = allChecks.length > 0 && checked.length === allChecks.length;
+                    }
+                    updateTripBulkVisibility();
+                }
+            });
+        }
+
+        if (bulkArchiveTrips) {
+            bulkArchiveTrips.addEventListener('click', function () {
+                const selected = Array.from(document.querySelectorAll('.trip-select:checked'));
+                if (selected.length === 0) {
+                    alert('Please select at least one trip to archive.');
+                    return;
+                }
+
+                if (!confirm(`Archive ${selected.length} selected trips?`)) {
+                    return;
+                }
+
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                Promise.all(selected.map(cb => {
+                    const tripId = cb.value;
+                    return fetch('/Vehicles/ArchiveTrip', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        },
+                        body: `tripId=${tripId}&vehicleId=@Model.Vehicle.Id`
+                    }).then(response => response.json()).then(data => ({ data, tripId }));
+                })).then(results => {
+                    results.forEach(result => {
+                        if (result.data.success) {
+                            const row = document.querySelector(`tr[data-trip-id="${result.tripId}"]`);
+                            if (row) {
+                                row.remove();
+                            }
+                        }
+                    });
+                    refreshTripRows();
+                    updateTripBulkVisibility();
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while archiving trips.');
+                });
+            });
+        }
+
+        refreshTripRows();
+
+        window.archiveTrip = function (tripId, vehicleId) {
+            if (!confirm('Are you sure you want to archive this trip?')) {
+                return;
+            }
+
+            fetch('/Vehicles/ArchiveTrip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `tripId=${tripId}&vehicleId=${vehicleId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.querySelector(`tr[data-trip-id="${tripId}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                    refreshTripRows();
+                    updateTripBulkVisibility();
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while archiving the trip.');
+            });
+        };
 
     } catch (error) {
         console.error('Error initializing map:', error);

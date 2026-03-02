@@ -7,42 +7,46 @@
         .Distinct()
         .Where(t => t != "FUEL" && t != "MAINTENANCE")
         .ToList();
+
+    // Get user role to control access
+    var userRole = Context.Session.GetString("UserRole") ?? "";
+    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
 }
 
 <style>
 /* Reuse common popover/search styles from other pages */
-.table-actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
-.search-filter { position: relative; display:flex; align-items:center; gap:8px; }
+.table-actions { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+.search-filter { position: relative; display:flex; align-items:center; gap:6px; }
 .filter-popover {
     position: absolute;
     right: 0;
-    top: calc(100% + 8px);
-    width: 320px;
+    top: calc(100% + 6px);
+    width: 260px;
     background: #ffffff; /* white panel */
     border: 1px solid #eee;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border-radius: 6px;
-    padding: 12px;
+    padding: 10px;
     z-index: 1200;
     color: #111; /* black text */
 }
 .filter-popover::before {
     content: '';
     position: absolute;
-    top: -8px;
-    right: 16px;
-    border-width: 8px 8px 0 8px;
+    top: -6px;
+    right: 14px;
+    border-width: 6px 6px 0 6px;
     border-style: solid;
     border-color: #fff transparent transparent transparent;
 }
-.filter-row { display:flex; gap:12px; align-items:center; }
+.filter-row { display:flex; gap:8px; align-items:center; }
 .filter-row > div { flex: 1; }
-.filter-label { display:block; font-size:12px; margin-bottom:6px; color:#222; }
-.filter-select, .filter-input { width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; }
-.filter-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
-.btn-apply { background:#ff7a00; color: #fff; border: none; padding:8px 12px; border-radius:4px; }
+.filter-label { display:block; font-size:0.7rem; margin-bottom:4px; color:#222; }
+.filter-select, .filter-input { width:100%; padding:4px 6px; border:1px solid #ddd; border-radius:4px; font-size:0.75rem; }
+.filter-actions { display:flex; gap:6px; justify-content:flex-end; margin-top:6px; }
+.btn-apply { background:#ff7a00; color: #fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-apply:hover { filter: brightness(0.95); }
-.btn-clear { background:#111; color:#fff; border: none; padding:8px 12px; border-radius:4px; }
+.btn-clear { background:#111; color:#fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-clear:hover { opacity:0.95; }
 .pagination-info { color:#333; }
 /* Expense type text colors, no background */
@@ -50,30 +54,42 @@
 .expense-fuel { color: #ff7a00 !important; }
 .expense-maintenance { color: #ffb300 !important; }
 .expense-other { color: #6c757d !important; }
-/* Finance page specific btn-primary styling to match maintenance page */
+
+/* Finance page specific btn-primary styling */
 .table-actions .btn-primary {
     background: #ff6b35;
     border: none;
-    padding: 10px 18px;
+    padding: 6px 12px;
     border-radius: 8px;
     color: white;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.8rem;
     cursor: pointer;
-    box-shadow: 0 6px 14px rgba(255, 107, 53, 0.25);
+    box-shadow: 0 4px 10px rgba(255, 107, 53, 0.25);
     transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .table-actions .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 18px rgba(255, 107, 53, 0.35);
+    box-shadow: 0 6px 14px rgba(255, 107, 53, 0.35);
+    background: #ff6b35;
 }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
-.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 4px; align-items: center; }
-.pagination-info { color:#333; font-size:14px; }
-.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:6px 10px; border-radius:6px; cursor:pointer; }
-.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:32px; }
+.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
+.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.pagination-info { color:#333; font-size:0.75rem; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
+.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
 .table-pagination .page-numbers { display: flex; gap: 2px; }
+
+/* Finance page - remove scroll */
+.finance-section { margin-bottom: 10px; }
+.finance-section h3 { font-size: 0.95rem; margin-bottom: 8px; }
+.vehicles-table th { padding: 6px 10px; font-size: 0.7rem; }
+.vehicles-table td { padding: 5px 10px; font-size: 0.75rem; }
 </style>
 
 <div class="vehicles-container">
@@ -95,10 +111,13 @@
         <h3>Expense Records</h3>
 
         <div class="table-actions">
-            <a href="@Url.Action("AddFinance", "Finance")" class="btn btn-primary">
-                <i class="fas fa-plus"></i>
-                Add Expenses
-            </a>
+            @if (!isSuperAdmin)
+            {
+                <a href="@Url.Action("AddFinance", "Finance")" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Add Expenses
+                </a>
+            }
             <button type="button" class="btn btn-outline-secondary" id="bulkArchiveExpenses" style="display:none;">
                 <i class="fas fa-archive"></i>
                 Archive Selected
@@ -204,9 +223,12 @@
                                                 break;
                                         }
                                     }
-                                    <a href="@editUrl" class="action-btn edit-btn" title="Edit">
-                                        <i class="@editIcon"></i>
-                                    </a>
+                                    @if (!isSuperAdmin)
+                                    {
+                                        <a href="@editUrl" class="action-btn edit-btn" title="Edit">
+                                            <i class="@editIcon"></i>
+                                        </a>
+                                    }
                                     @{
                                         string viewUrl = "";
                                         string viewIcon = "fas fa-eye";

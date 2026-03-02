@@ -121,6 +121,18 @@ namespace RouteX.Controllers
                 .OrderBy(v => v.PlateNumber)
                 .ToList();
 
+            // Get mileage data from RouteTrips
+            var mileageByVehicleId = await _context.RouteTrips
+                .AsNoTracking()
+                .Where(r => r.Status == RouteTripStatus.Completed)
+                .GroupBy(r => r.VehicleId)
+                .Select(group => new
+                {
+                    VehicleId = group.Key,
+                    TotalKm = group.Sum(r => r.DistanceKm ?? 0m)
+                })
+                .ToDictionaryAsync(item => item.VehicleId, item => item.TotalKm);
+
             var statusData = new List<VehicleStatusData>();
             var totalVehicles = vehicles.Count;
             if (totalVehicles > 0)
@@ -161,11 +173,12 @@ namespace RouteX.Controllers
                 VehicleStatusData = statusData,
                 MaintenanceVehicles = maintenanceVehicles,
                 ActiveTripsToday = activeVehicles
-                    .OrderByDescending(v => v.Mileage)
+                    .OrderByDescending(v => mileageByVehicleId.TryGetValue(v.Id, out var mileage) ? mileage : 0m)
                     .Take(5)
                     .ToList()
             };
 
+            ViewBag.MileageByVehicleId = mileageByVehicleId;
             return View(viewModel);
         }
 
@@ -191,6 +204,25 @@ namespace RouteX.Controllers
                 .Where(f => f.ExpenseDate >= startMonth && f.ExpenseDate < endMonthExclusive)
                 .SumAsync(f => f.Amount);
 
+            var recentActivities = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(a => a.UserId != "SYSTEM" 
+                    && !a.Action.StartsWith("Archive:")
+                    && !a.Action.StartsWith("Login")
+                    && !a.Action.StartsWith("Logout")
+                    && !a.Action.StartsWith("Viewed")
+                    && !a.Action.Contains("logged in")
+                    && !a.Action.Contains("logged out"))
+                .OrderByDescending(a => a.ActionDate)
+                .Take(5)
+                .Select(a => new RecentActivityItem
+                {
+                    Action = a.Action,
+                    UserId = a.UserId,
+                    ActionDate = a.ActionDate
+                })
+                .ToListAsync();
+
             return new DashboardViewModel
             {
                 FuelConsumptionData = GetFuelConsumptionData(),
@@ -199,7 +231,8 @@ namespace RouteX.Controllers
                 TotalVehicles = totalVehicles,
                 ActiveVehicles = activeVehicles,
                 PendingMaintenance = pendingMaintenance,
-                TotalExpenses = totalExpenses
+                TotalExpenses = totalExpenses,
+                RecentActivities = recentActivities
             };
         }
 
@@ -208,12 +241,14 @@ namespace RouteX.Controllers
             var startDate = DateTime.Today.AddDays(-29);
             var endDate = DateTime.Today.AddDays(1);
 
+            // Get fuel entries within the date range
             var entries = _context.FuelEntries
                 .AsNoTracking()
                 .Where(f => !f.IsArchived && f.DateTime >= startDate && f.DateTime < endDate)
                 .Select(f => new { Date = f.DateTime.Date, f.TotalCost, f.Odometer })
                 .ToList();
 
+            // Group by date and sum TotalCost and Odometer values
             var totalsByDate = entries
                 .GroupBy(e => e.Date)
                 .ToDictionary(
@@ -221,7 +256,7 @@ namespace RouteX.Controllers
                     g => new
                     {
                         TotalSpend = g.Sum(x => x.TotalCost),
-                        Distance = g.Sum(x => x.Odometer)
+                        TotalOdometer = g.Sum(x => x.Odometer)
                     });
 
             var data = new List<FuelConsumptionPoint>();
@@ -234,7 +269,7 @@ namespace RouteX.Controllers
                 {
                     Date = date.ToString("MMM dd"),
                     TotalFuelSpend = (double)(totals?.TotalSpend ?? 0),
-                    DistanceTraveled = totals?.Distance ?? 0
+                    DistanceTraveled = totals?.TotalOdometer ?? 0
                 });
             }
 
@@ -243,24 +278,70 @@ namespace RouteX.Controllers
 
         private List<VehicleStatusData> GetVehicleStatusData()
         {
+            var vehicles = _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .ToList();
+
+            var totalVehicles = vehicles.Count;
+            if (totalVehicles == 0)
+            {
+                return new List<VehicleStatusData>
+                {
+                    new VehicleStatusData { Status = "Active", Count = 0, Percentage = 0 },
+                    new VehicleStatusData { Status = "Maintenance", Count = 0, Percentage = 0 },
+                    new VehicleStatusData { Status = "Inactive", Count = 0, Percentage = 0 }
+                };
+            }
+
+            var activeCount = vehicles.Count(v => v.Status == VehicleStatus.Active);
+            var maintenanceCount = vehicles.Count(v => v.Status == VehicleStatus.Maintenance);
+            var inactiveCount = vehicles.Count(v => v.Status == VehicleStatus.Inactive);
+
             return new List<VehicleStatusData>
             {
-                new VehicleStatusData { Status = "Active", Count = 18, Percentage = 45 },
-                new VehicleStatusData { Status = "Maintenance", Count = 8, Percentage = 20 },
-                new VehicleStatusData { Status = "Inactive", Count = 14, Percentage = 35 }
+                new VehicleStatusData { Status = "Active", Count = activeCount, Percentage = (int)Math.Round((double)activeCount / totalVehicles * 100) },
+                new VehicleStatusData { Status = "Maintenance", Count = maintenanceCount, Percentage = (int)Math.Round((double)maintenanceCount / totalVehicles * 100) },
+                new VehicleStatusData { Status = "Inactive", Count = inactiveCount, Percentage = (int)Math.Round((double)inactiveCount / totalVehicles * 100) }
             };
         }
 
         private List<ActiveVehicleData> GetMostActiveVehicles()
         {
-            return new List<ActiveVehicleData>
-            {
-                new ActiveVehicleData { PlateNumber = "TRK-001", UnitModel = "Toyota Hilux 2023", DistanceKm = 3420, Rank = 1 },
-                new ActiveVehicleData { PlateNumber = "TRK-003", UnitModel = "Isuzu NQR 2022", DistanceKm = 2890, Rank = 2 },
-                new ActiveVehicleData { PlateNumber = "TRK-005", UnitModel = "Mitsubishi Fuso 2021", DistanceKm = 2650, Rank = 3 },
-                new ActiveVehicleData { PlateNumber = "TRK-002", UnitModel = "Hino 300 2023", DistanceKm = 2340, Rank = 4 },
-                new ActiveVehicleData { PlateNumber = "TRK-004", UnitModel = "Nissan UD 2022", DistanceKm = 1980, Rank = 5 }
-            };
+            var mileageByVehicleId = _context.RouteTrips
+                .AsNoTracking()
+                .Where(r => r.Status == RouteTripStatus.Completed)
+                .GroupBy(r => r.VehicleId)
+                .Select(group => new
+                {
+                    VehicleId = group.Key,
+                    TotalKm = group.Sum(r => r.DistanceKm ?? 0m)
+                })
+                .ToDictionary(item => item.VehicleId, item => item.TotalKm);
+
+            var vehicles = _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .ToList();
+
+            var topVehicles = vehicles
+                .Select(v => new
+                {
+                    Vehicle = v,
+                    Mileage = mileageByVehicleId.TryGetValue(v.Id, out var km) ? km : 0m
+                })
+                .OrderByDescending(x => x.Mileage)
+                .Take(5)
+                .Select((x, index) => new ActiveVehicleData
+                {
+                    Rank = index + 1,
+                    PlateNumber = x.Vehicle.PlateNumber,
+                    UnitModel = x.Vehicle.UnitModel,
+                    DistanceKm = (int)x.Mileage
+                })
+                .ToList();
+
+            return topVehicles;
         }
 
         public IActionResult Privacy()
@@ -280,10 +361,38 @@ namespace RouteX.Controllers
         public List<FuelConsumptionPoint> FuelConsumptionData { get; set; } = null!;
         public List<VehicleStatusData> VehicleStatusData { get; set; } = null!;
         public List<ActiveVehicleData> MostActiveVehicles { get; set; } = null!;
+        public List<RecentActivityItem> RecentActivities { get; set; } = new();
         public int TotalVehicles { get; set; }
         public int ActiveVehicles { get; set; }
         public int PendingMaintenance { get; set; }
         public decimal TotalExpenses { get; set; }
+    }
+
+    public class RecentActivityItem
+    {
+        public string Action { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
+        public DateTime ActionDate { get; set; }
+
+        public string GetRelativeTime()
+        {
+            var now = DateTime.UtcNow;
+            var diff = now - ActionDate;
+
+            if (diff.TotalSeconds < 60)
+                return $"{(int)diff.TotalSeconds} seconds ago";
+            if (diff.TotalMinutes < 60)
+                return $"{(int)diff.TotalMinutes} minute{((int)diff.TotalMinutes != 1 ? "s" : "")} ago";
+            if (diff.TotalHours < 24)
+                return $"{(int)diff.TotalHours} hour{((int)diff.TotalHours != 1 ? "s" : "")} ago";
+            if (diff.TotalDays < 7)
+                return $"{(int)diff.TotalDays} day{((int)diff.TotalDays != 1 ? "s" : "")} ago";
+            if (diff.TotalDays < 30)
+                return $"{(int)(diff.TotalDays / 7)} week{((int)(diff.TotalDays / 7) != 1 ? "s" : "")} ago";
+            if (diff.TotalDays < 365)
+                return $"{(int)(diff.TotalDays / 30)} month{((int)(diff.TotalDays / 30) != 1 ? "s" : "")} ago";
+            return $"{(int)(diff.TotalDays / 365)} year{((int)(diff.TotalDays / 365) != 1 ? "s" : "")} ago";
+        }
     }
 
     public class FuelConsumptionPoint

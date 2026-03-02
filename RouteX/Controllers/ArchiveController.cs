@@ -93,6 +93,20 @@ namespace RouteX.Controllers
                     missingColumns.Add("Users.Status");
                 }
 
+                var archivedTrips = new List<RouteTrip>();
+                if (await ColumnExistsAsync("RouteTrips", "IsArchived"))
+                {
+                    archivedTrips = await _context.RouteTrips
+                        .AsNoTracking()
+                        .Where(t => t.IsArchived)
+                        .OrderByDescending(t => t.ArchivedAt ?? t.CompletedAt ?? t.CreatedAt)
+                        .ToListAsync();
+                }
+                else
+                {
+                    missingColumns.Add("RouteTrips.IsArchived");
+                }
+
                 var archivedBudgets = await _context.BudgetEntries
                     .AsNoTracking()
                     .Where(b => !b.IsActive)
@@ -198,6 +212,22 @@ namespace RouteX.Controllers
                     });
                 }
 
+                foreach (var trip in archivedTrips)
+                {
+                    var key = $"Archive:Trip:{trip.Id}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    var distanceText = trip.DistanceKm.HasValue ? $" • {trip.DistanceKm.Value:N2} km" : string.Empty;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Trip",
+                        DetailsHtml = $"<strong>{trip.StartAddress}</strong><br><small>to {trip.EndAddress}{distanceText}</small>",
+                        RestoreAction = "RestoreTrip",
+                        RestoreId = trip.Id,
+                        ArchivedDate = log?.ActionDate ?? trip.ArchivedAt ?? trip.CompletedAt ?? trip.CreatedAt,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
                 var excludedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "Juan Santos",
@@ -240,6 +270,7 @@ namespace RouteX.Controllers
                     ArchivedMaintenance = archivedMaintenance,
                     ArchivedFinance = archivedFinance,
                     ArchivedUsers = archivedUsers,
+                    ArchivedTrips = archivedTrips,
                     ArchiveItems = archiveItems
                 };
 
@@ -344,6 +375,23 @@ namespace RouteX.Controllers
             await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
 
             TempData["Success"] = "Finance entry restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreTrip(int id)
+        {
+            if (!await ColumnExistsAsync("RouteTrips", "IsArchived"))
+            {
+                TempData["Error"] = "RouteTrips archive column is missing. Please add it before restoring.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+
+            var sql = "UPDATE RouteTrips SET IsArchived = 0, ArchivedAt = NULL WHERE Id = @Id";
+            await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
+
+            TempData["Success"] = "Trip restored successfully.";
             return RedirectToAction(nameof(ArchivePage));
         }
 

@@ -275,13 +275,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
             <div class="form-group">
                 <label asp-for="TotalCost">Total Cost (₱) *</label>
-                <input asp-for="TotalCost" type="number" id="totalCost" placeholder="e.g., 1850.75" step="0.01" min="0" />
+                <input asp-for="TotalCost" type="number" id="totalCost" placeholder="Auto-calculated" step="0.01" min="0" readonly class="calculated-field" />
                 <span asp-validation-for="TotalCost" class="validation-message"></span>
             </div>
 
             <div class="form-group">
                 <label for="pricePerLiter">Price per Liter (₱)</label>
-                <input type="number" id="pricePerLiter" name="PricePerLiter" value="@((Model != null && Model.TotalCost > 0 && Model.Liters > 0) ? (Model.TotalCost / Model.Liters).ToString("F2").Replace(',', '.') : string.Empty)" placeholder="Auto-calculated" step="0.01" readonly class="calculated-field" />
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="pricePerLiter" name="PricePerLiter" value="@((Model != null && Model.TotalCost > 0 && Model.Liters > 0) ? (Model.TotalCost / Model.Liters).ToString("F2").Replace(',', '.') : string.Empty)" placeholder="Auto-calculated" step="0.01" readonly class="calculated-field" style="flex: 1;" />
+                    <button type="button" id="getCurrentPriceBtn" class="btn btn-sm btn-info" style="padding: 6px 12px; font-size: 12px;">
+                        <i class="fas fa-sync-alt"></i> Get Current Price
+                    </button>
+                </div>
+                <div id="priceStatus" style="font-size: 12px; color: #666; margin-top: 4px;"></div>
             </div>
 
             <div class="form-group">
@@ -306,8 +312,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group full">
-                <label asp-for="Notes">Notes</label>
-                <textarea asp-for="Notes" id="notes" placeholder="e.g., Station pump was slow, Used emergency cash"></textarea>
+                <label asp-for="Notes">Notes *</label>
+                <textarea asp-for="Notes" id="notes" placeholder="e.g., Station pump was slow, Used emergency cash" required></textarea>
             </div>
         </div>
 
@@ -324,6 +330,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const fuelVolumeInput = document.getElementById('fuelVolume');
     const totalCostInput = document.getElementById('totalCost');
     const pricePerLiterInput = document.getElementById('pricePerLiter');
+    const fuelTypeSelect = document.getElementById('fuelType');
+    const getCurrentPriceBtn = document.getElementById('getCurrentPriceBtn');
+    const priceStatusDiv = document.getElementById('priceStatus');
 
     // Calculate price per liter
     function calculatePricePerLiter() {
@@ -338,8 +347,101 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    fuelVolumeInput.addEventListener('input', calculatePricePerLiter);
-    totalCostInput.addEventListener('input', calculatePricePerLiter);
+    // Auto-calculate total cost when fuel volume changes
+    async function calculateTotalCost() {
+        const volume = parseFloat(fuelVolumeInput.value);
+        const fuelType = fuelTypeSelect.value;
+
+        if (volume > 0 && fuelType) {
+            try {
+                showPriceStatus('Fetching current price...', 'info');
+                
+                const response = await fetch('/Fuel/GetPrice?fuelType=' + encodeURIComponent(fuelType));
+                const data = await response.json();
+
+                if (data.success) {
+                    const totalCost = volume * data.price;
+                    totalCostInput.value = totalCost.toFixed(2);
+                    pricePerLiterInput.value = data.price.toFixed(2);
+                    showPriceStatus(`Current price: ₱${data.price.toFixed(2)} per liter | Total: ₱${totalCost.toFixed(2)}`, 'success');
+                } else {
+                    showPriceStatus('Error fetching price: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showPriceStatus('Network error: ' + error.message, 'error');
+            }
+        }
+    }
+
+    // Show price status
+    function showPriceStatus(message, type) {
+        priceStatusDiv.innerHTML = `<i class="fas fa-${type === 'info' ? 'spinner fa-spin' : type === 'success' ? 'check' : 'exclamation-triangle'}"></i> ${message}`;
+        priceStatusDiv.style.color = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#666';
+        
+        if (type === 'info') {
+            // Auto-hide loading messages
+            setTimeout(() => {
+                if (priceStatusDiv.innerHTML.includes('Fetching')) {
+                    priceStatusDiv.innerHTML = '';
+                }
+            }, 5000);
+        }
+    }
+
+    // Get current price button click
+    getCurrentPriceBtn.addEventListener('click', async function() {
+        const fuelType = fuelTypeSelect.value;
+        if (!fuelType) {
+            showPriceStatus('Please select a fuel type first', 'error');
+            return;
+        }
+
+        try {
+            getCurrentPriceBtn.disabled = true;
+            getCurrentPriceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            const response = await fetch('/Fuel/GetPrice?fuelType=' + encodeURIComponent(fuelType));
+            const data = await response.json();
+
+            if (data.success) {
+                pricePerLiterInput.value = data.price.toFixed(2);
+                showPriceStatus(`Current price: ₱${data.price.toFixed(2)} per liter`, 'success');
+                
+                // Auto-calculate total cost if volume is entered
+                if (fuelVolumeInput.value) {
+                    const volume = parseFloat(fuelVolumeInput.value);
+                    const totalCost = volume * data.price;
+                    totalCostInput.value = totalCost.toFixed(2);
+                    showPriceStatus(`Auto-calculated total: ₱${totalCost.toFixed(2)}`, 'success');
+                }
+            } else {
+                showPriceStatus('Error fetching price: ' + (data.error || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            showPriceStatus('Network error: ' + error.message, 'error');
+        } finally {
+            getCurrentPriceBtn.disabled = false;
+            getCurrentPriceBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Get Current Price';
+        }
+    });
+
+    // Auto-calculate when fuel type changes
+    fuelTypeSelect.addEventListener('change', calculateTotalCost);
+
+    // Auto-calculate when fuel volume is entered (main trigger)
+    fuelVolumeInput.addEventListener('input', calculateTotalCost);
+
+    // Auto-calculate total cost when price per liter changes (manual entry)
+    pricePerLiterInput.addEventListener('input', function() {
+        const volume = parseFloat(fuelVolumeInput.value);
+        const pricePerLiter = parseFloat(pricePerLiterInput.value);
+        
+        if (volume > 0 && pricePerLiter > 0) {
+            const totalCost = volume * pricePerLiter;
+            totalCostInput.value = totalCost.toFixed(2);
+            showPriceStatus(`Manual calculation: ₱${totalCost.toFixed(2)}`, 'success');
+        }
+    });
 
     // Add debugging for form submission
     form.addEventListener('submit', function(e) {

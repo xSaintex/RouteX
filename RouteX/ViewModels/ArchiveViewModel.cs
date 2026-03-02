@@ -9,6 +9,7 @@ namespace RouteX.ViewModels
         public List<MaintenanceEntry> ArchivedMaintenance { get; set; } = new();
         public List<FinanceEntry> ArchivedFinance { get; set; } = new();
         public List<User> ArchivedUsers { get; set; } = new();
+        public List<RouteTrip> ArchivedTrips { get; set; } = new();
         public List<ArchiveItemViewModel> ArchiveItems { get; set; } = new();
     }
 
