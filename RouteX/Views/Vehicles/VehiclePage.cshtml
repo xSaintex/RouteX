@@ -80,7 +80,11 @@
             <script>
                 (function() {
                     var notifId = '@notifId';
-                    if (!sessionStorage.getItem(notifId)) {
+                    var dismissedTime = sessionStorage.getItem(notifId + '-dismissed');
+                    var approvalTime = '@vehicle.ApprovalDate?.ToString("o")';
+                    
+                    // Only show if not dismissed or if approval is newer than dismissal
+                    if (!dismissedTime || (approvalTime && new Date(approvalTime) > new Date(dismissedTime))) {
                         document.getElementById(notifId).style.display = 'flex';
                     }
                 })();
@@ -355,7 +359,8 @@ function dismissNotification(notifId) {
     var el = document.getElementById(notifId);
     if (el) {
         el.style.display = 'none';
-        sessionStorage.setItem(notifId, 'dismissed');
+        // Store dismissal timestamp to handle time-based logic
+        sessionStorage.setItem(notifId + '-dismissed', new Date().toISOString());
     }
 }
 
@@ -610,86 +615,277 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Approve vehicle function
     window.approveVehicle = function(vehicleId) {
-        if (confirm('Are you sure you want to approve this vehicle? It will be added to the fleet.')) {
-            fetch('/Vehicles/ApproveVehicle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: `id=${vehicleId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Hide the pending row
-                    const row = document.getElementById(`pending-row-${vehicleId}`);
-                    if (row) {
-                        row.style.display = 'none';
-                    }
-
-                    // Check if no more pending vehicles
-                    const pendingRows = document.querySelectorAll('[id^="pending-row-"]:not([style*="display: none"])');
-                    if (pendingRows.length === 0) {
-                        const pendingNotification = document.querySelector('.notification-warning');
-                        if (pendingNotification) {
-                            pendingNotification.style.display = 'none';
+        showCustomConfirm(
+            'Approve Vehicle',
+            'Are you sure you want to approve this vehicle? It will be added to the fleet and visible to all users.',
+            'approve',
+            function() {
+                fetch('/Vehicles/ApproveVehicle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: `id=${vehicleId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Hide the pending row
+                        const row = document.getElementById(`pending-row-${vehicleId}`);
+                        if (row) {
+                            row.style.display = 'none';
                         }
-                    }
 
-                    // Show success message and reload page to show new vehicle
-                    alert(data.message);
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while approving the vehicle.');
-            });
-        }
+                        // Check if no more pending vehicles
+                        const pendingRows = document.querySelectorAll('[id^="pending-row-"]:not([style*="display: none"])');
+                        if (pendingRows.length === 0) {
+                            const pendingNotification = document.querySelector('.notification-warning');
+                            if (pendingNotification) {
+                                pendingNotification.style.display = 'none';
+                            }
+                        }
+
+                        // Show success message and reload page to show new vehicle
+                        showNotification('success', data.message);
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showNotification('error', 'Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('error', 'An error occurred while approving the vehicle.');
+                });
+            }
+        );
     };
 
     // Reject vehicle function
     window.rejectVehicle = function(vehicleId) {
-        if (confirm('Are you sure you want to reject this vehicle? It will be permanently removed.')) {
-            fetch('/Vehicles/RejectVehicle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: `id=${vehicleId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Hide the pending row
-                    const row = document.getElementById(`pending-row-${vehicleId}`);
-                    if (row) {
-                        row.style.display = 'none';
-                    }
-
-                    // Check if no more pending vehicles
-                    const pendingRows = document.querySelectorAll('[id^="pending-row-"]:not([style*="display: none"])');
-                    if (pendingRows.length === 0) {
-                        const pendingNotification = document.querySelector('.notification-warning');
-                        if (pendingNotification) {
-                            pendingNotification.style.display = 'none';
+        showCustomConfirm(
+            'Reject Vehicle',
+            'Are you sure you want to reject this vehicle? It will be permanently removed and the OperationsStaff will be notified.',
+            'reject',
+            function() {
+                fetch('/Vehicles/RejectVehicle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: `id=${vehicleId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Hide the pending row
+                        const row = document.getElementById(`pending-row-${vehicleId}`);
+                        if (row) {
+                            row.style.display = 'none';
                         }
-                    }
 
-                    alert(data.message);
-                } else {
-                    alert('Error: ' + data.message);
+                        // Check if no more pending vehicles
+                        const pendingRows = document.querySelectorAll('[id^="pending-row-"]:not([style*="display: none"])');
+                        if (pendingRows.length === 0) {
+                            const pendingNotification = document.querySelector('.notification-warning');
+                            if (pendingNotification) {
+                                pendingNotification.style.display = 'none';
+                            }
+                        }
+
+                        // Show rejection notification for OperationsStaff
+                        if (data.vehicleInfo && data.vehicleInfo.AddedByUserEmail) {
+                            addRejectionNotification(data.vehicleInfo);
+                        }
+
+                        showNotification('warning', data.message);
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showNotification('error', 'Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('error', 'An error occurred while rejecting the vehicle.');
+                });
+            }
+        );
+    };
+
+    // Custom confirmation dialog function
+    function showCustomConfirm(title, message, type, onConfirm) {
+        // Remove any existing modal
+        const existingModal = document.getElementById('customConfirmModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create modal HTML
+        const modalHtml = `
+            <div id="customConfirmModal" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            ">
+                <div style="
+                    background: white;
+                    padding: 24px;
+                    border-radius: 8px;
+                    max-width: 400px;
+                    width: 90%;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                ">
+                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                        <i class="fas fa-${type === 'approve' ? 'check-circle' : 'times-circle'}" style="
+                            color: ${type === 'approve' ? '#28a745' : '#dc3545'};
+                            font-size: 24px;
+                            margin-right: 12px;
+                        "></i>
+                        <h3 style="margin: 0; color: #333;">${title}</h3>
+                    </div>
+                    <p style="margin: 0 0 20px 0; color: #666; line-height: 1.5;">${message}</p>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" id="cancelBtn" style="
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        ">Cancel</button>
+                        <button type="button" id="confirmBtn" style="
+                            background: ${type === 'approve' ? '#28a745' : '#dc3545'};
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        ">${type === 'approve' ? 'Approve' : 'Reject'}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Store callback
+        window.customConfirmCallback = onConfirm;
+
+        // Add event listeners to buttons
+        const cancelBtn = document.getElementById('cancelBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const modal = document.getElementById('customConfirmModal');
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeCustomConfirm);
+        }
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', confirmCustomConfirm);
+        }
+
+        // Close modal when clicking outside
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeCustomConfirm();
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while rejecting the vehicle.');
             });
         }
-    };
+    }
+
+    function closeCustomConfirm() {
+        const modal = document.getElementById('customConfirmModal');
+        if (modal) {
+            modal.remove();
+        }
+        window.customConfirmCallback = null;
+    }
+
+    function confirmCustomConfirm() {
+        if (window.customConfirmCallback) {
+            window.customConfirmCallback();
+        }
+        closeCustomConfirm();
+    }
+
+    // Show notification function
+    function showNotification(type, message) {
+        // Remove any existing notification
+        const existing = document.querySelector('.notification-toast');
+        if (existing) {
+            existing.remove();
+        }
+
+        const notificationHtml = `
+            <div class="notification-toast" style="
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 20px;
+                border-radius: 6px;
+                color: white;
+                font-weight: 500;
+                z-index: 9998;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107'};
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 300px;
+            ">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', notificationHtml);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            const notification = document.querySelector('.notification-toast');
+            if (notification) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+
+    // Add rejection notification for OperationsStaff
+    function addRejectionNotification(vehicleInfo) {
+        const userRole = '@userRole';
+        if (userRole !== 'OperationsStaff') return;
+
+        const notifId = `rejected-vehicle-${vehicleInfo.PlateNumber.replace(/[^a-zA-Z0-9]/g, '')}`;
+        
+        // Check if notification already exists
+        if (document.getElementById(notifId)) return;
+
+        const notifHtml = `
+            <div class="notification notification-error notification-fixed" id="${notifId}" style="display:flex;">
+                <i class="fas fa-times-circle notification-icon"></i>
+                <span><strong>Vehicle Rejected</strong> Your vehicle <strong>${vehicleInfo.PlateNumber} (${vehicleInfo.UnitModel})</strong> has been rejected by an admin and removed from the system.</span>
+                <button type="button" class="notification-close" onclick="dismissNotification('${notifId}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+
+        const container = document.querySelector('.vehicles-container');
+        if (container) {
+            container.insertAdjacentHTML('afterbegin', notifHtml);
+            
+            // Store in sessionStorage to prevent showing again
+            sessionStorage.setItem(notifId, 'dismissed');
+        }
+    }
 });
 </script>

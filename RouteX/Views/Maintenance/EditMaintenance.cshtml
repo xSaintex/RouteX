@@ -248,21 +248,97 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Function to capitalize each word
+    function capitalizeEachWord(str) {
+        if (!str) return str;
+        return str.toLowerCase().replace(/\b\w/g, function(char) {
+            return char.toUpperCase();
+        });
+    }
+
+    // Function to capitalize first letter
+    function capitalizeFirstLetter(str) {
+        if (!str) return str;
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    }
+
+    // Function to format name (handle special cases)
+    function formatName(str) {
+        if (!str) return str;
+        return str.toLowerCase().replace(/\b\w+/g, function(word) {
+            // Handle common name prefixes
+            if (word.startsWith('mc')) {
+                return 'Mc' + word.charAt(2).toUpperCase() + word.slice(3);
+            }
+            if (word.startsWith("o'")) {
+                return "O'" + word.charAt(2).toUpperCase() + word.slice(3);
+            }
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        });
+    }
+
+    // Real-time capitalization for technician name
+    const technicianNameInput = document.getElementById('technicianName');
+    if (technicianNameInput) {
+        technicianNameInput.addEventListener('input', function() {
+            const cursorPos = this.selectionStart;
+            this.value = formatName(this.value);
+            // Restore cursor position
+            this.setSelectionRange(cursorPos, cursorPos);
+        });
+    }
+
+    // Real-time capitalization for description
+    const descriptionInput = document.getElementById('description');
+    if (descriptionInput) {
+        descriptionInput.addEventListener('input', function() {
+            const cursorPos = this.selectionStart;
+            this.value = capitalizeFirstLetter(this.value);
+            this.setSelectionRange(cursorPos, cursorPos);
+        });
+    }
+
     // Auto-calculate next service due when service date changes
     const serviceDateInput = document.getElementById('serviceDate');
     const nextServiceDueInput = document.getElementById('nextServiceDue');
     
-    serviceDateInput.addEventListener('change', function() {
-        const serviceDate = new Date(this.value);
-        const nextDue = new Date(serviceDate);
-        nextDue.setMonth(nextDue.getMonth() + 3); // Add 3 months by default
-        nextServiceDueInput.value = nextDue.toISOString().split('T')[0];
-    });
-});
+    if (serviceDateInput && nextServiceDueInput) {
+        serviceDateInput.addEventListener('change', function() {
+            const serviceDate = new Date(this.value);
+            const nextDue = new Date(serviceDate);
+            nextDue.setMonth(nextDue.getMonth() + 3); // Add 3 months by default
+            nextServiceDueInput.value = nextDue.toISOString().split('T')[0];
+        });
 
-        if (!isValid) {
-            e.preventDefault();
+        // Date validation - prevent past dates and current date for next service due
+        nextServiceDueInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+            
+            if (selectedDate <= today) {
+                this.value = ''; // Clear the invalid date
+                alert('Next service due date must be a future date (after today). Please select a valid date.');
+                this.focus();
+            }
+        });
+
+        // Also validate on form submission
+        const form = document.querySelector('.edit-maintenance-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const nextServiceDate = new Date(nextServiceDueInput.value);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (nextServiceDueInput.value && nextServiceDate <= today) {
+                    e.preventDefault();
+                    alert('Next service due date must be a future date (after today). Please select a valid date.');
+                    nextServiceDueInput.focus();
+                    return false;
+                }
+            });
         }
-    });
+    }
 });
 </script>

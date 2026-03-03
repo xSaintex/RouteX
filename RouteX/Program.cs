@@ -110,6 +110,8 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 // Add Fuel Price Service
 builder.Services.AddScoped<IFuelPriceService, FuelPriceService>();
 builder.Services.AddScoped<IRouteDistanceService, TomTomService>();
+builder.Services.AddScoped<ITextFormattingService, TextFormattingService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddMemoryCache(); // Required for fuel price caching
 builder.Services.AddHttpClient(); // Required for FuelPriceService
 

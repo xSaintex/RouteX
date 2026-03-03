@@ -12,12 +12,14 @@ namespace RouteX.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
         private readonly IFuelPriceService _fuelPriceService;
+        private readonly ITextFormattingService _textFormattingService;
 
-        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService)
+        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService, ITextFormattingService textFormattingService)
         {
             _context = context;
             _auditService = auditService;
             _fuelPriceService = fuelPriceService;
+            _textFormattingService = textFormattingService;
         }
 
         public async Task<IActionResult> FuelPage()
@@ -53,6 +55,19 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddFuel(FuelEntry fuelEntry)
         {
+            // Apply auto-capitalization to text fields
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
+                fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelStation))
+                fuelEntry.FuelStation = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelStation);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelType))
+                fuelEntry.FuelType = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelType);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
+                fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
+
             // Debug: Log ModelState errors
             if (!ModelState.IsValid)
             {
@@ -158,6 +173,19 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFuel(int id, FuelEntry fuelEntry)
         {
+            // Apply auto-capitalization to text fields
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
+                fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelStation))
+                fuelEntry.FuelStation = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelStation);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelType))
+                fuelEntry.FuelType = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelType);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
+                fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
+
             // Debug: Log ModelState errors
             if (!ModelState.IsValid)
             {

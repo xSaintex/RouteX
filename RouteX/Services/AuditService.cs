@@ -25,6 +25,56 @@ namespace RouteX.Services
             _logger = logger;
         }
 
+        private string FormatActionAsSentence(string action)
+        {
+            if (string.IsNullOrWhiteSpace(action))
+                return action;
+
+            // If it's already a sentence, return as-is
+            if (!action.Contains(":") && (action.Contains(" ") || action.EndsWith(".")))
+                return action;
+
+            // Handle colon-separated format: Action:Entity:Details
+            var parts = action.Split(':');
+            
+            if (parts.Length == 0)
+                return action;
+
+            var actionType = parts[0];
+            var entity = parts.Length > 1 ? parts[1] : "";
+            var details = parts.Length > 2 ? parts[2] : "";
+
+            // Handle special cases with additional details
+            if (parts.Length > 3)
+            {
+                // Handle cases like "Approve:Vehicle:123:AddedBy:user@email.com"
+                if (actionType == "Approve" && parts.Length > 3 && parts[2] == "AddedBy")
+                {
+                    return $"Approved {entity} record {details} that was added by {parts[3]}";
+                }
+                if (actionType == "Reject" && parts.Length > 3 && parts[2] == "AddedBy")
+                {
+                    return $"Rejected {entity} record {details} that was added by {parts[3]}";
+                }
+                if (actionType == "Archive" && parts.Length > 3 && parts[2] == "Status")
+                {
+                    return $"Archived {entity} record {details} with status {parts[3]}";
+                }
+            }
+
+            return actionType switch
+            {
+                "Create" => $"Created a new {entity} record{(string.IsNullOrEmpty(details) ? "" : $" with ID {details}")}",
+                "Update" => $"Updated {entity} record{(string.IsNullOrEmpty(details) ? "" : $" with ID {details}")}",
+                "Delete" => $"Deleted {entity} record{(string.IsNullOrEmpty(details) ? "" : $" with ID {details}")}",
+                "Archive" => $"Archived {entity} record{(string.IsNullOrEmpty(details) ? "" : $" with ID {details}")}",
+                "Approve" => $"Approved {entity} record{(string.IsNullOrEmpty(details) ? "" : $" with ID {details}")}",
+                "Reject" => $"Rejected {entity} record{(string.IsNullOrEmpty(details) ? "" : $" with ID {details}")}",
+                "Export" => $"Exported {entity} report in {details} format",
+                _ => action // Return original if no pattern matches
+            };
+        }
+
         public async Task LogActionAsync(ClaimsPrincipal user, string action)
         {
             try
@@ -45,10 +95,12 @@ namespace RouteX.Services
         {
             try
             {
+                var formattedAction = FormatActionAsSentence(action);
+                
                 var auditLog = new AuditLog
                 {
                     UserId = userId, // This will store the email for display
-                    Action = action,
+                    Action = formattedAction,
                     ActionDate = DateTime.UtcNow
                 };
 

@@ -20,8 +20,10 @@ namespace RouteX.Controllers
         private readonly IRouteDistanceService _routeDistanceService;
         private readonly ILogger<VehiclesController> _logger;
         private readonly HttpClient _httpClient;
+        private readonly ITextFormattingService _textFormattingService;
+        private readonly INotificationService _notificationService;
 
-        public VehiclesController(ApplicationDbContext context, IAuditService auditService, IConfiguration configuration, IRouteDistanceService routeDistanceService, ILogger<VehiclesController> logger, IHttpClientFactory httpClientFactory)
+        public VehiclesController(ApplicationDbContext context, IAuditService auditService, IConfiguration configuration, IRouteDistanceService routeDistanceService, ILogger<VehiclesController> logger, IHttpClientFactory httpClientFactory, ITextFormattingService textFormattingService, INotificationService notificationService)
         {
             _context = context;
             _auditService = auditService;
@@ -29,6 +31,8 @@ namespace RouteX.Controllers
             _routeDistanceService = routeDistanceService;
             _logger = logger;
             _httpClient = httpClientFactory.CreateClient();
+            _textFormattingService = textFormattingService;
+            _notificationService = notificationService;
         }
 
         public async Task<IActionResult> VehiclePage(string? status)
@@ -130,6 +134,11 @@ namespace RouteX.Controllers
                     return View(vehicle);
                 }
 
+                // Apply auto-capitalization
+                vehicle.UnitModel = _textFormattingService.CapitalizeEachWord(vehicle.UnitModel);
+                vehicle.PlateNumber = vehicle.PlateNumber.ToUpper();
+                vehicle.VehicleType = _textFormattingService.CapitalizeEachWord(vehicle.VehicleType);
+
                 var userRole = HttpContext.Session.GetString("UserRole") ?? "";
                 var userEmail = HttpContext.Session.GetString("UserEmail") ?? "System";
                 var userId = HttpContext.Session.GetString("UserId") ?? "";
@@ -195,9 +204,10 @@ namespace RouteX.Controllers
                     return NotFound();
                 }
 
-                existingVehicle.UnitModel = vehicle.UnitModel;
-                existingVehicle.PlateNumber = vehicle.PlateNumber;
-                existingVehicle.VehicleType = vehicle.VehicleType;
+                // Apply auto-capitalization
+                existingVehicle.UnitModel = _textFormattingService.CapitalizeEachWord(vehicle.UnitModel);
+                existingVehicle.PlateNumber = vehicle.PlateNumber.ToUpper();
+                existingVehicle.VehicleType = _textFormattingService.CapitalizeEachWord(vehicle.VehicleType);
                 existingVehicle.Status = vehicle.Status;
 
                 await _context.SaveChangesAsync();
@@ -251,6 +261,9 @@ namespace RouteX.Controllers
                 await _context.SaveChangesAsync();
                 await _auditService.LogActionAsync(approverEmail, $"Approve:Vehicle:{vehicle.Id}:AddedBy:{vehicle.AddedByUserEmail}");
 
+                // Add custom notification
+                _notificationService.AddSuccess($"Vehicle {vehicle.PlateNumber} has been approved and added to the fleet.");
+                
                 return Json(new { success = true, message = $"Vehicle {vehicle.PlateNumber} has been approved and added to the fleet." });
             }
             catch (Exception ex)
@@ -289,12 +302,26 @@ namespace RouteX.Controllers
             {
                 var rejectorEmail = HttpContext.Session.GetString("UserEmail") ?? "System";
 
+                // Store vehicle info for notification before removing
+                var vehicleInfo = new {
+                    PlateNumber = vehicle.PlateNumber,
+                    UnitModel = vehicle.UnitModel,
+                    AddedByUserEmail = vehicle.AddedByUserEmail
+                };
+
                 // Remove the rejected vehicle
                 _context.Vehicles.Remove(vehicle);
                 await _context.SaveChangesAsync();
                 await _auditService.LogActionAsync(rejectorEmail, $"Reject:Vehicle:{id}:AddedBy:{vehicle.AddedByUserEmail}");
 
-                return Json(new { success = true, message = $"Vehicle {vehicle.PlateNumber} has been rejected and removed." });
+                // Add custom notification
+                _notificationService.AddWarning($"Vehicle {vehicleInfo.PlateNumber} has been rejected and removed.");
+
+                return Json(new { 
+                    success = true, 
+                    message = $"Vehicle {vehicleInfo.PlateNumber} has been rejected and removed.",
+                    vehicleInfo = vehicleInfo
+                });
             }
             catch (Exception ex)
             {

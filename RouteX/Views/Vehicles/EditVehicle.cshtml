@@ -268,5 +268,42 @@ document.addEventListener('DOMContentLoaded', function() {
         
         e.target.value = value;
     });
+
+    // Function to capitalize each word
+    function capitalizeEachWord(str) {
+        if (!str) return str;
+        return str.toLowerCase().replace(/\b\w/g, function(char) {
+            return char.toUpperCase();
+        });
+    }
+
+    // Function to capitalize all letters
+    function capitalizeAll(str) {
+        if (!str) return str;
+        return str.toUpperCase();
+    }
+
+    // Real-time capitalization for unit model
+    const unitModelInput = document.getElementById('unitModel');
+    if (unitModelInput) {
+        unitModelInput.addEventListener('input', function() {
+            const cursorPos = this.selectionStart;
+            const value = this.value;
+            
+            // Check if user wants all caps (if most letters are already uppercase, keep them uppercase)
+            const uppercaseCount = (value.match(/[A-Z]/g) || []).length;
+            const totalLetters = (value.match(/[a-zA-Z]/g) || []).length;
+            const isMostlyUppercase = totalLetters > 0 && (uppercaseCount / totalLetters) > 0.6;
+            
+            if (isMostlyUppercase) {
+                this.value = capitalizeAll(value);
+            } else {
+                this.value = capitalizeEachWord(value);
+            }
+            
+            // Restore cursor position
+            this.setSelectionRange(cursorPos, cursorPos);
+        });
+    }
 });
 </script>

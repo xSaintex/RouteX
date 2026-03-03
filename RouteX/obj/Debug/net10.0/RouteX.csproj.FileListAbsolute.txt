@@ -285,5 +285,4 @@ C:\Users\acerh\source\repos\RouteX\RouteX\obj\Debug\net10.0\refint\RouteX.dll
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Debug\net10.0\RouteX.pdb
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Debug\net10.0\RouteX.genruntimeconfig.cache
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Debug\net10.0\ref\RouteX.dll
-C:\Users\acerh\source\repos\RouteX\RouteX\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 C:\Users\acerh\source\repos\RouteX\RouteX\obj\Debug\net10.0\compressed\ycmo70mm9s-{0}-cst8200pnj-cst8200pnj.gz

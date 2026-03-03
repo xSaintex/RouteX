@@ -13,11 +13,13 @@ namespace RouteX.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
+        private readonly ITextFormattingService _textFormattingService;
 
-        public MaintenanceController(ApplicationDbContext context, IAuditService auditService)
+        public MaintenanceController(ApplicationDbContext context, IAuditService auditService, ITextFormattingService textFormattingService)
         {
             _context = context;
             _auditService = auditService;
+            _textFormattingService = textFormattingService;
         }
 
         // GET: Maintenance/MaintenancePage
@@ -108,6 +110,28 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddMaintenance(MaintenanceEntry maintenance)
         {
+            // Validate NextServiceDue - cannot be past date or current date
+            if (maintenance.NextServiceDue.HasValue)
+            {
+                var today = DateTime.Today;
+                var nextServiceDate = maintenance.NextServiceDue.Value.Date;
+                
+                if (nextServiceDate <= today)
+                {
+                    ModelState.AddModelError("NextServiceDue", "Next service due date must be a future date (after today).");
+                }
+            }
+
+            // Apply auto-capitalization to text fields
+            if (!string.IsNullOrWhiteSpace(maintenance.ServiceType))
+                maintenance.ServiceType = _textFormattingService.CapitalizeEachWord(maintenance.ServiceType);
+            
+            if (!string.IsNullOrWhiteSpace(maintenance.TechnicianName))
+                maintenance.TechnicianName = _textFormattingService.FormatName(maintenance.TechnicianName);
+            
+            if (!string.IsNullOrWhiteSpace(maintenance.Description))
+                maintenance.Description = _textFormattingService.CapitalizeFirstLetter(maintenance.Description);
+
             if (ModelState.IsValid)
             {
                 try
@@ -222,6 +246,28 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMaintenance(int id, MaintenanceEntry maintenance)
         {
+            // Validate NextServiceDue - cannot be past date or current date
+            if (maintenance.NextServiceDue.HasValue)
+            {
+                var today = DateTime.Today;
+                var nextServiceDate = maintenance.NextServiceDue.Value.Date;
+                
+                if (nextServiceDate <= today)
+                {
+                    ModelState.AddModelError("NextServiceDue", "Next service due date must be a future date (after today).");
+                }
+            }
+
+            // Apply auto-capitalization to text fields
+            if (!string.IsNullOrWhiteSpace(maintenance.ServiceType))
+                maintenance.ServiceType = _textFormattingService.CapitalizeEachWord(maintenance.ServiceType);
+            
+            if (!string.IsNullOrWhiteSpace(maintenance.TechnicianName))
+                maintenance.TechnicianName = _textFormattingService.FormatName(maintenance.TechnicianName);
+            
+            if (!string.IsNullOrWhiteSpace(maintenance.Description))
+                maintenance.Description = _textFormattingService.CapitalizeFirstLetter(maintenance.Description);
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values
