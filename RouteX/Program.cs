@@ -173,11 +173,14 @@ using (var scope = app.Services.CreateScope())
 
         // Seed finance user
 
-        await SeedUser(userManager, context, "finance@routex.com", "finance123", "Finance", "User", "Finance");
+                await SeedUser(userManager, context, "finance@routex.com", "finance123", "Finance", "User", "Finance");
 
-    }
+                // Seed branch data
+                BranchSeedData.SeedBranches(context);
 
-    catch (Exception ex)
+            }
+
+            catch (Exception ex)
 
     {
 

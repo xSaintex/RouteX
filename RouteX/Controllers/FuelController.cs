@@ -26,11 +26,25 @@ namespace RouteX.Controllers
         {
             ViewData["Title"] = "Fuel Management";
 
-            var fuelEntries = await _context.FuelEntries
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            var query = _context.FuelEntries
                 .AsNoTracking()
                 .Include(f => f.Vehicle)
-                .Where(f => !f.IsArchived)
-                .OrderByDescending(f => f.Id) // Order by ID descending (newest first) - same as VehiclePage
+                .Where(f => !f.IsArchived);
+
+            // Filter by branch if not SuperAdmin
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                query = query.Where(f => f.BranchId == userBranchId.Value);
+            }
+
+            var fuelEntries = await query
+                .OrderByDescending(f => f.Id)
                 .ToListAsync();
 
             return View(fuelEntries);
@@ -40,13 +54,28 @@ namespace RouteX.Controllers
         public async Task<IActionResult> AddFuel()
         {
             ViewData["Title"] = "Add Fuel";
-            
-            var activeVehicles = await _context.Vehicles
+
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            var vehicleQuery = _context.Vehicles
                 .AsNoTracking()
-                .Where(v => !v.IsArchived)
-                .ToListAsync();
-            
+                .Where(v => !v.IsArchived);
+
+            // Filter vehicles by branch if not SuperAdmin
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                vehicleQuery = vehicleQuery.Where(v => v.BranchId == userBranchId.Value);
+            }
+
+            var activeVehicles = await vehicleQuery.ToListAsync();
+
             ViewBag.Vehicles = activeVehicles;
+            ViewBag.UserBranchId = userBranchId;
+
             return View();
         }
 
@@ -83,6 +112,14 @@ namespace RouteX.Controllers
             {
                 try
                 {
+                    // Auto-assign branch from user
+                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                    if (user?.BranchId.HasValue == true)
+                    {
+                        fuelEntry.BranchId = user.BranchId;
+                    }
+
                     // Set legacy properties for backward compatibility
                     var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
                     if (vehicle != null)
@@ -94,8 +131,8 @@ namespace RouteX.Controllers
                     fuelEntry.IsArchived = false;
 
                     // Use raw SQL to avoid OUTPUT clause issues with triggers
-                    var sql = @"INSERT INTO FuelEntries (VehicleId, Driver, DateTime, FuelStation, Odometer, Liters, TotalCost, FuelType, FullTank, Notes, IsArchived, UnitModel, PlateNumber, Date)
-                              VALUES (@VehicleId, @Driver, @DateTime, @FuelStation, @Odometer, @Liters, @TotalCost, @FuelType, @FullTank, @Notes, @IsArchived, @UnitModel, @PlateNumber, @Date);
+                    var sql = @"INSERT INTO FuelEntries (VehicleId, Driver, DateTime, FuelStation, Odometer, Liters, TotalCost, FuelType, FullTank, Notes, IsArchived, UnitModel, PlateNumber, Date, BranchId)
+                              VALUES (@VehicleId, @Driver, @DateTime, @FuelStation, @Odometer, @Liters, @TotalCost, @FuelType, @FullTank, @Notes, @IsArchived, @UnitModel, @PlateNumber, @Date, @BranchId);
                               SELECT CAST(SCOPE_IDENTITY() as int);";
                     
                     var parameters = new[]
@@ -113,7 +150,8 @@ namespace RouteX.Controllers
                         new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", fuelEntry.IsArchived),
                         new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", fuelEntry.UnitModel),
                         new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", fuelEntry.PlateNumber),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date)
+                        new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date),
+                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", (object?)fuelEntry.BranchId ?? DBNull.Value)
                     };
                     
                     var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);

@@ -1,0 +1,322 @@
+@model RouteX.Models.Branch
+@{
+    ViewData["Title"] = "View Branch";
+}
+
+<style>
+    .view-branch-container {
+        width: 100%;
+        padding: 20px 32px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #6c757d;
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+
+    .breadcrumb a {
+        color: #ff6b35;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px;
+        border-radius: 6px;
+    }
+
+    .breadcrumb a:hover {
+        background: rgba(255, 107, 53, 0.04);
+    }
+
+    .details-container {
+        max-width: 1200px;
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .branch-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+
+    .branch-subtitle {
+        color: #6c757d;
+        font-size: 16px;
+    }
+
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .info-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .info-item {
+        display: flex;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        min-width: 140px;
+    }
+
+    .info-value {
+        color: #2c3e50;
+        flex: 1;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+    }
+
+    .stat-card:nth-child(2) {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stat-card:nth-child(3) {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-card:nth-child(4) {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        opacity: 0.9;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding-top: 24px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .btn {
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #ff6b35;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #e55a2b;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+</style>
+
+<div class="view-branch-container">
+    <div class="breadcrumb">
+        <a asp-action="BranchesPage">← Branch Management</a>
+        <span>/</span>
+        <span>@Model.BranchName</span>
+    </div>
+
+    <div class="details-container">
+        <div class="header-section">
+            <div>
+                <h1 class="branch-title">🏢 @Model.BranchName</h1>
+                <p class="branch-subtitle">@Model.City, @Model.Province</p>
+            </div>
+            <span class="status-badge status-@Model.Status.ToString().ToLower()">
+                @Model.Status
+            </span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">@Model.Users.Count</div>
+                <div class="stat-label">Employees</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@Model.Vehicles.Count</div>
+                <div class="stat-label">Vehicles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@Model.CoverageRadiusKm km</div>
+                <div class="stat-label">Coverage Radius</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@Model.ServiceAreas.Split(',').Length</div>
+                <div class="stat-label">Service Areas</div>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-section">
+                <div class="section-title">📍 Location Details</div>
+                <div class="info-item">
+                    <span class="info-label">Address:</span>
+                    <span class="info-value">@Model.Address</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">City:</span>
+                    <span class="info-value">@Model.City</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Province:</span>
+                    <span class="info-value">@Model.Province</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Postal Code:</span>
+                    <span class="info-value">@Model.PostalCode</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Coordinates:</span>
+                    <span class="info-value">@Model.Latitude, @Model.Longitude</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="section-title">📞 Contact Information</div>
+                <div class="info-item">
+                    <span class="info-label">Phone:</span>
+                    <span class="info-value">@Model.PhoneNumber</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">@Model.Email</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Manager:</span>
+                    <span class="info-value">@Model.ManagerName</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="section-title">🕐 Operations</div>
+                <div class="info-item">
+                    <span class="info-label">Operating Hours:</span>
+                    <span class="info-value">@Model.OperatingHours</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Service Areas:</span>
+                    <span class="info-value">@Model.ServiceAreas</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="section-title">ℹ️ Metadata</div>
+                <div class="info-item">
+                    <span class="info-label">Created:</span>
+                    <span class="info-value">@Model.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Created By:</span>
+                    <span class="info-value">@Model.CreatedBy</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Updated:</span>
+                    <span class="info-value">@Model.UpdatedAt.ToString("MMM dd, yyyy hh:mm tt")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Updated By:</span>
+                    <span class="info-value">@Model.UpdatedBy</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a asp-action="BranchesPage" class="btn btn-secondary">
+                ← Back to List
+            </a>
+            <a asp-action="EditBranch" asp-route-id="@Model.BranchId" class="btn btn-primary">
+                ✏️ Edit Branch
+            </a>
+        </div>
+    </div>
+</div>

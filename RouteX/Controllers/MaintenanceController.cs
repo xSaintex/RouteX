@@ -34,48 +34,40 @@ namespace RouteX.Controllers
                 ViewBag.InitialStatusFilter = statusValue.ToString();
             }
 
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
             try
             {
-                // Debug: Check if MaintenanceEntries table exists and has data
-                var allEntries = await _context.MaintenanceEntries.AsNoTracking().ToListAsync();
-                Console.WriteLine($"Total MaintenanceEntries in database: {allEntries.Count}");
-                
-                // Temporarily remove IsArchived filter to see if that's the issue
-                var maintenanceEntries = await _context.MaintenanceEntries
+                var query = _context.MaintenanceEntries
                     .AsNoTracking()
-                    .OrderByDescending(m => m.Id)
-                    .ToListAsync();
+                    .Where(m => m.IsArchived != true);
 
-                Console.WriteLine($"All MaintenanceEntries (no filter): {maintenanceEntries.Count}");
-                Console.WriteLine($"Archived entries count: {maintenanceEntries.Count(x => x.IsArchived == true)}");
-                Console.WriteLine($"Non-archived entries count: {maintenanceEntries.Count(x => x.IsArchived != true)}");
-                
-                // Now apply the filter
-                var nonArchivedEntries = maintenanceEntries.Where(m => m.IsArchived != true).ToList();
-                Console.WriteLine($"Final non-archived entries: {nonArchivedEntries.Count}");
-                
-                foreach (var entry in nonArchivedEntries.Take(3))
+                // Filter by branch if not SuperAdmin
+                if (!isSuperAdmin && userBranchId.HasValue)
                 {
-                    Console.WriteLine($"Entry: ID={entry.Id}, Plate={entry.PlateNumber}, Service={entry.ServiceType}, Archived={entry.IsArchived}");
+                    query = query.Where(m => m.BranchId == userBranchId.Value);
                 }
 
-                var displayEntries = nonArchivedEntries.Count == 0 && maintenanceEntries.Count > 0
-                    ? maintenanceEntries
-                    : nonArchivedEntries;
+                var maintenanceEntries = await query
+                    .OrderByDescending(m => m.Id)
+                    .ToListAsync();
 
                 if (parsedStatus.HasValue)
                 {
                     var statusFilterValue = (int)parsedStatus.Value;
-                    displayEntries = displayEntries
+                    maintenanceEntries = maintenanceEntries
                         .Where(m => (m.Status ?? (int)MaintenanceStatus.Pending) == statusFilterValue)
                         .ToList();
                 }
 
-                return View(displayEntries);
+                return View(maintenanceEntries);
             }
             catch (Exception ex)
             {
-                // If table doesn't exist or has schema issues, return empty list
                 Console.WriteLine($"Error accessing MaintenanceEntries: {ex.Message}");
                 return View(new List<MaintenanceEntry>());
             }
@@ -85,16 +77,31 @@ namespace RouteX.Controllers
         public async Task<IActionResult> AddMaintenance()
         {
             ViewData["Title"] = "Add Maintenance";
-            
+
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
             try
             {
-                var activeVehicles = await _context.Vehicles
+                var vehicleQuery = _context.Vehicles
                     .AsNoTracking()
-                    .Where(v => !v.IsArchived)
+                    .Where(v => !v.IsArchived);
+
+                // Filter vehicles by branch if not SuperAdmin
+                if (!isSuperAdmin && userBranchId.HasValue)
+                {
+                    vehicleQuery = vehicleQuery.Where(v => v.BranchId == userBranchId.Value);
+                }
+
+                var activeVehicles = await vehicleQuery
                     .OrderBy(v => v.PlateNumber)
                     .ToListAsync();
-                
+
                 ViewBag.Vehicles = activeVehicles;
+                ViewBag.UserBranchId = userBranchId;
                 return View();
             }
             catch (Exception ex)
@@ -136,6 +143,14 @@ namespace RouteX.Controllers
             {
                 try
                 {
+                    // Auto-assign branch from user
+                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                    if (user?.BranchId.HasValue == true)
+                    {
+                        maintenance.BranchId = user.BranchId;
+                    }
+
                     // Set vehicle details if VehicleId is provided
                     if (maintenance.VehicleId.HasValue)
                     {
@@ -152,8 +167,8 @@ namespace RouteX.Controllers
                     maintenance.IsArchived = false;
 
                     // Use raw SQL to avoid OUTPUT clause issues with triggers
-                    var sql = @"INSERT INTO MaintenanceEntries (VehicleId, PlateNumber, ServiceType, ServiceDate, Cost, TechnicianName, Status, OdometerAtService, NextServiceDue, Description, IsArchived, MaintenanceId, UnitModel, Date)
-                              VALUES (@VehicleId, @PlateNumber, @ServiceType, @ServiceDate, @Cost, @TechnicianName, @Status, @OdometerAtService, @NextServiceDue, @Description, @IsArchived, @MaintenanceId, @UnitModel, @Date);
+                    var sql = @"INSERT INTO MaintenanceEntries (VehicleId, PlateNumber, ServiceType, ServiceDate, Cost, TechnicianName, Status, OdometerAtService, NextServiceDue, Description, IsArchived, MaintenanceId, UnitModel, Date, BranchId)
+                              VALUES (@VehicleId, @PlateNumber, @ServiceType, @ServiceDate, @Cost, @TechnicianName, @Status, @OdometerAtService, @NextServiceDue, @Description, @IsArchived, @MaintenanceId, @UnitModel, @Date, @BranchId);
                               SELECT CAST(SCOPE_IDENTITY() as int);";
                     
                     var parameters = new[]
@@ -171,7 +186,8 @@ namespace RouteX.Controllers
                         new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", maintenance.IsArchived),
                         new Microsoft.Data.SqlClient.SqlParameter("@MaintenanceId", maintenance.MaintenanceId ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", maintenance.UnitModel ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Date", maintenance.ServiceDate == default ? (object)DBNull.Value : maintenance.ServiceDate)
+                        new Microsoft.Data.SqlClient.SqlParameter("@Date", maintenance.ServiceDate == default ? (object)DBNull.Value : maintenance.ServiceDate),
+                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", maintenance.BranchId ?? (object)DBNull.Value)
                     };
                     
                     var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);

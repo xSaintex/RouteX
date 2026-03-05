@@ -1,0 +1,270 @@
+@model RouteX.Models.Branch
+@{
+    ViewData["Title"] = "Edit Branch";
+}
+
+<style>
+    .edit-branch-container {
+        width: 100%;
+        padding: 20px 32px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #6c757d;
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+
+    .breadcrumb a {
+        color: #ff6b35;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px;
+        border-radius: 6px;
+    }
+
+    .breadcrumb a:hover {
+        background: rgba(255, 107, 53, 0.04);
+    }
+
+    .form-container {
+        max-width: 1000px;
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 24px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .form-grid-full {
+        grid-column: span 2;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+
+    .form-control {
+        padding: 10px 14px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 32px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background: #ff6b35;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #e55a2b;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 24px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #ff6b35;
+        grid-column: span 2;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+    }
+
+    .text-danger {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+</style>
+
+<div class="edit-branch-container">
+    <div class="breadcrumb">
+        <a asp-action="BranchesPage">← Branch Management</a>
+        <span>/</span>
+        <span>Edit Branch</span>
+    </div>
+
+    <div class="form-container">
+        <h2 class="form-title">✏️ Edit Branch</h2>
+
+        <form asp-action="EditBranch" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="BranchId" />
+
+            <div class="form-grid">
+                <div class="section-title">Basic Information</div>
+
+                <div class="form-group">
+                    <label asp-for="BranchName" class="form-label">Branch Name *</label>
+                    <input asp-for="BranchName" class="form-control" />
+                    <span asp-validation-for="BranchName" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="ManagerName" class="form-label">Manager Name *</label>
+                    <input asp-for="ManagerName" class="form-control" />
+                    <span asp-validation-for="ManagerName" class="text-danger"></span>
+                </div>
+
+                <div class="form-group form-grid-full">
+                    <label asp-for="Address" class="form-label">Address *</label>
+                    <input asp-for="Address" class="form-control" />
+                    <span asp-validation-for="Address" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="City" class="form-label">City *</label>
+                    <input asp-for="City" class="form-control" />
+                    <span asp-validation-for="City" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Province" class="form-label">Province *</label>
+                    <input asp-for="Province" class="form-control" />
+                    <span asp-validation-for="Province" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="PostalCode" class="form-label">Postal Code</label>
+                    <input asp-for="PostalCode" class="form-control" />
+                    <span asp-validation-for="PostalCode" class="text-danger"></span>
+                </div>
+
+                <div class="section-title">Contact Information</div>
+
+                <div class="form-group">
+                    <label asp-for="PhoneNumber" class="form-label">Phone Number *</label>
+                    <input asp-for="PhoneNumber" class="form-control" />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Email" class="form-label">Email *</label>
+                    <input asp-for="Email" type="email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="section-title">Location & Coverage</div>
+
+                <div class="form-group">
+                    <label asp-for="Latitude" class="form-label">Latitude</label>
+                    <input asp-for="Latitude" type="number" step="0.000001" class="form-control" />
+                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Longitude" class="form-label">Longitude</label>
+                    <input asp-for="Longitude" type="number" step="0.000001" class="form-control" />
+                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="CoverageRadiusKm" class="form-label">Coverage Radius (km)</label>
+                    <input asp-for="CoverageRadiusKm" type="number" step="0.01" class="form-control" />
+                    <span asp-validation-for="CoverageRadiusKm" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Status" class="form-label">Status</label>
+                    <select asp-for="Status" class="form-control">
+                        <option value="0">Active</option>
+                        <option value="1">Inactive</option>
+                    </select>
+                    <span asp-validation-for="Status" class="text-danger"></span>
+                </div>
+
+                <div class="section-title">Operations</div>
+
+                <div class="form-group form-grid-full">
+                    <label asp-for="OperatingHours" class="form-label">Operating Hours</label>
+                    <input asp-for="OperatingHours" class="form-control" />
+                    <span asp-validation-for="OperatingHours" class="text-danger"></span>
+                </div>
+
+                <div class="form-group form-grid-full">
+                    <label asp-for="ServiceAreas" class="form-label">Service Areas</label>
+                    <textarea asp-for="ServiceAreas" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="ServiceAreas" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a asp-action="BranchesPage" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

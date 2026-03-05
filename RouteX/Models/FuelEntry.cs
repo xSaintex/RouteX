@@ -8,10 +8,10 @@ namespace RouteX.Models
         public int Id { get; set; }
         [Range(1, int.MaxValue, ErrorMessage = "Please select a vehicle.")]
         public int VehicleId { get; set; }
-        
+
         // Navigation property
         public Vehicle? Vehicle { get; set; }
-        
+
         [Required(ErrorMessage = "Driver name is required.")]
         public string Driver { get; set; } = string.Empty;
         [Required(ErrorMessage = "Date and time is required.")]
@@ -29,11 +29,15 @@ namespace RouteX.Models
         public bool FullTank { get; set; }
         public string Notes { get; set; } = string.Empty;
         public bool IsArchived { get; set; }
-        
+
         // Legacy properties for backward compatibility
         public string UnitModel { get; set; } = string.Empty;
         public string PlateNumber { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+
+        // Branch relationship - FuelEntry belongs to one branch
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
     }
 
     public enum FuelEntryStatus

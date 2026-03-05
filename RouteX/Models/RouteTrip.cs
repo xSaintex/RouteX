@@ -17,6 +17,10 @@ namespace RouteX.Models
         public DateTime? CancelledAt { get; set; }
         public bool IsArchived { get; set; } = false;
         public DateTime? ArchivedAt { get; set; }
+
+        // Branch relationship - RouteTrip belongs to one branch
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
     }
 
     public enum RouteTripStatus

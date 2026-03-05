@@ -192,6 +192,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
             </div>
 
             <div class="form-group">
+                <label for="branchId">Branch</label>
+                <select id="branchId" name="BranchId">
+                    <option value="">No Branch (SuperAdmin Only)</option>
+                    @{
+                        var activeBranches = ViewBag.ActiveBranches as List<RouteX.Models.Branch> ?? new List<RouteX.Models.Branch>();
+                        foreach (var branch in activeBranches)
+                        {
+                            <option value="@branch.BranchId">@branch.BranchName (@branch.City)</option>
+                        }
+                    }
+                </select>
+                <small style="color: #6c757d; font-size: 11px; margin-top: 4px;">SuperAdmin can access all branches. Other roles must be assigned to a branch.</small>
+            </div>
+
+            <div class="form-group">
                 <label for="password">Password *</label>
                 <div class="input-wrapper" style="position: relative;">
                     <input type="password" id="password" name="Password" placeholder="Enter password (8-12 characters)" required minlength="8" maxlength="12" autocomplete="new-password" />
