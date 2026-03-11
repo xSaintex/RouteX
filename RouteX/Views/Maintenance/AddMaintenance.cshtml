@@ -143,8 +143,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
     <form class="add-maintenance-form" method="post" asp-action="AddMaintenance">
         <div class="form-grid">
             <div class="form-group">
-                <label for="vehicle">Vehicle (Plate #) *</label>
-                <select id="vehicle" name="VehicleId" required>
+                <label asp-for="VehicleId">Vehicle (Plate #) *</label>
+                <select asp-for="VehicleId" required>
                     <option value="">Select Vehicle</option>
                     @{
                         var activeVehicles = ViewBag.Vehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
@@ -154,12 +154,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                         }
                     }
                 </select>
-                <span class="validation-message">Please select a vehicle</span>
+                <span asp-validation-for="VehicleId" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="serviceType">Service Type *</label>
-                <select id="serviceType" name="ServiceType" required>
+                <label asp-for="ServiceType">Service Type *</label>
+                <select asp-for="ServiceType" required>
                     <option value="">Select Service Type</option>
                     <option value="Oil Change">Oil Change</option>
                     <option value="Brake Inspection">Brake Inspection</option>
@@ -170,30 +170,30 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                     <option value="Coolant Flush">Coolant Flush</option>
                     <option value="General Inspection">General Inspection</option>
                 </select>
-                <span class="validation-message">Please select service type</span>
+                <span asp-validation-for="ServiceType" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="serviceDate">Service Date *</label>
-                <input type="date" id="serviceDate" name="ServiceDate" required />
-                <span class="validation-message">Please select service date</span>
+                <label asp-for="ServiceDate">Service Date *</label>
+                <input asp-for="ServiceDate" type="date" required />
+                <span asp-validation-for="ServiceDate" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="cost">Cost (₱) *</label>
-                <input type="number" id="cost" name="Cost" placeholder="e.g., 2500.00" step="0.01" min="0" required />
-                <span class="validation-message">Please enter cost</span>
+                <label asp-for="Cost">Cost (₱) *</label>
+                <input asp-for="Cost" type="number" placeholder="e.g., 2500.00" step="0.01" min="0" required />
+                <span asp-validation-for="Cost" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="technicianName">Technician Name *</label>
-                <input type="text" id="technicianName" name="TechnicianName" placeholder="Enter technician name" required />
-                <span class="validation-message">Please enter technician name</span>
+                <label asp-for="TechnicianName">Technician Name *</label>
+                <input asp-for="TechnicianName" type="text" placeholder="Enter technician name" required />
+                <span asp-validation-for="TechnicianName" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="status">Status *</label>
-                <select id="status" name="Status" required>
+                <label asp-for="Status">Status *</label>
+                <select asp-for="Status" required>
                     <option value="">Select Status</option>
                     @{
                         var statusOptions = new[] { 
@@ -212,13 +212,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                         }
                     }
                 </select>
-                <span class="validation-message">Please select status</span>
+                <span asp-validation-for="Status" class="validation-message"></span>
             </div>
 
             <div class="form-group">
-                <label for="odometerAtService">Odometer at Service *</label>
-                <input type="number" id="odometerAtService" name="OdometerAtService" placeholder="e.g., 25000" min="0" required />
-                <span class="validation-message">Please enter odometer reading</span>
+                <label asp-for="OdometerAtService">Odometer at Service *</label>
+                <input asp-for="OdometerAtService" type="number" placeholder="e.g., 25000" min="0" required />
+                <span asp-validation-for="OdometerAtService" class="validation-message"></span>
             </div>
 
             <div class="form-group">

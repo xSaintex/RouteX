@@ -1,6 +1,9 @@
-﻿@model RouteX.Controllers.DashboardViewModel
+﻿@model RouteX.ViewModels.DashboardViewModel
+@using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = "Dashboard";
+    var userRole = Context.Session.GetString("UserRole") ?? "Administrator";
+    var isSuperAdmin = userRole == "SuperAdmin";
 }
 
 <style>
@@ -40,7 +43,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .finance-card-link {
@@ -52,11 +55,6 @@
 .finance-card-link:focus-visible .finance-card {
     outline: 2px solid #ff6b35;
     outline-offset: 2px;
-}
-
-.finance-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
 .finance-card-icon {
@@ -83,6 +81,16 @@
     font-size: 0.9rem;
     margin: 0;
     font-weight: 500;
+}
+
+.finance-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.total-trips-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .charts-grid {
@@ -322,7 +330,7 @@
             </div>
         </a>
         
-        <a class="finance-card-link" href="@Url.Action("TotalExpensesAllTime", "Finance")" aria-label="Total expenses">
+        <a class="finance-card-link" href="@Url.Action("FinancePage", "Finance")" aria-label="Total expenses">
             <div class="finance-card">
                 <div class="finance-card-icon">
                     <i class="fas fa-money-bill-wave"></i>
@@ -333,6 +341,20 @@
                 </div>
             </div>
         </a>
+        
+        <!-- Add Trips Card -->
+    </div>
+    
+    <div class="finance-summary-grid">
+        <div class="finance-card total-trips-card" style="cursor: default;">
+            <div class="finance-card-icon">
+                <i class="fas fa-route"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>@Model.TotalTrips</h3>
+                <p>Total Trips</p>
+            </div>
+        </div>
     </div>
     
 
@@ -385,6 +407,8 @@
         </div>
     </div>
     
+    @if (isSuperAdmin)
+    {
     <div class="dashboard-content">
         <div class="content-section">
             <h3>Recent Activity</h3>
@@ -409,6 +433,7 @@
             </div>
         </div>
     </div>
+    }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

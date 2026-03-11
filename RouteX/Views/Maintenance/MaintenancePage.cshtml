@@ -3,26 +3,47 @@
 @{
     ViewData["Title"] = "Maintenance Schedule";
     var statuses = Enum.GetNames(typeof(MaintenanceStatus)).Where(s => s != "Archived").ToList();
-    var initialStatusFilter = ViewBag.InitialStatusFilter as string;
+    var userRole = ViewBag.UserRole as string ?? "";
+    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+    var maintenanceEntries = Model as List<RouteX.Models.MaintenanceEntry> ?? new List<RouteX.Models.MaintenanceEntry>();
+    var initialStatusFilter = ViewBag.InitialStatusFilter as string ?? "";
 }
 
-@* Handle null model *@
-@if (Model == null)
+@if (maintenanceEntries == null || !maintenanceEntries.Any())
 {
+    if (userRole != "SuperAdmin")
+    {
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle"></i>
         No maintenance data available. <a href="@Url.Action("AddMaintenance", "Maintenance")" class="alert-link">Add your first maintenance schedule</a>.
     </div>
+    }
+    else
+    {
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        No maintenance data available.
+    </div>
+    }
     return;
 }
 
-@* Handle empty model *@
-@if (!Model.Any())
+@if (maintenanceEntries.Where(m => !m.IsArchived.HasValue || m.IsArchived.Value == false).ToList().Count == 0)
 {
+    if (userRole != "SuperAdmin")
+    {
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i>
         No maintenance schedules found. <a href="@Url.Action("AddMaintenance", "Maintenance")" class="alert-link">Add a maintenance schedule</a> to get started.
     </div>
+    }
+    else
+    {
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        No maintenance schedules found.
+    </div>
+    }
     return;
 }
 
@@ -61,8 +82,9 @@
 .btn-clear { background:#111; color:#fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-clear:hover { opacity:0.95; }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
-.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.table-pagination { display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:8px; }
+.pagination-info { margin-right: auto; color:#333; font-size:0.75rem; }
+.pagination-controls { justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
 .pagination-info { color:#333; font-size:0.75rem; }
 .table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
 .table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
@@ -94,10 +116,13 @@
     </div>
 
     <div class="vehicles-actions">
+        @if (userRole != "SuperAdmin")
+        {
         <a href="@Url.Action("AddMaintenance", "Maintenance")" class="btn btn-primary">
             <i class="fas fa-plus"></i>
             Add Schedule
         </a>
+        }
         <button type="button" class="btn btn-outline-secondary" id="bulkArchiveMaintenance" style="display:none;">
             <i class="fas fa-archive"></i>
             Archive Selected
@@ -154,6 +179,10 @@
                     <th>Cost</th>
                     <th>Technician Name</th>
                     <th>Status</th>
+                    @if (isSuperAdmin)
+                    {
+                        <th>Branch</th>
+                    }
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -193,6 +222,10 @@
                                 @(Enum.IsDefined(typeof(MaintenanceStatus), statusValue) ? ((MaintenanceStatus)statusValue).ToString() : "Pending")
                             </span>
                         </td>
+                        @if (isSuperAdmin)
+                        {
+                            <td>@(entry.Branch?.BranchName ?? "Main Headquarters")</td>
+                        }
                         <td>
                             <div class="action-buttons">
                                 @if ((MaintenanceStatus)statusValue != MaintenanceStatus.Completed)
@@ -220,7 +253,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="10">
+                    <td colspan="@(isSuperAdmin ? 11 : 10)">
                         <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="pagination-info">Showing 0 of 0 entries</div>
                             <div class="pagination-controls">

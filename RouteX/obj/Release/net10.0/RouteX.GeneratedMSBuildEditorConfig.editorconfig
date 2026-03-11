@@ -42,6 +42,22 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXVkaXRcQXVkaXRQYWdlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/acerh/source/repos/RouteX/RouteX/Views/Branches/AddBranch.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQnJhbmNoZXNcQWRkQnJhbmNoLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/acerh/source/repos/RouteX/RouteX/Views/Branches/BranchesPage.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQnJhbmNoZXNcQnJhbmNoZXNQYWdlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/acerh/source/repos/RouteX/RouteX/Views/Branches/EditBranch.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQnJhbmNoZXNcRWRpdEJyYW5jaC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/acerh/source/repos/RouteX/RouteX/Views/Branches/ViewBranch.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQnJhbmNoZXNcVmlld0JyYW5jaC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/acerh/source/repos/RouteX/RouteX/Views/Budget/BudgetPage.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQnVkZ2V0XEJ1ZGdldFBhZ2UuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 

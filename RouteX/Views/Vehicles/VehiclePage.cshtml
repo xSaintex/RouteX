@@ -1,11 +1,12 @@
-@model IEnumerable<RouteX.Models.Vehicle>
+@model IEnumerable<RouteX.ViewModels.VehicleViewModel>
 @using System.Collections.Generic
 @{
     ViewData["Title"] = "Vehicle Management";
     var types = Model.Select(v => v.VehicleType).Distinct().ToList();
     var statuses = Model.Select(v => v.Status.ToString()).Distinct().ToList();
     var initialStatusFilter = ViewBag.InitialStatusFilter as string;
-    var mileageByVehicleId = ViewBag.MileageByVehicleId as IDictionary<int, decimal> ?? new Dictionary<int, decimal>();
+    var userRole = Context.Session.GetString("UserRole") ?? "";
+    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
 }
 
 <style>
@@ -37,8 +38,9 @@
 .btn-apply { background:#ff7a00; color: #fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-clear { background:#111; color:#fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
-.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.table-pagination { display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:8px; }
+.pagination-info { margin-right: auto; color:#333; font-size:0.75rem; }
+.pagination-controls { justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
 .pagination-info { color:#333; font-size:0.75rem; }
 .table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
 .table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
@@ -55,7 +57,6 @@
 <div class="vehicles-container" style="padding-top: 10px;">
     @Html.AntiForgeryToken()
     @{
-        var userRole = ViewBag.UserRole as string ?? "";
         var pendingVehicles = ViewBag.PendingVehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
         var recentlyApprovedVehicles = ViewBag.RecentlyApprovedVehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
         var myPendingVehicles = ViewBag.MyPendingVehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
@@ -221,10 +222,13 @@
     </div>
 
     <div class="vehicles-actions">
+        @if (userRole != "SuperAdmin")
+        {
         <a href="@Url.Action("AddVehicle", "Vehicles")" class="btn btn-primary">
             <i class="fas fa-plus"></i>
             Add New Vehicle
         </a>
+        }
         <button type="button" class="btn btn-outline-secondary" id="bulkArchiveVehicles" style="display:none;">
             <i class="fas fa-archive"></i>
             Archive Selected
@@ -278,7 +282,11 @@
                     <th>Plate #</th>
                     <th>Vehicle Type</th>
                     <th>Status</th>
-                    <th>Mileage</th>
+                    <th>Total Mileage (km)</th>
+                    @if (isSuperAdmin)
+                    {
+                        <th>Branch</th>
+                    }
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -312,10 +320,11 @@
                                 @vehicle.Status
                             </span>
                         </td>
-                        @{
-                            var totalMileage = mileageByVehicleId.TryGetValue(vehicle.Id, out var totalKm) ? totalKm : 0m;
+                        <td>@vehicle.TotalMileage.ToString("N2") km</td>
+                        @if (isSuperAdmin)
+                        {
+                            <td>@(vehicle.Branch?.BranchName ?? "Main Headquarters")</td>
                         }
-                        <td>@totalMileage.ToString("N2") km</td>
                         <td>
                             <div class="action-buttons">
                                 <a href="@Url.Action("EditVehicle", "Vehicles", new { id = vehicle.Id })" class="action-btn edit-btn" title="Edit Vehicle">
@@ -337,7 +346,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="8">
+                    <td colspan="@(isSuperAdmin ? 9 : 8)">
                         <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="pagination-info">Showing 0 of 0 entries</div>
                             <div class="pagination-controls">

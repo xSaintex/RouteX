@@ -18,6 +18,12 @@ namespace RouteX.Controllers
         }
         public async Task<IActionResult> ArchivePage()
         {
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            if (!userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+
             ViewData["Title"] = "Archive";
 
             var viewModel = new ArchiveViewModel();
@@ -26,42 +32,36 @@ namespace RouteX.Controllers
             {
                 var missingColumns = new List<string>();
 
-                var archivedVehicles = new List<Vehicle>();
-                try
-                {
-                    archivedVehicles = await _context.Vehicles
-                        .FromSqlRaw("SELECT VehicleId, UnitModel, PlateNumber, VehicleType, Status, Mileage, IsArchived FROM Vehicles WHERE IsArchived = 1 ORDER BY VehicleId DESC")
+                var archivedVehicles = await _context.Vehicles
                         .AsNoTracking()
+                        .Where(v => v.IsArchived == true)
+                        .OrderByDescending(v => v.Id)
                         .ToListAsync();
-                }
-
-                catch
-                {
-                    missingColumns.Add("Vehicles.IsArchived");
-                }
 
                 var archivedFuel = new List<FuelEntry>();
-                try
+                if (await ColumnExistsAsync("FuelEntries", "IsArchived"))
                 {
                     archivedFuel = await _context.FuelEntries
-                        .FromSqlRaw("SELECT * FROM FuelEntries WHERE IsArchived = 1 ORDER BY Id DESC")
-                        .AsNoTracking()
-                        .ToListAsync();
+                            .AsNoTracking()
+                            .Where(f => f.IsArchived == true)
+                            .OrderByDescending(f => f.Id)
+                            .ToListAsync();
                 }
-                catch
+                else
                 {
                     missingColumns.Add("FuelEntries.IsArchived");
                 }
 
                 var archivedMaintenance = new List<MaintenanceEntry>();
-                try
+                if (await ColumnExistsAsync("MaintenanceEntries", "IsArchived"))
                 {
                     archivedMaintenance = await _context.MaintenanceEntries
-                        .FromSqlRaw("SELECT * FROM MaintenanceEntries WHERE IsArchived = 1 ORDER BY Id DESC")
-                        .AsNoTracking()
-                        .ToListAsync();
+                            .AsNoTracking()
+                            .Where(m => m.IsArchived == true)
+                            .OrderByDescending(m => m.Id)
+                            .ToListAsync();
                 }
-                catch
+                else
                 {
                     missingColumns.Add("MaintenanceEntries.IsArchived");
                 }
@@ -115,15 +115,15 @@ namespace RouteX.Controllers
 
                 var archiveLogs = await _context.AuditLogs
                     .AsNoTracking()
-                    .Where(l => l.Action.StartsWith("Archive:"))
+                    .Where(l => l.RawAction != null && l.RawAction.StartsWith("Archive:"))
                     .OrderByDescending(l => l.ActionDate)
                     .ToListAsync();
 
                 var archiveLogLookup = new Dictionary<string, AuditLog>();
                 foreach (var log in archiveLogs)
                 {
-                    var key = GetArchiveLogKey(log.Action);
-                    if (!archiveLogLookup.ContainsKey(key))
+                    var key = GetArchiveLogKey(log.RawAction);
+                    if (!string.IsNullOrEmpty(key) && !archiveLogLookup.ContainsKey(key))
                     {
                         archiveLogLookup[key] = log;
                     }
@@ -438,16 +438,16 @@ namespace RouteX.Controllers
             var prefix = $"Archive:User:{userId}:Status:";
             var log = await _context.AuditLogs
                 .AsNoTracking()
-                .Where(l => l.Action.StartsWith(prefix))
+                .Where(l => l.RawAction != null && l.RawAction.StartsWith(prefix))
                 .OrderByDescending(l => l.ActionDate)
                 .FirstOrDefaultAsync();
 
-            if (log == null)
+            if (log == null || string.IsNullOrEmpty(log.RawAction))
             {
                 return null;
             }
 
-            return log.Action.Substring(prefix.Length);
+            return log.RawAction.Substring(prefix.Length);
         }
 
         private async Task<int?> GetArchivedVehicleStatusAsync(int vehicleId)
@@ -455,16 +455,16 @@ namespace RouteX.Controllers
             var prefix = $"Archive:Vehicle:{vehicleId}:Status:";
             var log = await _context.AuditLogs
                 .AsNoTracking()
-                .Where(l => l.Action.StartsWith(prefix))
+                .Where(l => l.RawAction != null && l.RawAction.StartsWith(prefix))
                 .OrderByDescending(l => l.ActionDate)
                 .FirstOrDefaultAsync();
 
-            if (log == null)
+            if (log == null || string.IsNullOrEmpty(log.RawAction))
             {
                 return null;
             }
 
-            if (int.TryParse(log.Action.Substring(prefix.Length), out var status))
+            if (int.TryParse(log.RawAction.Substring(prefix.Length), out var status))
             {
                 return status;
             }
@@ -477,16 +477,16 @@ namespace RouteX.Controllers
             var prefix = $"Archive:Maintenance:{maintenanceId}:Status:";
             var log = await _context.AuditLogs
                 .AsNoTracking()
-                .Where(l => l.Action.StartsWith(prefix))
+                .Where(l => l.RawAction != null && l.RawAction.StartsWith(prefix))
                 .OrderByDescending(l => l.ActionDate)
                 .FirstOrDefaultAsync();
 
-            if (log == null)
+            if (log == null || string.IsNullOrEmpty(log.RawAction))
             {
                 return null;
             }
 
-            if (int.TryParse(log.Action.Substring(prefix.Length), out var status))
+            if (int.TryParse(log.RawAction.Substring(prefix.Length), out var status))
             {
                 return status;
             }
@@ -494,7 +494,7 @@ namespace RouteX.Controllers
             return null;
         }
 
-        private static string GetArchiveLogKey(string action)
+        private static string GetArchiveLogKey(string? action)
         {
             if (string.IsNullOrWhiteSpace(action))
             {
@@ -504,6 +504,12 @@ namespace RouteX.Controllers
             var parts = action.Split(':', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length >= 3 && parts[0] == "Archive")
             {
+                // Handle Budget format: Archive:Budget:Id:Month:Value
+                if (parts.Length >= 5 && parts[1] == "Budget")
+                {
+                    return $"Archive:{parts[1]}:{parts[2]}";
+                }
+                // Handle standard format: Archive:Entity:Id
                 return $"Archive:{parts[1]}:{parts[2]}";
             }
 

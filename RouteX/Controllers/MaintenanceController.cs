@@ -38,12 +38,16 @@ namespace RouteX.Controllers
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
             var userBranchId = user?.BranchId;
-            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
 
             try
             {
                 var query = _context.MaintenanceEntries
                     .AsNoTracking()
+                    .Include(m => m.Branch)
                     .Where(m => m.IsArchived != true);
 
                 // Filter by branch if not SuperAdmin
@@ -145,7 +149,9 @@ namespace RouteX.Controllers
                 {
                     // Auto-assign branch from user
                     var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+                    var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
                     var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
                     if (user?.BranchId.HasValue == true)
                     {
                         maintenance.BranchId = user.BranchId;
@@ -154,17 +160,62 @@ namespace RouteX.Controllers
                     // Set vehicle details if VehicleId is provided
                     if (maintenance.VehicleId.HasValue)
                     {
-                        var vehicle = await _context.Vehicles.FindAsync(maintenance.VehicleId.Value);
+                        var vehicles = ViewBag.Vehicles as List<RouteX.Models.Vehicle> ?? new List<RouteX.Models.Vehicle>();
+                        var vehicle = vehicles.FirstOrDefault(v => v.Id == maintenance.VehicleId.Value);
                         if (vehicle != null)
                         {
+                            if (!isSuperAdmin && user?.BranchId != vehicle.BranchId)
+                            {
+                                return Forbid();
+                            }
+
                             maintenance.UnitModel = vehicle.UnitModel;
                             maintenance.PlateNumber = vehicle.PlateNumber;
+                            maintenance.BranchId = vehicle.BranchId;
+                        }
+                        else
+                        {
+                            // If vehicle not found in ViewBag, fetch from database
+                            var dbVehicle = await _context.Vehicles.FindAsync(maintenance.VehicleId.Value);
+                            if (dbVehicle != null)
+                            {
+                                if (!isSuperAdmin && user?.BranchId != dbVehicle.BranchId)
+                                {
+                                    return Forbid();
+                                }
+
+                                maintenance.UnitModel = dbVehicle.UnitModel;
+                                maintenance.PlateNumber = dbVehicle.PlateNumber;
+                                maintenance.BranchId = dbVehicle.BranchId;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // If no VehicleId provided, ensure PlateNumber is not null
+                        if (string.IsNullOrEmpty(maintenance.PlateNumber))
+                        {
+                            ModelState.AddModelError("VehicleId", "Please select a vehicle or provide a plate number.");
                         }
                     }
 
                     // Set Date property for backward compatibility
                     maintenance.Date = maintenance.ServiceDate;
                     maintenance.IsArchived = false;
+
+                    // Final validation - ensure PlateNumber is not null
+                    if (string.IsNullOrEmpty(maintenance.PlateNumber))
+                    {
+                        ModelState.AddModelError("VehicleId", "Plate number is required. Please select a valid vehicle.");
+                        var vehicleOptions = await _context.Vehicles
+                            .AsNoTracking()
+                            .Where(v => !v.IsArchived)
+                            .OrderBy(v => v.PlateNumber)
+                            .ToListAsync();
+                        
+                        ViewBag.Vehicles = vehicleOptions;
+                        return View(maintenance);
+                    }
 
                     // Use raw SQL to avoid OUTPUT clause issues with triggers
                     var sql = @"INSERT INTO MaintenanceEntries (VehicleId, PlateNumber, ServiceType, ServiceDate, Cost, TechnicianName, Status, OdometerAtService, NextServiceDue, Description, IsArchived, MaintenanceId, UnitModel, Date, BranchId)
@@ -174,7 +225,7 @@ namespace RouteX.Controllers
                     var parameters = new[]
                     {
                         new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", maintenance.VehicleId ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", maintenance.PlateNumber ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", maintenance.PlateNumber ?? string.Empty),
                         new Microsoft.Data.SqlClient.SqlParameter("@ServiceType", maintenance.ServiceType ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@ServiceDate", maintenance.ServiceDate == default ? (object)DBNull.Value : maintenance.ServiceDate),
                         new Microsoft.Data.SqlClient.SqlParameter("@Cost", maintenance.Cost ?? (object)DBNull.Value),
@@ -226,6 +277,13 @@ namespace RouteX.Controllers
         public async Task<IActionResult> EditMaintenance(int id)
         {
             ViewData["Title"] = "Edit Maintenance";
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
             
             try
             {
@@ -240,9 +298,15 @@ namespace RouteX.Controllers
                     return RedirectToAction(nameof(MaintenancePage));
                 }
 
+                if (!isSuperAdmin && user?.BranchId != maintenance.BranchId)
+                {
+                    return Forbid();
+                }
+
                 var activeVehicles = await _context.Vehicles
                     .AsNoTracking()
                     .Where(v => !v.IsArchived)
+                    .Where(v => isSuperAdmin || v.BranchId == user!.BranchId)
                     .OrderBy(v => v.PlateNumber)
                     .ToListAsync();
                 
@@ -262,6 +326,13 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMaintenance(int id, MaintenanceEntry maintenance)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
+
             // Validate NextServiceDue - cannot be past date or current date
             if (maintenance.NextServiceDue.HasValue)
             {
@@ -313,13 +384,56 @@ namespace RouteX.Controllers
                         return RedirectToAction(nameof(MaintenancePage));
                     }
 
+                    if (!isSuperAdmin && user?.BranchId != existing.BranchId)
+                    {
+                        return Forbid();
+                    }
+
+                    maintenance.BranchId = existing.BranchId;
+
                     var vehicle = maintenance.VehicleId.HasValue
                         ? await _context.Vehicles.FindAsync(maintenance.VehicleId.Value)
                         : null;
                     if (vehicle != null)
                     {
+                        if (!isSuperAdmin && user?.BranchId != vehicle.BranchId)
+                        {
+                            return Forbid();
+                        }
+
                         maintenance.UnitModel = vehicle.UnitModel;
                         maintenance.PlateNumber = vehicle.PlateNumber;
+                    }
+                    else if (maintenance.VehicleId.HasValue)
+                    {
+                        // VehicleId provided but vehicle not found
+                        ModelState.AddModelError("VehicleId", "Selected vehicle not found.");
+                        var vehicleList = await _context.Vehicles
+                            .AsNoTracking()
+                            .Where(v => !v.IsArchived)
+                            .Where(v => isSuperAdmin || v.BranchId == user!.BranchId)
+                            .OrderBy(v => v.PlateNumber)
+                            .ToListAsync();
+                        
+                        ViewBag.Vehicles = vehicleList;
+                        return View(maintenance);
+                    }
+                    else
+                    {
+                        // No VehicleId provided, ensure PlateNumber is not null
+                        if (string.IsNullOrEmpty(maintenance.PlateNumber))
+                        {
+                            ModelState.AddModelError("VehicleId", "Please select a vehicle or provide a plate number.");
+                            var vehicleList = await _context.Vehicles
+                                .AsNoTracking()
+                                .Where(v => !v.IsArchived)
+                                .Where(v => isSuperAdmin || v.BranchId == user!.BranchId)
+                                .OrderBy(v => v.PlateNumber)
+                                .ToListAsync();
+                            
+                            ViewBag.Vehicles = vehicleList;
+                            return View(maintenance);
+                        }
                     }
 
                     maintenance.MaintenanceId = existing.MaintenanceId;
@@ -338,6 +452,7 @@ namespace RouteX.Controllers
                                   Description = @Description,
                                   MaintenanceId = @MaintenanceId,
                                   UnitModel = @UnitModel,
+                                   BranchId = @BranchId,
                                   Date = @Date,
                                   ModifiedDate = GETDATE()
                               WHERE Id = @Id";
@@ -356,6 +471,7 @@ namespace RouteX.Controllers
                         new Microsoft.Data.SqlClient.SqlParameter("@Description", maintenance.Description ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@MaintenanceId", maintenance.MaintenanceId ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", maintenance.UnitModel ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", maintenance.BranchId ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@Date", maintenance.ServiceDate == default ? (object)DBNull.Value : maintenance.ServiceDate),
                         new Microsoft.Data.SqlClient.SqlParameter("@Id", maintenance.Id)
                     };
@@ -373,7 +489,7 @@ namespace RouteX.Controllers
                         await UpdateVehicleStatusBasedOnAllMaintenances(maintenance.VehicleId.Value);
                     }
 
-                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    var actingUser = userEmail;
                     await _auditService.LogActionAsync(actingUser, $"Update:Maintenance:{maintenance.Id}");
 
                     TempData["Success"] = "Maintenance schedule updated successfully!";
@@ -390,6 +506,7 @@ namespace RouteX.Controllers
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == user!.BranchId)
                 .OrderBy(v => v.PlateNumber)
                 .ToListAsync();
             
@@ -401,6 +518,11 @@ namespace RouteX.Controllers
         public async Task<IActionResult> ViewMaintenance(int id)
         {
             ViewData["Title"] = "View Maintenance";
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
             
             var maintenance = await _context.MaintenanceEntries
                 .AsNoTracking()
@@ -411,6 +533,11 @@ namespace RouteX.Controllers
             {
                 TempData["Error"] = "Maintenance schedule not found.";
                 return RedirectToAction(nameof(MaintenancePage));
+            }
+
+            if (!isSuperAdmin && user?.BranchId != maintenance.BranchId)
+            {
+                return Forbid();
             }
 
             return View(maintenance);
@@ -454,6 +581,7 @@ namespace RouteX.Controllers
                     ExpenseDate = maintenance.ServiceDate,
                     Description = !string.IsNullOrEmpty(maintenance.Description) ? maintenance.Description : null,
                     ReferenceId = maintenance.Id,
+                    BranchId = maintenance.BranchId,
                     IsArchived = false
                 };
 
@@ -472,10 +600,20 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveMaintenance(int id)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var maintenance = await _context.MaintenanceEntries.FindAsync(id);
             if (maintenance == null)
             {
                 return Json(new { success = false, message = "Maintenance schedule not found." });
+            }
+
+            if (!isSuperAdmin && user?.BranchId != maintenance.BranchId)
+            {
+                return Json(new { success = false, message = "You do not have access to this branch data." });
             }
 
             try
@@ -497,7 +635,7 @@ namespace RouteX.Controllers
                     await UpdateVehicleStatusBasedOnAllMaintenances(maintenance.VehicleId.Value);
                 }
 
-                var archivedBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+                var archivedBy = userEmail;
                 await _auditService.LogActionAsync(archivedBy, $"Archive:Maintenance:{maintenance.Id}:Status:{maintenance.Status ?? 0}");
 
                 return Json(new { success = true, message = "Maintenance schedule archived successfully." });

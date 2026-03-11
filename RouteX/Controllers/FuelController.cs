@@ -30,11 +30,15 @@ namespace RouteX.Controllers
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
             var userBranchId = user?.BranchId;
-            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
 
             var query = _context.FuelEntries
                 .AsNoTracking()
                 .Include(f => f.Vehicle)
+                .Include(f => f.Branch)
                 .Where(f => !f.IsArchived);
 
             // Filter by branch if not SuperAdmin
@@ -189,6 +193,13 @@ namespace RouteX.Controllers
         {
             ViewData["Title"] = "Edit Fuel";
             
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
+            
             var fuelEntry = await _context.FuelEntries
                 .Include(f => f.Vehicle)
                 .FirstOrDefaultAsync(f => f.Id == id);
@@ -211,6 +222,13 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFuel(int id, FuelEntry fuelEntry)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
+
             // Apply auto-capitalization to text fields
             if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
                 fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
@@ -244,10 +262,28 @@ namespace RouteX.Controllers
             {
                 try
                 {
+                    var existingFuel = await _context.FuelEntries.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id);
+                    if (existingFuel == null)
+                    {
+                        return NotFound();
+                    }
+
+                    if (!isSuperAdmin && user?.BranchId != existingFuel.BranchId)
+                    {
+                        return Forbid();
+                    }
+
+                    fuelEntry.BranchId = existingFuel.BranchId;
+
                     // Update legacy properties for backward compatibility
                     var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
                     if (vehicle != null)
                     {
+                        if (!isSuperAdmin && user?.BranchId != vehicle.BranchId)
+                        {
+                            return Forbid();
+                        }
+
                         fuelEntry.UnitModel = vehicle.UnitModel;
                         fuelEntry.PlateNumber = vehicle.PlateNumber;
                     }
@@ -257,7 +293,7 @@ namespace RouteX.Controllers
                     var sql = @"UPDATE FuelEntries 
                               SET VehicleId = @VehicleId, Driver = @Driver, DateTime = @DateTime, FuelStation = @FuelStation,
                                   Odometer = @Odometer, Liters = @Liters, TotalCost = @TotalCost, FuelType = @FuelType,
-                                  FullTank = @FullTank, Notes = @Notes, UnitModel = @UnitModel, PlateNumber = @PlateNumber, Date = @Date
+                                  FullTank = @FullTank, Notes = @Notes, UnitModel = @UnitModel, PlateNumber = @PlateNumber, Date = @Date, BranchId = @BranchId
                               WHERE Id = @Id";
                     
                     var parameters = new[]
@@ -275,12 +311,13 @@ namespace RouteX.Controllers
                         new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", fuelEntry.UnitModel),
                         new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", fuelEntry.PlateNumber),
                         new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date),
+                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", fuelEntry.BranchId ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@Id", fuelEntry.Id)
                     };
                     
                     await _context.Database.ExecuteSqlRawAsync(sql, parameters);
 
-                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    var actingUser = userEmail;
                     await _auditService.LogActionAsync(actingUser, $"Update:Fuel:{fuelEntry.Id}");
                     
                     TempData["Success"] = "Fuel record updated successfully!";
@@ -299,6 +336,7 @@ namespace RouteX.Controllers
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == user!.BranchId)
                 .ToListAsync();
             ViewBag.Vehicles = activeVehicles;
             return View(fuelEntry);
@@ -308,6 +346,11 @@ namespace RouteX.Controllers
         public async Task<IActionResult> ViewFuel(int id)
         {
             ViewData["Title"] = "View Fuel";
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
             
             var fuelEntry = await _context.FuelEntries
                 .Include(f => f.Vehicle)
@@ -317,10 +360,16 @@ namespace RouteX.Controllers
             {
                 return NotFound();
             }
+
+            if (!isSuperAdmin && user?.BranchId != fuelEntry.BranchId)
+            {
+                return Forbid();
+            }
             
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == user!.BranchId)
                 .ToListAsync();
             
             ViewBag.Vehicles = activeVehicles;
@@ -332,10 +381,20 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveFuel(int id)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var fuelEntry = await _context.FuelEntries.FindAsync(id);
             if (fuelEntry == null)
             {
                 return Json(new { success = false, message = "Fuel entry not found." });
+            }
+
+            if (!isSuperAdmin && user?.BranchId != fuelEntry.BranchId)
+            {
+                return Json(new { success = false, message = "You do not have access to this branch data." });
             }
 
             try
@@ -351,7 +410,7 @@ namespace RouteX.Controllers
                 var financeSql = "UPDATE FinanceEntries SET IsArchived = 1 WHERE ReferenceId = @Id AND (ExpenseType = 'Fuel' OR ExpenseType = 'FUEL')";
                 await _context.Database.ExecuteSqlRawAsync(financeSql, parameters);
 
-                var archivedBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+                var archivedBy = userEmail;
                 await _auditService.LogActionAsync(archivedBy, $"Archive:Fuel:{fuelEntry.Id}");
 
                 return Json(new { success = true, message = $"{fuelEntry.Liters}L fuel entry has been archived successfully." });

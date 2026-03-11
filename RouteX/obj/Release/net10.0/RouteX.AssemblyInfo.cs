@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RouteX")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6fff68bbcb8518b2e7f0d653ce148b1a9baac1b2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+421a5b445c3d4099b054ab81280850a78d7d9951")]
 [assembly: System.Reflection.AssemblyProductAttribute("RouteX")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RouteX")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

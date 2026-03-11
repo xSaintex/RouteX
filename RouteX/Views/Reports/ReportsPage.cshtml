@@ -73,7 +73,7 @@
 
 <!-- Summary Cards Section -->
 <div class="finance-summary-grid">
-    <a href="@Url.Action("TotalExpensesAllTime", "Finance")" class="finance-card-link">
+    <a href="@Url.Action("FinancePage", "Finance")" class="finance-card-link">
         <div class="finance-card clickable-card">
             <div class="finance-card-icon">
                 <i class="fas fa-dollar-sign"></i>
@@ -85,7 +85,7 @@
         </div>
     </a>
 
-    <a href="@Url.Action("TotalFuel", "Finance")" class="finance-card-link">
+    <a href="@Url.Action("FuelPage", "Fuel")" class="finance-card-link">
         <div class="finance-card clickable-card">
             <div class="finance-card-icon">
                 <i class="fas fa-gas-pump"></i>
@@ -97,7 +97,7 @@
         </div>
     </a>
 
-    <a href="@Url.Action("TotalMaintenance", "Finance")" class="finance-card-link">
+    <a href="@Url.Action("MaintenancePage", "Maintenance")" class="finance-card-link">
         <div class="finance-card clickable-card">
             <div class="finance-card-icon">
                 <i class="fas fa-wrench"></i>
@@ -227,6 +227,13 @@ async function exportToPDF() {
     }
 
     const records = await response.json();
+    
+    // Handle empty data
+    if (records.length === 0) {
+        showNotification('No data to export for the selected criteria.', 'info');
+        return;
+    }
+    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -235,17 +242,36 @@ async function exportToPDF() {
     doc.setFontSize(11);
     doc.text(`Date Range: ${dateRange}`, 14, 24);
 
-    const tableRows = records.map(r => [
-        `#${r.id}`,
-        r.vehicle,
-        r.category,
-        Number(r.amount).toFixed(2),
-        r.date || '-',
-        r.description
-    ]);
+    // Handle different report types with appropriate columns
+    let tableRows, headers;
+    
+    if (reportType === 'Expenses') {
+        // Expenses report uses ExpenseRecord structure
+        headers = [["Expense ID", "Vehicle", "Type", "Amount", "Date", "Description", "Branch"]];
+        tableRows = records.map(r => [
+            r.expenseId || r.ExpenseId || '-',
+            r.vehicle || r.Vehicle || '-',
+            r.expenseType || r.ExpenseType || '-',
+            Number(r.amount || r.Amount || 0).toFixed(2),
+            r.expenseDate || r.ExpenseDate || r.date || '-',
+            r.description || r.Description || '-',
+            r.branch || r.Branch || '-'
+        ]);
+    } else {
+        // Other reports use standard structure
+        headers = [["Record ID", "Vehicle", "Category", "Amount", "Date", "Description"]];
+        tableRows = records.map(r => [
+            r.id || r.Id || '-',
+            r.vehicle || r.Vehicle || '-',
+            r.category || r.Category || '-',
+            Number(r.amount || r.Amount || 0).toFixed(2),
+            r.date || r.Date || '-',
+            r.description || r.Description || '-'
+        ]);
+    }
 
     doc.autoTable({
-        head: [["Record ID", "Vehicle", "Category", "Amount", "Date", "Description"]],
+        head: headers,
         body: tableRows,
         startY: 30
     });
@@ -355,6 +381,17 @@ document.addEventListener('DOMContentLoaded', function() {
     window.expenseTrendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyExpenseBreakdown));
     const monthlyBudgets = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyBudgets));
     window.budgetLookup = new Map(monthlyBudgets.map(b => [b.Month, b.BudgetAmount]));
+    
+    // Debug logging
+    console.log('Expense Trend Data:', window.expenseTrendData);
+    console.log('Monthly Budgets:', monthlyBudgets);
+    
+    if (!window.expenseTrendData || window.expenseTrendData.length === 0) {
+        console.warn('No expense trend data available');
+        // Show message in chart container
+        expenseTrendsCtx.canvas.parentElement.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h4>No Data Available</h4><p>No expense data found for the selected date range.</p></div>';
+        return;
+    }
     
     new Chart(expenseTrendsCtx, {
         type: 'line',

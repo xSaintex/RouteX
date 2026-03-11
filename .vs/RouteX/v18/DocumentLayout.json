@@ -1,102 +1,10 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\IT15\\RouteX\\",
+  "WorkspaceRootPath": "C:\\Users\\acerh\\source\\repos\\RouteX\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\maintenanceentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\maintenanceentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\branch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\branch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\vehicle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\vehicle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\fuelentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\fuelentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\financeentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\financeentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\budgetentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\budgetentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\routetrip.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\routetrip.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\data\\branchseeddata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\data\\branchseeddata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\controllers\\branchescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\branchescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\views\\branches\\branchespage.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\branches\\branchespage.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\views\\branches\\addbranch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\branches\\addbranch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\views\\branches\\editbranch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\branches\\editbranch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\views\\branches\\viewbranch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\branches\\viewbranch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\models\\userviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\models\\userviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\views\\users\\adduser.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\views\\users\\adduser.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\controllers\\vehiclescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\vehiclescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\controllers\\fuelcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\fuelcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\controllers\\maintenancecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\maintenancecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\it15\\routex\\routex\\controllers\\financecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\financecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|c:\\users\\acerh\\source\\repos\\routex\\routex\\controllers\\accountcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D0A48205-7A3A-461F-92E9-FC1BCDA5684B}|RouteX\\RouteX.csproj|solutionrelative:routex\\controllers\\accountcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -106,323 +14,46 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 3,
           "Children": [
             {
-              "$type": "Document",
-              "DocumentIndex": 12,
-              "Title": "BranchesPage.cshtml",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\BranchesPage.cshtml",
-              "RelativeDocumentMoniker": "RouteX\\Views\\Branches\\BranchesPage.cshtml",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\BranchesPage.cshtml",
-              "RelativeToolTip": "RouteX\\Views\\Branches\\BranchesPage.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAADIBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-02T07:01:02.176Z",
-              "EditorCaption": ""
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
             },
             {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "BranchesController.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Controllers\\BranchesController.cs",
-              "RelativeDocumentMoniker": "RouteX\\Controllers\\BranchesController.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Controllers\\BranchesController.cs",
-              "RelativeToolTip": "RouteX\\Controllers\\BranchesController.cs",
-              "ViewState": "AgIAABABAAAAAAAAAABBwBsBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:00:34.969Z",
-              "EditorCaption": ""
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
             },
             {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Program.cs",
-              "RelativeDocumentMoniker": "RouteX\\Program.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Program.cs",
-              "RelativeToolTip": "RouteX\\Program.cs",
-              "ViewState": "AgIAAK8AAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:33:05.405Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "BranchSeedData.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Data\\BranchSeedData.cs",
-              "RelativeDocumentMoniker": "RouteX\\Data\\BranchSeedData.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Data\\BranchSeedData.cs",
-              "RelativeToolTip": "RouteX\\Data\\BranchSeedData.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMMBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:32:40.409Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "ApplicationDbContext.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Data\\ApplicationDbContext.cs",
-              "RelativeDocumentMoniker": "RouteX\\Data\\ApplicationDbContext.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Data\\ApplicationDbContext.cs",
-              "RelativeToolTip": "RouteX\\Data\\ApplicationDbContext.cs",
-              "ViewState": "AgIAADAAAAAAAAAAAIBWwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:30:54.634Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "RouteTrip.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\RouteTrip.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\RouteTrip.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\RouteTrip.cs",
-              "RelativeToolTip": "RouteX\\Models\\RouteTrip.cs",
-              "ViewState": "AgIAABUAAAAAAAAAAEBTwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:30:46.248Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "BudgetEntry.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\BudgetEntry.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\BudgetEntry.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\BudgetEntry.cs",
-              "RelativeToolTip": "RouteX\\Models\\BudgetEntry.cs",
-              "ViewState": "AgIAABEAAAAAAAAAAEBTwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:30:36.119Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "FinanceEntry.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\FinanceEntry.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\FinanceEntry.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\FinanceEntry.cs",
-              "RelativeToolTip": "RouteX\\Models\\FinanceEntry.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAABQwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:30:28.799Z",
-              "EditorCaption": ""
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "MaintenanceEntry.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\MaintenanceEntry.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\MaintenanceEntry.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\MaintenanceEntry.cs",
-              "RelativeToolTip": "RouteX\\Models\\MaintenanceEntry.cs",
-              "ViewState": "AgIAAAgAAAAAAAAAAADgvwAAAAAAAAAAAAAAAA==",
+              "Title": "AccountController.cs",
+              "DocumentMoniker": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Controllers\\AccountController.cs",
+              "RelativeDocumentMoniker": "RouteX\\Controllers\\AccountController.cs",
+              "ToolTip": "C:\\Users\\acerh\\source\\repos\\RouteX\\RouteX\\Controllers\\AccountController.cs",
+              "RelativeToolTip": "RouteX\\Controllers\\AccountController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAvAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:30:18.488Z",
+              "WhenOpened": "2026-03-09T20:56:10.159Z",
               "EditorCaption": ""
-            },
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
             {
-              "$type": "Document",
-              "DocumentIndex": 23,
-              "Title": "FinanceController.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Controllers\\FinanceController.cs",
-              "RelativeDocumentMoniker": "RouteX\\Controllers\\FinanceController.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Controllers\\FinanceController.cs",
-              "RelativeToolTip": "RouteX\\Controllers\\FinanceController.cs",
-              "ViewState": "AgIAADgAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:12:07.778Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 22,
-              "Title": "MaintenanceController.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Controllers\\MaintenanceController.cs",
-              "RelativeDocumentMoniker": "RouteX\\Controllers\\MaintenanceController.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Controllers\\MaintenanceController.cs",
-              "RelativeToolTip": "RouteX\\Controllers\\MaintenanceController.cs",
-              "ViewState": "AgIAAKUAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:10:42.92Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 21,
-              "Title": "FuelController.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Controllers\\FuelController.cs",
-              "RelativeDocumentMoniker": "RouteX\\Controllers\\FuelController.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Controllers\\FuelController.cs",
-              "RelativeToolTip": "RouteX\\Controllers\\FuelController.cs",
-              "ViewState": "AgIAAIoAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:09:44.902Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 20,
-              "Title": "VehiclesController.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Controllers\\VehiclesController.cs",
-              "RelativeDocumentMoniker": "RouteX\\Controllers\\VehiclesController.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Controllers\\VehiclesController.cs",
-              "RelativeToolTip": "RouteX\\Controllers\\VehiclesController.cs",
-              "ViewState": "AgIAAJYAAAAAAAAAAABQwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:08:05.561Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 19,
-              "Title": "AddUser.cshtml",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Views\\Users\\AddUser.cshtml",
-              "RelativeDocumentMoniker": "RouteX\\Views\\Users\\AddUser.cshtml",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Views\\Users\\AddUser.cshtml",
-              "RelativeToolTip": "RouteX\\Views\\Users\\AddUser.cshtml",
-              "ViewState": "AgIAAM0AAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-02T07:03:54.225Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 18,
-              "Title": "UserViewModel.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\UserViewModel.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\UserViewModel.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\UserViewModel.cs",
-              "RelativeToolTip": "RouteX\\Models\\UserViewModel.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAABQwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:03:44.561Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 17,
-              "Title": "UsersController.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Controllers\\UsersController.cs",
-              "RelativeDocumentMoniker": "RouteX\\Controllers\\UsersController.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Controllers\\UsersController.cs",
-              "RelativeToolTip": "RouteX\\Controllers\\UsersController.cs",
-              "ViewState": "AgIAAMIAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T07:03:16.407Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 16,
-              "Title": "_Layout.cshtml",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Views\\Shared\\_Layout.cshtml",
-              "RelativeDocumentMoniker": "RouteX\\Views\\Shared\\_Layout.cshtml",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Views\\Shared\\_Layout.cshtml",
-              "RelativeToolTip": "RouteX\\Views\\Shared\\_Layout.cshtml",
-              "ViewState": "AgIAAGwAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-02T07:02:52.852Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 15,
-              "Title": "ViewBranch.cshtml",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\ViewBranch.cshtml",
-              "RelativeDocumentMoniker": "RouteX\\Views\\Branches\\ViewBranch.cshtml",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\ViewBranch.cshtml",
-              "RelativeToolTip": "RouteX\\Views\\Branches\\ViewBranch.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEIBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-02T07:02:22.835Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 14,
-              "Title": "EditBranch.cshtml",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\EditBranch.cshtml",
-              "RelativeDocumentMoniker": "RouteX\\Views\\Branches\\EditBranch.cshtml",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\EditBranch.cshtml",
-              "RelativeToolTip": "RouteX\\Views\\Branches\\EditBranch.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4BAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-02T07:01:56.883Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 13,
-              "Title": "AddBranch.cshtml",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\AddBranch.cshtml",
-              "RelativeDocumentMoniker": "RouteX\\Views\\Branches\\AddBranch.cshtml",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Views\\Branches\\AddBranch.cshtml",
-              "RelativeToolTip": "RouteX\\Views\\Branches\\AddBranch.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0BAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-02T07:01:32.978Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "User.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\User.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\User.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\User.cs",
-              "RelativeToolTip": "RouteX\\Models\\User.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:29:47.372Z",
-              "EditorCaption": ""
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "FuelEntry.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\FuelEntry.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\FuelEntry.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\FuelEntry.cs",
-              "RelativeToolTip": "RouteX\\Models\\FuelEntry.cs",
-              "ViewState": "AgIAAAkAAAAAAAAAAABQwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:30:07.586Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "Vehicle.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\Vehicle.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\Vehicle.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\Vehicle.cs",
-              "RelativeToolTip": "RouteX\\Models\\Vehicle.cs",
-              "ViewState": "AgIAABoAAAAAAAAAAEBTwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:29:56.397Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Branch.cs",
-              "DocumentMoniker": "C:\\IT15\\RouteX\\RouteX\\Models\\Branch.cs",
-              "RelativeDocumentMoniker": "RouteX\\Models\\Branch.cs",
-              "ToolTip": "C:\\IT15\\RouteX\\RouteX\\Models\\Branch.cs",
-              "RelativeToolTip": "RouteX\\Models\\Branch.cs",
-              "ViewState": "AgIAACEAAAAAAAAAAAAAAEoAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-02T06:29:38.393Z",
-              "EditorCaption": ""
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
             }
           ]
         }

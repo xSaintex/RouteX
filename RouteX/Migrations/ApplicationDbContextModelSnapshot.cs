@@ -239,6 +239,12 @@ namespace RouteX.Migrations
                     b.Property<DateTime>("ActionDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RawAction")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -248,6 +254,98 @@ namespace RouteX.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("RouteX.Models.Branch", b =>
+                {
+                    b.Property<int>("BranchId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BranchId"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("BranchName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("CoverageRadiusKm")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Latitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("Longitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("ManagerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OperatingHours")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ServiceAreas")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("BranchId");
+
+                    b.ToTable("Branches", (string)null);
+                });
+
             modelBuilder.Entity("RouteX.Models.BudgetEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -255,6 +353,9 @@ namespace RouteX.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("BudgetAmount")
                         .HasPrecision(18, 2)
@@ -277,6 +378,8 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.ToTable("MonthlyBudget", (string)null);
                 });
 
@@ -294,6 +397,9 @@ namespace RouteX.Migrations
 
                     b.Property<string>("AttachmentPath")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -318,6 +424,8 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("VehicleId");
 
                     b.ToTable("FinanceEntries", (string)null);
@@ -330,6 +438,9 @@ namespace RouteX.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
@@ -383,6 +494,8 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("VehicleId");
 
                     b.ToTable("FuelEntries", (string)null);
@@ -395,6 +508,9 @@ namespace RouteX.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("Cost")
                         .HasPrecision(18, 2)
@@ -438,6 +554,8 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("VehicleId");
 
                     b.ToTable("MaintenanceEntries", (string)null);
@@ -453,6 +571,9 @@ namespace RouteX.Migrations
 
                     b.Property<DateTime?>("ArchivedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
@@ -488,6 +609,8 @@ namespace RouteX.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("VehicleId");
 
                     b.ToTable("RouteTrips", (string)null);
@@ -500,6 +623,9 @@ namespace RouteX.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -526,6 +652,8 @@ namespace RouteX.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserId");
+
+                    b.HasIndex("BranchId");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -554,6 +682,9 @@ namespace RouteX.Migrations
                     b.Property<string>("ApprovedByUserId")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CreatedDate")
                         .HasColumnType("datetime2");
 
@@ -579,6 +710,8 @@ namespace RouteX.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.ToTable("Vehicles", (string)null);
                 });
@@ -634,47 +767,122 @@ namespace RouteX.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RouteX.Models.BudgetEntry", b =>
+                {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("BudgetEntries")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("RouteX.Models.FinanceEntry", b =>
                 {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("FinanceEntries")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RouteX.Models.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Branch");
+
                     b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("RouteX.Models.FuelEntry", b =>
                 {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("FuelEntries")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RouteX.Models.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("RouteX.Models.MaintenanceEntry", b =>
                 {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("MaintenanceEntries")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RouteX.Models.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("RouteX.Models.RouteTrip", b =>
                 {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("RouteTrips")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RouteX.Models.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Branch");
+
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("RouteX.Models.User", b =>
+                {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("Users")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("RouteX.Models.Vehicle", b =>
+                {
+                    b.HasOne("RouteX.Models.Branch", "Branch")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("RouteX.Models.Branch", b =>
+                {
+                    b.Navigation("BudgetEntries");
+
+                    b.Navigation("FinanceEntries");
+
+                    b.Navigation("FuelEntries");
+
+                    b.Navigation("MaintenanceEntries");
+
+                    b.Navigation("RouteTrips");
+
+                    b.Navigation("Users");
+
+                    b.Navigation("Vehicles");
                 });
 #pragma warning restore 612, 618
         }

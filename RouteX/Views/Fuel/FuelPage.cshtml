@@ -1,6 +1,9 @@
 @model IEnumerable<RouteX.Models.FuelEntry>
+@using RouteX.Models
 @{
-    ViewData["Title"] = "Fuel Management";
+    ViewData["Title"] = "Fuel";
+    var userRole = ViewBag.UserRole as string ?? "";
+    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
     var fuelStations = Model.Select(e => e.FuelStation).Distinct().ToList();
 }
 
@@ -67,10 +70,13 @@
     </div>
 
     <div class="vehicles-actions">
+        @if (userRole != "SuperAdmin")
+        {
         <a href="@Url.Action("AddFuel", "Fuel")" class="btn btn-primary">
             <i class="fas fa-plus"></i>
             Add Fuel Entry
         </a>
+        }
         <button type="button" class="btn btn-outline-secondary" id="bulkArchiveFuel" style="display:none;">
             <i class="fas fa-archive"></i>
             Archive Selected
@@ -126,6 +132,10 @@
                     <th>Total Cost</th>
                     <th>Driver Name</th>
                     <th>Fuel Station</th>
+                    @if (isSuperAdmin)
+                    {
+                        <th>Branch</th>
+                    }
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -158,6 +168,10 @@
                         <td>@entry.TotalCost.ToString("C2")</td>
                         <td>@entry.Driver</td>
                         <td>@entry.FuelStation</td>
+                        @if (isSuperAdmin)
+                        {
+                            <td>@(entry.Branch?.BranchName ?? "Main Headquarters")</td>
+                        }
                         <td>
                             <div class="action-buttons">
                                 <a href="@Url.Action("EditFuel", "Fuel", new { id = entry.Id })" class="action-btn edit-btn" title="Edit Entry">
@@ -176,7 +190,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="10">
+                    <td colspan="@(isSuperAdmin ? 11 : 10)">
                         <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
                             <div class="pagination-info">Showing 0 of 0 entries</div>
                             <div class="pagination-controls">

@@ -66,6 +66,7 @@ namespace RouteX.Controllers
             }
 
             var vehicles = await query
+                .Include(v => v.Branch)
                 .OrderByDescending(v => v.Id)
                 .ToListAsync();
 
@@ -135,7 +136,18 @@ namespace RouteX.Controllers
             // Filter by branch if not SuperAdmin
             if (!isSuperAdmin && userBranchId.HasValue)
             {
-                mileageQuery = mileageQuery.Where(r => r.BranchId == userBranchId.Value);
+                mileageQuery = mileageQuery.Where(r => r.BranchId == null || r.BranchId == userBranchId.Value);
+            }
+
+            // Debug: Log the raw query results
+            var rawMileageData = await mileageQuery
+                .Select(r => new { r.VehicleId, r.DistanceKm })
+                .ToListAsync();
+            
+            _logger.LogInformation("Raw mileage data: {Count} trips", rawMileageData.Count);
+            foreach (var item in rawMileageData.Take(5))
+            {
+                _logger.LogInformation("Vehicle {VehicleId}: {DistanceKm} km", item.VehicleId, item.DistanceKm);
             }
 
             var mileageByVehicleId = await mileageQuery
@@ -147,9 +159,42 @@ namespace RouteX.Controllers
                 })
                 .ToDictionaryAsync(item => item.VehicleId, item => item.TotalKm);
 
-            ViewBag.MileageByVehicleId = mileageByVehicleId;
+            // Debug: Log the grouped results
+            _logger.LogInformation("Grouped mileage dictionary contains {Count} vehicles", mileageByVehicleId.Count);
+            foreach (var kvp in mileageByVehicleId.Take(5))
+            {
+                _logger.LogInformation("Vehicle {VehicleId}: {TotalKm} km", kvp.Key, kvp.Value);
+            }
 
-            return View(vehicles);
+            // Create VehicleViewModels with mileage
+            var vehicleViewModels = vehicles.Select(v => new VehicleViewModel
+            {
+                Id = v.Id,
+                UnitModel = v.UnitModel,
+                PlateNumber = v.PlateNumber,
+                VehicleType = v.VehicleType,
+                Status = v.Status,
+                TotalMileage = mileageByVehicleId.TryGetValue(v.Id, out var mileage) ? mileage : 0m,
+                IsArchived = v.IsArchived,
+                IsPendingApproval = v.IsPendingApproval,
+                AddedByUserId = v.AddedByUserId,
+                AddedByUserEmail = v.AddedByUserEmail,
+                ApprovedByUserId = v.ApprovedByUserId,
+                ApprovedByUserEmail = v.ApprovedByUserEmail,
+                ApprovalDate = v.ApprovalDate,
+                CreatedDate = v.CreatedDate ?? DateTime.UtcNow,
+                BranchId = v.BranchId,
+                Branch = v.Branch
+            }).ToList();
+
+            // Debug: Log the final view models
+            _logger.LogInformation("Created {Count} vehicle view models", vehicleViewModels.Count);
+            foreach (var vm in vehicleViewModels.Where(v => v.TotalMileage > 0).Take(5))
+            {
+                _logger.LogInformation("ViewModel Vehicle {Id} ({Plate}): {TotalMileage} km", vm.Id, vm.PlateNumber, vm.TotalMileage);
+            }
+
+            return View(vehicleViewModels);
         }
 
         // GET: Vehicles/AddVehicle
@@ -243,10 +288,20 @@ namespace RouteX.Controllers
         // GET: Vehicles/EditVehicle/5
         public async Task<IActionResult> EditVehicle(int id)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var vehicle = await _context.Vehicles.FindAsync(id);
             if (vehicle == null)
             {
                 return NotFound();
+            }
+
+            if (!isSuperAdmin && user?.BranchId != vehicle.BranchId)
+            {
+                return Forbid();
             }
 
             return View(vehicle);
@@ -257,6 +312,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditVehicle(int id, Vehicle vehicle)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             if (id != vehicle.Id)
             {
                 return NotFound();
@@ -270,6 +330,11 @@ namespace RouteX.Controllers
                     return NotFound();
                 }
 
+                if (!isSuperAdmin && user?.BranchId != existingVehicle.BranchId)
+                {
+                    return Forbid();
+                }
+
                 // Apply auto-capitalization
                 existingVehicle.UnitModel = _textFormattingService.CapitalizeEachWord(vehicle.UnitModel);
                 existingVehicle.PlateNumber = vehicle.PlateNumber.ToUpper();
@@ -277,7 +342,7 @@ namespace RouteX.Controllers
                 existingVehicle.Status = vehicle.Status;
 
                 await _context.SaveChangesAsync();
-                var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                var actingUser = userEmail;
                 await _auditService.LogActionAsync(actingUser, $"Update:Vehicle:{existingVehicle.Id}");
                 TempData["Success"] = "Vehicle updated successfully!";
                 TempData["RecentVehicleId"] = vehicle.Id; // Track recently edited vehicle
@@ -294,6 +359,8 @@ namespace RouteX.Controllers
         public async Task<IActionResult> ApproveVehicle(int id)
         {
             var userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var approver = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
 
             // Only Admin, SuperAdmin, and Administrator can approve
             if (!userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) && 
@@ -309,6 +376,12 @@ namespace RouteX.Controllers
                 return Json(new { success = false, message = "Vehicle not found." });
             }
 
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            if (!isSuperAdmin && approver?.BranchId != vehicle.BranchId)
+            {
+                return Json(new { success = false, message = "You do not have access to this branch data." });
+            }
+
             if (!vehicle.IsPendingApproval)
             {
                 return Json(new { success = false, message = "This vehicle is not pending approval." });
@@ -316,7 +389,7 @@ namespace RouteX.Controllers
 
             try
             {
-                var approverEmail = HttpContext.Session.GetString("UserEmail") ?? "System";
+                var approverEmail = userEmail;
                 var approverId = HttpContext.Session.GetString("UserId") ?? "";
 
                 vehicle.IsPendingApproval = false;
@@ -344,6 +417,8 @@ namespace RouteX.Controllers
         public async Task<IActionResult> RejectVehicle(int id)
         {
             var userRole = HttpContext.Session.GetString("UserRole") ?? "";
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var rejector = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
 
             // Only Admin, SuperAdmin, and Administrator can reject
             if (!userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) && 
@@ -359,6 +434,12 @@ namespace RouteX.Controllers
                 return Json(new { success = false, message = "Vehicle not found." });
             }
 
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            if (!isSuperAdmin && rejector?.BranchId != vehicle.BranchId)
+            {
+                return Json(new { success = false, message = "You do not have access to this branch data." });
+            }
+
             if (!vehicle.IsPendingApproval)
             {
                 return Json(new { success = false, message = "This vehicle is not pending approval." });
@@ -366,7 +447,7 @@ namespace RouteX.Controllers
 
             try
             {
-                var rejectorEmail = HttpContext.Session.GetString("UserEmail") ?? "System";
+                var rejectorEmail = userEmail;
 
                 // Store vehicle info for notification before removing
                 var vehicleInfo = new {
@@ -400,10 +481,20 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveVehicle(int id)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var vehicle = await _context.Vehicles.FindAsync(id);
             if (vehicle == null)
             {
                 return Json(new { success = false, message = "Vehicle not found." });
+            }
+
+            if (!isSuperAdmin && user?.BranchId != vehicle.BranchId)
+            {
+                return Json(new { success = false, message = "You do not have access to this branch data." });
             }
 
             try
@@ -416,7 +507,7 @@ namespace RouteX.Controllers
 
                 await _context.Database.ExecuteSqlRawAsync(sql, parameters);
 
-                var archivedBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+                var archivedBy = userEmail;
                 await _auditService.LogActionAsync(archivedBy, $"Archive:Vehicle:{vehicle.Id}:Status:{(int)vehicle.Status}");
 
                 return Json(new { success = true, message = $"{vehicle.UnitModel} has been archived successfully." });

@@ -1,227 +1,139 @@
-using System.Diagnostics;
-using System;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RouteX.Data;
 using RouteX.Models;
+using RouteX.Services;
 using RouteX.ViewModels;
-using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IAuditService _auditService;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+        public HomeController(UserManager<IdentityUser> userManager, ApplicationDbContext context, ILogger<HomeController> logger, IAuditService auditService)
         {
-            _logger = logger;
             _context = context;
+            _userManager = userManager;
+            _auditService = auditService;
+            _logger = logger;
+        }
+
+        private static string FormatPhilippinePeso(decimal amount)
+        {
+            return amount.ToString("C", new CultureInfo("en-PH"));
+        }
+
+        private async Task<(bool IsSuperAdmin, int? BranchId)> GetBranchContextAsync()
+        {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            return (isSuperAdmin, user?.BranchId);
         }
 
         public async Task<IActionResult> Index()
         {
+            var (isSuperAdmin, branchId) = await GetBranchContextAsync();
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+
+            // Check if user is Admin (but not SuperAdmin)
+            if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) || 
+                userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+            {
+                // Admins see their branch data only, hide recent activities
+                var adminDashboardData = await GetDashboardDataAsync();
+                adminDashboardData.RecentActivities = new List<RecentActivityItem>(); // Hide recent activities for Admins
+                return View("Index", adminDashboardData);
+            }
+
+            // SuperAdmin sees all data
             var dashboardData = await GetDashboardDataAsync();
             return View(dashboardData);
         }
 
-        public async Task<IActionResult> FinanceDashboard()
-        {
-            ViewData["Title"] = "Finance Dashboard";
-
-            var recentFuel = await _context.FuelEntries
-                .AsNoTracking()
-                .Include(f => f.Vehicle)
-                .Where(f => !f.IsArchived)
-                .OrderByDescending(f => f.DateTime)
-                .Take(10)
-                .Select(f => new RecentExpenseItem
-                {
-                    Category = "Fuel",
-                    Vehicle = f.Vehicle != null ? $"{f.Vehicle.PlateNumber} - {f.Vehicle.UnitModel}" : $"{f.PlateNumber} - {f.UnitModel}",
-                    Amount = f.TotalCost,
-                    Date = f.DateTime,
-                    Description = f.Notes
-                })
-                .ToListAsync();
-
-            var recentMaintenance = await _context.MaintenanceEntries
-                .AsNoTracking()
-                .Include(m => m.Vehicle)
-                .Where(m => m.IsArchived != true && m.Status == (int)MaintenanceStatus.Completed)
-                .OrderByDescending(m => m.Date)
-                .Take(10)
-                .Select(m => new RecentExpenseItem
-                {
-                    Category = "Maintenance",
-                    Vehicle = m.Vehicle != null ? $"{m.Vehicle.PlateNumber} - {m.Vehicle.UnitModel}" : (m.PlateNumber ?? "Unknown"),
-                    Amount = m.Cost ?? 0,
-                    Date = m.Date ?? DateTime.MinValue,
-                    Description = m.Description
-                })
-                .ToListAsync();
-
-            var recentExpenses = recentFuel
-                .Concat(recentMaintenance)
-                .OrderByDescending(e => e.Date)
-                .Take(10)
-                .ToList();
-
-            var financeEntries = await _context.FinanceEntries
-                .AsNoTracking()
-                .Where(f => !f.IsArchived)
-                .ToListAsync();
-
-            var fuelTotal = financeEntries
-                .Where(f => string.Equals(f.ExpenseType, "Fuel", StringComparison.OrdinalIgnoreCase))
-                .Sum(f => f.Amount);
-            var maintenanceTotal = financeEntries
-                .Where(f => string.Equals(f.ExpenseType, "Maintenance", StringComparison.OrdinalIgnoreCase))
-                .Sum(f => f.Amount);
-            var otherTotal = financeEntries
-                .Where(f => !string.Equals(f.ExpenseType, "Fuel", StringComparison.OrdinalIgnoreCase)
-                            && !string.Equals(f.ExpenseType, "Maintenance", StringComparison.OrdinalIgnoreCase))
-                .Sum(f => f.Amount);
-
-            var viewModel = new FinanceDashboardViewModel
-            {
-                FuelConsumptionData = GetFuelConsumptionData(),
-                RecentExpenses = recentExpenses,
-                CostComparison = new List<CostComparisonItem>
-                {
-                    new() { Category = "Fuel", Amount = fuelTotal },
-                    new() { Category = "Maintenance", Amount = maintenanceTotal },
-                    new() { Category = "Other", Amount = otherTotal }
-                }
-            };
-
-            return View(viewModel);
-        }
-
-        public async Task<IActionResult> OpStaffDashboard()
-        {
-            ViewData["Title"] = "Operations Dashboard";
-
-            var vehicles = await _context.Vehicles
-                .AsNoTracking()
-                .Where(v => !v.IsArchived)
-                .ToListAsync();
-
-            var activeVehicles = vehicles
-                .Where(v => v.Status == VehicleStatus.Active)
-                .OrderBy(v => v.PlateNumber)
-                .ToList();
-
-            var idleVehicles = vehicles
-                .Where(v => v.Status == VehicleStatus.Inactive)
-                .OrderBy(v => v.PlateNumber)
-                .ToList();
-
-            // Get mileage data from RouteTrips
-            var mileageByVehicleId = await _context.RouteTrips
-                .AsNoTracking()
-                .Where(r => r.Status == RouteTripStatus.Completed)
-                .GroupBy(r => r.VehicleId)
-                .Select(group => new
-                {
-                    VehicleId = group.Key,
-                    TotalKm = group.Sum(r => r.DistanceKm ?? 0m)
-                })
-                .ToDictionaryAsync(item => item.VehicleId, item => item.TotalKm);
-
-            var statusData = new List<VehicleStatusData>();
-            var totalVehicles = vehicles.Count;
-            if (totalVehicles > 0)
-            {
-                var activeCount = vehicles.Count(v => v.Status == VehicleStatus.Active);
-                var maintenanceCount = vehicles.Count(v => v.Status == VehicleStatus.Maintenance);
-                var inactiveCount = vehicles.Count(v => v.Status == VehicleStatus.Inactive);
-
-                statusData.Add(new VehicleStatusData
-                {
-                    Status = "Active",
-                    Count = activeCount,
-                    Percentage = (int)Math.Round((double)activeCount / totalVehicles * 100)
-                });
-                statusData.Add(new VehicleStatusData
-                {
-                    Status = "Maintenance",
-                    Count = maintenanceCount,
-                    Percentage = (int)Math.Round((double)maintenanceCount / totalVehicles * 100)
-                });
-                statusData.Add(new VehicleStatusData
-                {
-                    Status = "Inactive",
-                    Count = inactiveCount,
-                    Percentage = (int)Math.Round((double)inactiveCount / totalVehicles * 100)
-                });
-            }
-
-            var maintenanceVehicles = vehicles
-                .Where(v => v.Status == VehicleStatus.Maintenance)
-                .OrderBy(v => v.PlateNumber)
-                .ToList();
-
-            var viewModel = new OpStaffDashboardViewModel
-            {
-                ActiveVehicles = activeVehicles,
-                IdleVehicles = idleVehicles,
-                VehicleStatusData = statusData,
-                MaintenanceVehicles = maintenanceVehicles,
-                ActiveTripsToday = activeVehicles
-                    .OrderByDescending(v => mileageByVehicleId.TryGetValue(v.Id, out var mileage) ? mileage : 0m)
-                    .Take(5)
-                    .ToList()
-            };
-
-            ViewBag.MileageByVehicleId = mileageByVehicleId;
-            return View(viewModel);
-        }
-
         private async Task<DashboardViewModel> GetDashboardDataAsync()
         {
+            var (isSuperAdmin, branchId) = await GetBranchContextAsync();
+
+            // Get vehicles
             var vehiclesQuery = _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived);
 
-            var totalVehicles = await vehiclesQuery.CountAsync();
-            var activeVehicles = await vehiclesQuery.CountAsync(v => v.Status == VehicleStatus.Active);
-
-            var pendingMaintenance = await _context.MaintenanceEntries
+            // Get maintenance (completed only for expense calculation)
+            var maintenanceQuery = _context.MaintenanceEntries
                 .AsNoTracking()
-                .Where(m => m.IsArchived != true && (m.Status ?? (int)MaintenanceStatus.Pending) == (int)MaintenanceStatus.Pending)
-                .CountAsync();
+                .Where(m => (m.IsArchived == null || m.IsArchived == false) && m.Status == (int)MaintenanceStatus.Completed);
 
-            var currentMonthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var startMonth = currentMonthStart.AddMonths(-23);
-            var endMonthExclusive = currentMonthStart.AddMonths(1);
-            var totalExpenses = await _context.FinanceEntries
+            // Get finance
+            var financeQuery = _context.FinanceEntries
                 .AsNoTracking()
-                .Where(f => f.ExpenseDate >= startMonth && f.ExpenseDate < endMonthExclusive)
-                .SumAsync(f => f.Amount);
+                .Where(f => !f.IsArchived);
 
-            var recentActivities = await _context.AuditLogs
+            // Get trips (completed trips only for TotalTrips count)
+            var tripsQuery = _context.RouteTrips
                 .AsNoTracking()
-                .Where(a => a.UserId != "SYSTEM" 
-                    && !a.Action.StartsWith("Archive:")
-                    && !a.Action.StartsWith("Login")
-                    && !a.Action.StartsWith("Logout")
-                    && !a.Action.StartsWith("Viewed")
-                    && !a.Action.Contains("logged in")
-                    && !a.Action.Contains("logged out"))
-                .OrderByDescending(a => a.ActionDate)
-                .Take(5)
-                .Select(a => new RecentActivityItem
-                {
-                    Action = a.Action,
-                    UserId = a.UserId,
-                    ActionDate = a.ActionDate
-                })
-                .ToListAsync();
+                .Where(r => r.Status == RouteTripStatus.Completed);
+
+            // Filter by branch for non-SuperAdmin users
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                vehiclesQuery = vehiclesQuery.Where(v => v.BranchId == branchId.Value);
+                maintenanceQuery = maintenanceQuery.Where(m => m.BranchId == branchId.Value);
+                financeQuery = financeQuery.Where(f => f.BranchId == branchId.Value);
+                tripsQuery = tripsQuery.Where(r => r.BranchId == branchId.Value);
+            }
+
+            var vehicles = await vehiclesQuery.ToListAsync();
+            var maintenanceEntries = await maintenanceQuery.ToListAsync();
+            var financeEntries = await financeQuery.ToListAsync();
+            var trips = await tripsQuery.ToListAsync();
+
+            // Calculate total vehicles
+            var totalVehicles = vehicles.Count;
+
+            // Calculate active vehicles
+            var activeVehicles = vehicles.Count(v => v.Status == VehicleStatus.Active);
+
+            // Calculate pending maintenance (separate query since main query is for completed maintenance only)
+            var pendingMaintenanceQuery = _context.MaintenanceEntries
+                .AsNoTracking()
+                .Where(m => m.IsArchived != true);
+
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                pendingMaintenanceQuery = pendingMaintenanceQuery.Where(m => m.BranchId == branchId.Value);
+            }
+
+            var pendingMaintenance = (await pendingMaintenanceQuery.CountAsync(m => (m.Status ?? 0) == 0));
+
+            // Get fuel entries for fuel cost calculation
+            var fuelQuery = _context.FuelEntries
+                .AsNoTracking()
+                .Where(f => !f.IsArchived);
+
+            // Filter by branch for non-SuperAdmin users
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                fuelQuery = fuelQuery.Where(f => f.BranchId == null || f.BranchId == branchId.Value);
+            }
+
+            var fuelEntries = await fuelQuery.ToListAsync();
+
+            // Calculate total expenses (including finance, maintenance, and fuel)
+            var totalExpenses = financeEntries.Sum(f => f.Amount) + maintenanceEntries.Sum(m => m.Cost ?? 0) + fuelEntries.Sum(f => f.TotalCost);
+
+            // Calculate total trips
+            var totalTrips = trips.Count;
+
+            var totalFuelCost = fuelEntries.Sum(f => f.TotalCost);
 
             return new DashboardViewModel
             {
@@ -232,96 +144,182 @@ namespace RouteX.Controllers
                 ActiveVehicles = activeVehicles,
                 PendingMaintenance = pendingMaintenance,
                 TotalExpenses = totalExpenses,
-                RecentActivities = recentActivities
+                TotalTrips = totalTrips,
+                RecentActivities = await GetRecentActivitiesAsync(),
+                TotalFuelCost = totalFuelCost
             };
+        }
+
+        private async Task<List<RecentActivityItem>> GetRecentActivitiesAsync()
+        {
+            var activities = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(a => a.UserId != "SYSTEM")
+                .OrderByDescending(a => a.ActionDate)
+                .Take(10)
+                .Select(a => new RecentActivityItem
+                {
+                    Action = a.Action,
+                    UserId = a.UserId,
+                    ActionDate = a.ActionDate
+                })
+                .ToListAsync();
+
+            return activities;
         }
 
         private List<FuelConsumptionPoint> GetFuelConsumptionData()
         {
-            var startDate = DateTime.Today.AddDays(-29);
+            var (isSuperAdmin, branchId) = GetBranchContextAsync().GetAwaiter().GetResult();
+            var startDate = DateTime.Today.AddDays(-29); // Last 30 days
             var endDate = DateTime.Today.AddDays(1);
 
-            // Get fuel entries within the date range
-            var entries = _context.FuelEntries
-                .AsNoTracking()
-                .Where(f => !f.IsArchived && f.DateTime >= startDate && f.DateTime < endDate)
-                .Select(f => new { Date = f.DateTime.Date, f.TotalCost, f.Odometer })
-                .ToList();
+            // Debug logging
+            System.Diagnostics.Debug.WriteLine($"[FuelConsumption] isSuperAdmin: {isSuperAdmin}, branchId: {branchId}");
+            System.Diagnostics.Debug.WriteLine($"[FuelConsumption] Date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
 
-            // Group by date and sum TotalCost and Odometer values
-            var totalsByDate = entries
-                .GroupBy(e => e.Date)
-                .ToDictionary(
-                    g => g.Key,
-                    g => new
-                    {
-                        TotalSpend = g.Sum(x => x.TotalCost),
-                        TotalOdometer = g.Sum(x => x.Odometer)
-                    });
+            // Get fuel data from FinanceEntries (ExpenseType = Fuel)
+            var financeFuelQuery = _context.FinanceEntries
+                .AsNoTracking()
+                .Include(f => f.Vehicle)
+                .Where(f => !f.IsArchived 
+                    && f.ExpenseDate >= startDate 
+                    && f.ExpenseDate < endDate
+                    && (f.ExpenseType == "Fuel" || f.ExpenseType == "FUEL" || f.ExpenseType == "fuel"));
+
+            // Get fuel data from FuelEntries
+            var fuelEntriesQuery = _context.FuelEntries
+                .AsNoTracking()
+                .Include(f => f.Vehicle)
+                .Where(f => !f.IsArchived && f.DateTime >= startDate && f.DateTime < endDate);
+
+            // Filter by branch for non-SuperAdmin users
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                financeFuelQuery = financeFuelQuery.Where(f => f.BranchId == null || f.BranchId == branchId.Value);
+                fuelEntriesQuery = fuelEntriesQuery.Where(f => f.BranchId == null || f.BranchId == branchId.Value);
+            }
+
+            var financeFuelEntries = financeFuelQuery.ToList();
+            var fuelEntries = fuelEntriesQuery.ToList();
+
+            // Debug logging
+            System.Diagnostics.Debug.WriteLine($"[FuelConsumption] FinanceEntries count: {financeFuelEntries.Count}");
+            System.Diagnostics.Debug.WriteLine($"[FuelConsumption] FuelEntries count: {fuelEntries.Count}");
+
+            // Calculate distance traveled and total fuel spend by date
+            var distanceByDate = new Dictionary<DateTime, decimal>();
+            var spendByDate = new Dictionary<DateTime, decimal>();
+
+            // Process FinanceEntries fuel data (use Vehicle's odometer if available)
+            foreach (var entry in financeFuelEntries)
+            {
+                var date = entry.ExpenseDate.Date;
+                if (!spendByDate.ContainsKey(date))
+                    spendByDate[date] = 0;
+                spendByDate[date] += entry.Amount;
+            }
+
+            // Process FuelEntries data with odometer for distance calculation
+            var vehicleIds = fuelEntries.Select(e => e.VehicleId).Distinct().ToList();
+            
+            // Get last odometer reading before the date range for each vehicle
+            var previousOdometers = new Dictionary<int, decimal>();
+            foreach (var vid in vehicleIds)
+            {
+                var lastEntryBefore = _context.FuelEntries
+                    .AsNoTracking()
+                    .Where(f => f.VehicleId == vid && f.DateTime < startDate && !f.IsArchived)
+                    .OrderByDescending(f => f.DateTime)
+                    .Select(f => (decimal?)f.Odometer)
+                    .FirstOrDefault();
+                
+                previousOdometers[vid] = lastEntryBefore ?? 0;
+            }
+            
+            var vehicleGroups = fuelEntries.GroupBy(e => e.VehicleId).ToList();
+            foreach (var vehicleGroup in vehicleGroups)
+            {
+                var vehicleId = vehicleGroup.Key;
+                var vehicleEntries = vehicleGroup.OrderBy(e => e.DateTime).ToList();
+                decimal previousOdometer = previousOdometers.ContainsKey(vehicleId) ? previousOdometers[vehicleId] : 0;
+                
+                foreach (var entry in vehicleEntries)
+                {
+                    var date = entry.DateTime.Date;
+                    var currentOdometer = (decimal)entry.Odometer;
+                    var distance = previousOdometer > 0 && currentOdometer > previousOdometer 
+                        ? currentOdometer - previousOdometer 
+                        : 0;
+                    
+                    if (!distanceByDate.ContainsKey(date))
+                        distanceByDate[date] = 0;
+                    if (!spendByDate.ContainsKey(date))
+                        spendByDate[date] = 0;
+                        
+                    distanceByDate[date] += distance;
+                    spendByDate[date] += entry.TotalCost;
+                    
+                    previousOdometer = currentOdometer;
+                }
+            }
 
             var data = new List<FuelConsumptionPoint>();
-            for (var i = 0; i < 30; i++)
+            for (var i = 0; i < 30; i++) // 30 days of data points
             {
                 var date = startDate.AddDays(i);
-                totalsByDate.TryGetValue(date, out var totals);
-
+                
                 data.Add(new FuelConsumptionPoint
                 {
                     Date = date.ToString("MMM dd"),
-                    TotalFuelSpend = (double)(totals?.TotalSpend ?? 0),
-                    DistanceTraveled = totals?.TotalOdometer ?? 0
+                    TotalFuelSpend = (double)(spendByDate.ContainsKey(date) ? spendByDate[date] : 0m),
+                    DistanceTraveled = distanceByDate.ContainsKey(date) ? distanceByDate[date] : 0m
                 });
             }
-
             return data;
         }
 
         private List<VehicleStatusData> GetVehicleStatusData()
         {
-            var vehicles = _context.Vehicles
+            var (isSuperAdmin, branchId) = GetBranchContextAsync().GetAwaiter().GetResult();
+
+            var vehiclesQuery = _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
-                .ToList();
+                .Where(v => isSuperAdmin || v.BranchId == branchId);
+
+            var vehicles = vehiclesQuery.ToList();
 
             var totalVehicles = vehicles.Count;
-            if (totalVehicles == 0)
-            {
-                return new List<VehicleStatusData>
-                {
-                    new VehicleStatusData { Status = "Active", Count = 0, Percentage = 0 },
-                    new VehicleStatusData { Status = "Maintenance", Count = 0, Percentage = 0 },
-                    new VehicleStatusData { Status = "Inactive", Count = 0, Percentage = 0 }
-                };
-            }
-
             var activeCount = vehicles.Count(v => v.Status == VehicleStatus.Active);
             var maintenanceCount = vehicles.Count(v => v.Status == VehicleStatus.Maintenance);
             var inactiveCount = vehicles.Count(v => v.Status == VehicleStatus.Inactive);
 
             return new List<VehicleStatusData>
             {
-                new VehicleStatusData { Status = "Active", Count = activeCount, Percentage = (int)Math.Round((double)activeCount / totalVehicles * 100) },
-                new VehicleStatusData { Status = "Maintenance", Count = maintenanceCount, Percentage = (int)Math.Round((double)maintenanceCount / totalVehicles * 100) },
-                new VehicleStatusData { Status = "Inactive", Count = inactiveCount, Percentage = (int)Math.Round((double)inactiveCount / totalVehicles * 100) }
+                new VehicleStatusData { Status = "Active", Count = activeCount, Percentage = totalVehicles > 0 ? (int)Math.Round((double)activeCount / totalVehicles * 100) : 0 },
+                new VehicleStatusData { Status = "Maintenance", Count = maintenanceCount, Percentage = totalVehicles > 0 ? (int)Math.Round((double)maintenanceCount / totalVehicles * 100) : 0 },
+                new VehicleStatusData { Status = "Inactive", Count = inactiveCount, Percentage = totalVehicles > 0 ? (int)Math.Round((double)inactiveCount / totalVehicles * 100) : 0 }
             };
         }
 
         private List<ActiveVehicleData> GetMostActiveVehicles()
         {
+            var (isSuperAdmin, branchId) = GetBranchContextAsync().GetAwaiter().GetResult();
+
             var mileageByVehicleId = _context.RouteTrips
                 .AsNoTracking()
-                .Where(r => r.Status == RouteTripStatus.Completed)
+                .Where(r => r.Status == RouteTripStatus.Completed) // Match VehiclesController logic
+                .Where(r => isSuperAdmin || r.BranchId == null || r.BranchId == branchId)
                 .GroupBy(r => r.VehicleId)
-                .Select(group => new
-                {
-                    VehicleId = group.Key,
-                    TotalKm = group.Sum(r => r.DistanceKm ?? 0m)
-                })
-                .ToDictionary(item => item.VehicleId, item => item.TotalKm);
+                .Select(g => new { VehicleId = g.Key, TotalKm = g.Sum(r => r.DistanceKm) })
+                .ToList()
+                .ToDictionary(g => g.VehicleId, g => g.TotalKm);
 
             var vehicles = _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == branchId)
                 .ToList();
 
             var topVehicles = vehicles
@@ -337,11 +335,167 @@ namespace RouteX.Controllers
                     Rank = index + 1,
                     PlateNumber = x.Vehicle.PlateNumber,
                     UnitModel = x.Vehicle.UnitModel,
-                    DistanceKm = (int)x.Mileage
+                    DistanceKm = (int)(x.Mileage ?? 0m)
                 })
                 .ToList();
 
             return topVehicles;
+        }
+
+        public async Task<IActionResult> FinanceDashboard()
+        {
+            var (isSuperAdmin, branchId) = await GetBranchContextAsync();
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+
+            // Get finance-specific data
+            var financeViewModel = await GetFinanceDashboardDataAsync();
+            return View("FinanceDashboard", financeViewModel);
+        }
+
+        public async Task<IActionResult> OpStaffDashboard()
+        {
+            var (isSuperAdmin, branchId) = await GetBranchContextAsync();
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+
+            // Get operations-specific data
+            var opsViewModel = await GetOpStaffDashboardDataAsync();
+            return View("OpStaffDashboard", opsViewModel);
+        }
+
+        private async Task<FinanceDashboardViewModel> GetFinanceDashboardDataAsync()
+        {
+            var (isSuperAdmin, branchId) = await GetBranchContextAsync();
+
+            // Get finance entries
+            var financeQuery = _context.FinanceEntries
+                .AsNoTracking()
+                .Where(f => !f.IsArchived);
+
+            // Get maintenance entries
+            var maintenanceQuery = _context.MaintenanceEntries
+                .AsNoTracking()
+                .Where(m => m.IsArchived != true);
+
+            // Get fuel entries
+            var fuelQuery = _context.FuelEntries
+                .AsNoTracking()
+                .Where(f => !f.IsArchived);
+
+            // Filter by branch for non-SuperAdmin users
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                financeQuery = financeQuery.Where(f => f.BranchId == null || f.BranchId == branchId.Value);
+                maintenanceQuery = maintenanceQuery.Where(m => m.BranchId == null || m.BranchId == branchId.Value);
+                fuelQuery = fuelQuery.Where(f => f.BranchId == null || f.BranchId == branchId.Value);
+            }
+
+            var financeEntries = await financeQuery.ToListAsync();
+            var maintenanceEntries = await maintenanceQuery.ToListAsync();
+            var fuelEntries = await fuelQuery.ToListAsync();
+
+            // Create recent expenses
+            var recentExpenses = new List<RecentExpenseItem>();
+            
+            // Add finance entries
+            recentExpenses.AddRange(financeEntries.Select(f => new RecentExpenseItem
+            {
+                Category = "Finance",
+                Vehicle = f.Vehicle?.UnitModel ?? "Unknown",
+                Amount = f.Amount,
+                Date = f.ExpenseDate,
+                Description = f.Description
+            }));
+
+            // Add maintenance entries
+            recentExpenses.AddRange(maintenanceEntries.Select(m => new RecentExpenseItem
+            {
+                Category = "Maintenance",
+                Vehicle = $"{m.UnitModel} ({m.PlateNumber})",
+                Amount = m.Cost ?? 0,
+                Date = m.Date ?? DateTime.MinValue,
+                Description = m.Description
+            }));
+
+            // Add fuel entries
+            recentExpenses.AddRange(fuelEntries.Select(f => new RecentExpenseItem
+            {
+                Category = "Fuel",
+                Vehicle = $"{f.UnitModel} ({f.PlateNumber})",
+                Amount = f.TotalCost,
+                Date = f.Date,
+                Description = $"{f.Liters}L at {f.FuelStation}"
+            }));
+
+            // Sort by date and take recent ones
+            var recentItems = recentExpenses
+                .OrderByDescending(e => e.Date)
+                .Take(10)
+                .ToList();
+
+            // Create cost comparison
+            var totalFuelCost = fuelEntries.Sum(f => f.TotalCost);
+            var totalMaintenanceCost = maintenanceEntries.Sum(m => m.Cost ?? 0);
+            var totalFinanceCost = financeEntries.Sum(f => f.Amount);
+
+            var costComparison = new List<CostComparisonItem>
+            {
+                new CostComparisonItem { Category = "Fuel", Amount = totalFuelCost },
+                new CostComparisonItem { Category = "Maintenance", Amount = totalMaintenanceCost },
+                new CostComparisonItem { Category = "Other Expenses", Amount = totalFinanceCost }
+            };
+
+            return new FinanceDashboardViewModel
+            {
+                FuelConsumptionData = GetFuelConsumptionData(),
+                RecentExpenses = recentItems,
+                CostComparison = costComparison
+            };
+        }
+
+        private async Task<OpStaffDashboardViewModel> GetOpStaffDashboardDataAsync()
+        {
+            var (isSuperAdmin, branchId) = await GetBranchContextAsync();
+
+            // Get vehicles
+            var vehiclesQuery = _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived);
+
+            // Get trips (completed trips only, not just all trip history)
+            var tripsQuery = _context.RouteTrips
+                .AsNoTracking()
+                .Where(r => r.Status == RouteTripStatus.Completed);
+
+            // Filter by branch for non-SuperAdmin users
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                vehiclesQuery = vehiclesQuery.Where(v => v.BranchId == branchId.Value);
+                tripsQuery = tripsQuery.Where(r => r.BranchId == branchId.Value);
+            }
+
+            var vehicles = await vehiclesQuery.ToListAsync();
+            var trips = await tripsQuery.ToListAsync();
+
+            // Categorize vehicles correctly
+            var activeVehicles = vehicles.Where(v => v.Status == VehicleStatus.Active).ToList();
+            var inactiveVehicles = vehicles.Where(v => v.Status == VehicleStatus.Inactive).ToList();
+            var maintenanceVehicles = vehicles.Where(v => v.Status == VehicleStatus.Maintenance).ToList();
+
+            // Get most active vehicles by total mileage
+            var mostActiveVehicles = GetMostActiveVehiclesForBranch(isSuperAdmin, branchId);
+
+            // Get total trips count
+            var totalTrips = trips.Count;
+
+            return new OpStaffDashboardViewModel
+            {
+                ActiveVehicles = activeVehicles,
+                InactiveVehicles = inactiveVehicles,
+                MaintenanceVehicles = maintenanceVehicles,
+                VehicleStatusData = GetVehicleStatusDataForBranch(isSuperAdmin, branchId),
+                MostActiveVehicles = mostActiveVehicles,
+                TotalTrips = totalTrips
+            };
         }
 
         public IActionResult Privacy()
@@ -349,71 +503,65 @@ namespace RouteX.Controllers
             return View();
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        private List<ActiveVehicleData> GetMostActiveVehiclesForBranch(bool isSuperAdmin, int? branchId)
+        {
+            var mileageByVehicleId = _context.RouteTrips
+                .AsNoTracking()
+                .Where(r => r.Status == RouteTripStatus.Completed) // Match VehiclesController logic
+                .Where(r => isSuperAdmin || r.BranchId == null || r.BranchId == branchId)
+                .GroupBy(r => r.VehicleId)
+                .Select(g => new { VehicleId = g.Key, TotalKm = g.Sum(r => r.DistanceKm) })
+                .ToList()
+                .ToDictionary(g => g.VehicleId, g => g.TotalKm);
+
+            var vehicles = _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == branchId)
+                .ToList();
+
+            var topVehicles = vehicles
+                .Select(v => new
+                {
+                    Vehicle = v,
+                    Mileage = mileageByVehicleId.TryGetValue(v.Id, out var km) ? km : 0m
+                })
+                .OrderByDescending(x => x.Mileage)
+                .Take(5)
+                .Select((x, index) => new ActiveVehicleData
+                {
+                    Rank = index + 1,
+                    PlateNumber = x.Vehicle.PlateNumber,
+                    UnitModel = x.Vehicle.UnitModel,
+                    DistanceKm = (int)(x.Mileage ?? 0m)
+                })
+                .ToList();
+
+            return topVehicles;
+        }
+
+        private List<VehicleStatusData> GetVehicleStatusDataForBranch(bool isSuperAdmin, int? branchId)
+        {
+            var vehiclesQuery = _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == branchId);
+
+            var vehicles = vehiclesQuery.ToList();
+            
+            var statusData = new List<VehicleStatusData>
+            {
+                new VehicleStatusData { Status = "Active", Count = vehicles.Count(v => v.Status == VehicleStatus.Active) },
+                new VehicleStatusData { Status = "Inactive", Count = vehicles.Count(v => v.Status == VehicleStatus.Inactive) },
+                new VehicleStatusData { Status = "Maintenance", Count = vehicles.Count(v => v.Status == VehicleStatus.Maintenance) }
+            };
+
+            return statusData;
+        }
+
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View(new ErrorViewModel { RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
-    }
-
-    public class DashboardViewModel
-    {
-        public List<FuelConsumptionPoint> FuelConsumptionData { get; set; } = null!;
-        public List<VehicleStatusData> VehicleStatusData { get; set; } = null!;
-        public List<ActiveVehicleData> MostActiveVehicles { get; set; } = null!;
-        public List<RecentActivityItem> RecentActivities { get; set; } = new();
-        public int TotalVehicles { get; set; }
-        public int ActiveVehicles { get; set; }
-        public int PendingMaintenance { get; set; }
-        public decimal TotalExpenses { get; set; }
-    }
-
-    public class RecentActivityItem
-    {
-        public string Action { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public DateTime ActionDate { get; set; }
-
-        public string GetRelativeTime()
-        {
-            var now = DateTime.UtcNow;
-            var diff = now - ActionDate;
-
-            if (diff.TotalSeconds < 60)
-                return $"{(int)diff.TotalSeconds} seconds ago";
-            if (diff.TotalMinutes < 60)
-                return $"{(int)diff.TotalMinutes} minute{((int)diff.TotalMinutes != 1 ? "s" : "")} ago";
-            if (diff.TotalHours < 24)
-                return $"{(int)diff.TotalHours} hour{((int)diff.TotalHours != 1 ? "s" : "")} ago";
-            if (diff.TotalDays < 7)
-                return $"{(int)diff.TotalDays} day{((int)diff.TotalDays != 1 ? "s" : "")} ago";
-            if (diff.TotalDays < 30)
-                return $"{(int)(diff.TotalDays / 7)} week{((int)(diff.TotalDays / 7) != 1 ? "s" : "")} ago";
-            if (diff.TotalDays < 365)
-                return $"{(int)(diff.TotalDays / 30)} month{((int)(diff.TotalDays / 30) != 1 ? "s" : "")} ago";
-            return $"{(int)(diff.TotalDays / 365)} year{((int)(diff.TotalDays / 365) != 1 ? "s" : "")} ago";
-        }
-    }
-
-    public class FuelConsumptionPoint
-    {
-        public string Date { get; set; } = string.Empty;
-        public double TotalFuelSpend { get; set; }
-        public int DistanceTraveled { get; set; }
-    }
-
-    public class VehicleStatusData
-    {
-        public string Status { get; set; } = string.Empty;
-        public int Count { get; set; }
-        public int Percentage { get; set; }
-    }
-
-    public class ActiveVehicleData
-    {
-        public int Rank { get; set; }
-        public string PlateNumber { get; set; } = string.Empty;
-        public string UnitModel { get; set; } = string.Empty;
-        public int DistanceKm { get; set; }
     }
 }

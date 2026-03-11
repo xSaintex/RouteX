@@ -1,0 +1,436 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using RouteX.Data;
+using RouteX.Models;
+using RouteX.Services;
+
+namespace RouteX.Controllers
+{
+    public class FuelController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly IAuditService _auditService;
+        private readonly IFuelPriceService _fuelPriceService;
+        private readonly ITextFormattingService _textFormattingService;
+
+        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService, ITextFormattingService textFormattingService)
+        {
+            _context = context;
+            _auditService = auditService;
+            _fuelPriceService = fuelPriceService;
+            _textFormattingService = textFormattingService;
+        }
+
+        public async Task<IActionResult> FuelPage()
+        {
+            ViewData["Title"] = "Fuel Management";
+
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            var query = _context.FuelEntries
+                .AsNoTracking()
+                .Include(f => f.Vehicle)
+                .Where(f => !f.IsArchived);
+
+            // Filter by branch if not SuperAdmin
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                query = query.Where(f => f.BranchId == userBranchId.Value);
+            }
+
+            var fuelEntries = await query
+                .OrderByDescending(f => f.Id)
+                .ToListAsync();
+
+            return View(fuelEntries);
+        }
+
+        // GET: Fuel/AddFuel
+        public async Task<IActionResult> AddFuel()
+        {
+            ViewData["Title"] = "Add Fuel";
+
+            // Get user's branch for filtering
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var userBranchId = user?.BranchId;
+            var isSuperAdmin = HttpContext.Session.GetString("UserRole")?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+            var vehicleQuery = _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived);
+
+            // Filter vehicles by branch if not SuperAdmin
+            if (!isSuperAdmin && userBranchId.HasValue)
+            {
+                vehicleQuery = vehicleQuery.Where(v => v.BranchId == userBranchId.Value);
+            }
+
+            var activeVehicles = await vehicleQuery.ToListAsync();
+
+            ViewBag.Vehicles = activeVehicles;
+            ViewBag.UserBranchId = userBranchId;
+
+            return View();
+        }
+
+        // POST: Fuel/AddFuel
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddFuel(FuelEntry fuelEntry)
+        {
+            // Apply auto-capitalization to text fields
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
+                fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelStation))
+                fuelEntry.FuelStation = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelStation);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelType))
+                fuelEntry.FuelType = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelType);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
+                fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
+
+            // Debug: Log ModelState errors
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                Console.WriteLine("ModelState errors: " + string.Join(", ", errors));
+                TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // Auto-assign branch from user
+                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                    if (user?.BranchId.HasValue == true)
+                    {
+                        fuelEntry.BranchId = user.BranchId;
+                    }
+
+                    // Set legacy properties for backward compatibility
+                    var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
+                    if (vehicle != null)
+                    {
+                        fuelEntry.UnitModel = vehicle.UnitModel;
+                        fuelEntry.PlateNumber = vehicle.PlateNumber;
+                    }
+                    fuelEntry.Date = fuelEntry.DateTime.Date;
+                    fuelEntry.IsArchived = false;
+
+                    // Use raw SQL to avoid OUTPUT clause issues with triggers
+                    var sql = @"INSERT INTO FuelEntries (VehicleId, Driver, DateTime, FuelStation, Odometer, Liters, TotalCost, FuelType, FullTank, Notes, IsArchived, UnitModel, PlateNumber, Date, BranchId)
+                              VALUES (@VehicleId, @Driver, @DateTime, @FuelStation, @Odometer, @Liters, @TotalCost, @FuelType, @FullTank, @Notes, @IsArchived, @UnitModel, @PlateNumber, @Date, @BranchId);
+                              SELECT CAST(SCOPE_IDENTITY() as int);";
+                    
+                    var parameters = new[]
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", fuelEntry.VehicleId),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Driver", fuelEntry.Driver),
+                        new Microsoft.Data.SqlClient.SqlParameter("@DateTime", fuelEntry.DateTime),
+                        new Microsoft.Data.SqlClient.SqlParameter("@FuelStation", fuelEntry.FuelStation),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Odometer", fuelEntry.Odometer),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Liters", fuelEntry.Liters),
+                        new Microsoft.Data.SqlClient.SqlParameter("@TotalCost", fuelEntry.TotalCost),
+                        new Microsoft.Data.SqlClient.SqlParameter("@FuelType", fuelEntry.FuelType),
+                        new Microsoft.Data.SqlClient.SqlParameter("@FullTank", fuelEntry.FullTank),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Notes", fuelEntry.Notes ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", fuelEntry.IsArchived),
+                        new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", fuelEntry.UnitModel),
+                        new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", fuelEntry.PlateNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date),
+                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", (object?)fuelEntry.BranchId ?? DBNull.Value)
+                    };
+                    
+                    var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+                    fuelEntry.Id = id;
+
+                    // Create corresponding finance entry
+                    await CreateFinanceEntryFromFuel(fuelEntry);
+
+                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    await _auditService.LogActionAsync(actingUser, $"Create:Fuel:{fuelEntry.Id}");
+                     
+                    TempData["Success"] = "Fuel record added successfully!";
+                    TempData["RecentFuelId"] = fuelEntry.Id; // Track recently added fuel entry
+                    TempData["RecentFuelAction"] = "Added"; // Track action type
+                    return RedirectToAction(nameof(FuelPage));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error adding fuel entry: " + ex.Message);
+                    TempData["Error"] = "Error adding fuel entry: " + ex.Message;
+                }
+            }
+
+            // Reload vehicles for dropdown
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .ToListAsync();
+            ViewBag.Vehicles = activeVehicles;
+            return View(fuelEntry);
+        }
+
+        // GET: Fuel/EditFuel/5
+        public async Task<IActionResult> EditFuel(int id)
+        {
+            ViewData["Title"] = "Edit Fuel";
+            
+            var fuelEntry = await _context.FuelEntries
+                .Include(f => f.Vehicle)
+                .FirstOrDefaultAsync(f => f.Id == id);
+            if (fuelEntry == null)
+            {
+                return NotFound();
+            }
+            
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .ToListAsync();
+            
+            ViewBag.Vehicles = activeVehicles;
+            return View(fuelEntry);
+        }
+
+        // POST: Fuel/EditFuel/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditFuel(int id, FuelEntry fuelEntry)
+        {
+            // Apply auto-capitalization to text fields
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
+                fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelStation))
+                fuelEntry.FuelStation = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelStation);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.FuelType))
+                fuelEntry.FuelType = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelType);
+            
+            if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
+                fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
+
+            // Debug: Log ModelState errors
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                Console.WriteLine("Edit ModelState errors: " + string.Join(", ", errors));
+                TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
+            }
+
+            if (id != fuelEntry.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // Update legacy properties for backward compatibility
+                    var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
+                    if (vehicle != null)
+                    {
+                        fuelEntry.UnitModel = vehicle.UnitModel;
+                        fuelEntry.PlateNumber = vehicle.PlateNumber;
+                    }
+                    fuelEntry.Date = fuelEntry.DateTime.Date;
+
+                    // Use raw SQL to avoid OUTPUT clause issues with triggers
+                    var sql = @"UPDATE FuelEntries 
+                              SET VehicleId = @VehicleId, Driver = @Driver, DateTime = @DateTime, FuelStation = @FuelStation,
+                                  Odometer = @Odometer, Liters = @Liters, TotalCost = @TotalCost, FuelType = @FuelType,
+                                  FullTank = @FullTank, Notes = @Notes, UnitModel = @UnitModel, PlateNumber = @PlateNumber, Date = @Date
+                              WHERE Id = @Id";
+                    
+                    var parameters = new[]
+                    {
+                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", fuelEntry.VehicleId),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Driver", fuelEntry.Driver),
+                        new Microsoft.Data.SqlClient.SqlParameter("@DateTime", fuelEntry.DateTime),
+                        new Microsoft.Data.SqlClient.SqlParameter("@FuelStation", fuelEntry.FuelStation),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Odometer", fuelEntry.Odometer),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Liters", fuelEntry.Liters),
+                        new Microsoft.Data.SqlClient.SqlParameter("@TotalCost", fuelEntry.TotalCost),
+                        new Microsoft.Data.SqlClient.SqlParameter("@FuelType", fuelEntry.FuelType),
+                        new Microsoft.Data.SqlClient.SqlParameter("@FullTank", fuelEntry.FullTank),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Notes", fuelEntry.Notes ?? (object)DBNull.Value),
+                        new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", fuelEntry.UnitModel),
+                        new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", fuelEntry.PlateNumber),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date),
+                        new Microsoft.Data.SqlClient.SqlParameter("@Id", fuelEntry.Id)
+                    };
+                    
+                    await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+
+                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    await _auditService.LogActionAsync(actingUser, $"Update:Fuel:{fuelEntry.Id}");
+                    
+                    TempData["Success"] = "Fuel record updated successfully!";
+                    TempData["RecentFuelId"] = fuelEntry.Id; // Track recently edited fuel entry
+                    TempData["RecentFuelAction"] = "Edited"; // Track action type
+                    return RedirectToAction(nameof(FuelPage));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error updating fuel entry: " + ex.Message);
+                    TempData["Error"] = "Error updating fuel entry: " + ex.Message;
+                }
+            }
+
+            // Reload vehicles for dropdown
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .ToListAsync();
+            ViewBag.Vehicles = activeVehicles;
+            return View(fuelEntry);
+        }
+
+        // GET: Fuel/ViewFuel/5
+        public async Task<IActionResult> ViewFuel(int id)
+        {
+            ViewData["Title"] = "View Fuel";
+            
+            var fuelEntry = await _context.FuelEntries
+                .Include(f => f.Vehicle)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Id == id);
+            if (fuelEntry == null)
+            {
+                return NotFound();
+            }
+            
+            var activeVehicles = await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => !v.IsArchived)
+                .ToListAsync();
+            
+            ViewBag.Vehicles = activeVehicles;
+            return View(fuelEntry);
+        }
+
+        // POST: Fuel/ArchiveFuel/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ArchiveFuel(int id)
+        {
+            var fuelEntry = await _context.FuelEntries.FindAsync(id);
+            if (fuelEntry == null)
+            {
+                return Json(new { success = false, message = "Fuel entry not found." });
+            }
+
+            try
+            {
+                var sql = "UPDATE FuelEntries SET IsArchived = 1 WHERE Id = @Id";
+                var parameters = new[]
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@Id", fuelEntry.Id)
+                };
+
+                await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+
+                var financeSql = "UPDATE FinanceEntries SET IsArchived = 1 WHERE ReferenceId = @Id AND (ExpenseType = 'Fuel' OR ExpenseType = 'FUEL')";
+                await _context.Database.ExecuteSqlRawAsync(financeSql, parameters);
+
+                var archivedBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+                await _auditService.LogActionAsync(archivedBy, $"Archive:Fuel:{fuelEntry.Id}");
+
+                return Json(new { success = true, message = $"{fuelEntry.Liters}L fuel entry has been archived successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error archiving fuel entry: {ex.Message}" });
+            }
+        }
+
+        // GET: Fuel/GetCurrentPrices
+        [HttpGet]
+        public async Task<JsonResult> GetCurrentPrices()
+        {
+            try
+            {
+                var prices = await _fuelPriceService.GetAllFuelPricesAsync();
+                return Json(new { success = true, prices, lastUpdated = DateTime.Now });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // GET: Fuel/GetPrice/{fuelType}
+        [HttpGet]
+        public async Task<JsonResult> GetPrice(string fuelType)
+        {
+            try
+            {
+                var price = await _fuelPriceService.GetCurrentFuelPriceAsync(fuelType);
+                return Json(new { success = true, price, fuelType, lastUpdated = DateTime.Now });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // POST: Fuel/RefreshPrices
+        [HttpPost]
+        public async Task<JsonResult> RefreshPrices()
+        {
+            try
+            {
+                _fuelPriceService.ClearCache();
+                var prices = await _fuelPriceService.GetAllFuelPricesAsync();
+                return Json(new { success = true, prices, lastUpdated = DateTime.Now, message = "Fuel prices refreshed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        private async Task CreateFinanceEntryFromFuel(FuelEntry fuelEntry)
+        {
+            try
+            {
+                var financeEntry = new FinanceEntry
+                {
+                    VehicleId = fuelEntry.VehicleId,
+                    ExpenseType = "Fuel",
+                    Amount = fuelEntry.TotalCost,
+                    ExpenseDate = fuelEntry.DateTime,
+                    Description = !string.IsNullOrEmpty(fuelEntry.Notes) ? fuelEntry.Notes : "Fuel purchase",
+                    ReferenceId = fuelEntry.Id,
+                    IsArchived = false
+                };
+
+                _context.FinanceEntries.Add(financeEntry);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the fuel entry creation
+                Console.WriteLine($"Error creating finance entry from fuel: {ex.Message}");
+            }
+        }
+    }
+}

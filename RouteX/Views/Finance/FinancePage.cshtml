@@ -78,8 +78,9 @@
     background: #ff6b35;
 }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
-.pagination-controls { margin-left: auto; justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.table-pagination { display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:8px; }
+.pagination-info { margin-right: auto; color:#333; font-size:0.75rem; }
+.pagination-controls { justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
 .pagination-info { color:#333; font-size:0.75rem; }
 .table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
 .table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
@@ -173,6 +174,10 @@
                         <th>Amount</th>
                         <th>Expense Date</th>
                         <th>Description</th>
+                        @if (isSuperAdmin)
+                        {
+                            <th>Branch</th>
+                        }
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -205,6 +210,10 @@
                             <td class="cost-highlight">@expense.Amount.ToString("C", new System.Globalization.CultureInfo("en-PH"))</td>
                             <td>@expense.ExpenseDate.ToString("MMM dd, yyyy")</td>
                             <td>@expense.Description</td>
+                            @if (isSuperAdmin)
+                            {
+                                <td>@(expense.Branch?.BranchName ?? "Unknown Branch")</td>
+                            }
                             <td>
                                 <div class="action-buttons">
                                     @{
@@ -258,7 +267,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="8">
+                        <td colspan="@(isSuperAdmin ? 9 : 8)">
                             <div class="table-pagination" style="display:flex; justify-content:space-between; align-items:center;">
                                 <div class="pagination-info">Showing 0 of 0 entries</div>
                                 <div class="pagination-controls">

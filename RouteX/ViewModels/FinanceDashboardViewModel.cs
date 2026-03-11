@@ -2,7 +2,7 @@ namespace RouteX.ViewModels
 {
     public class FinanceDashboardViewModel
     {
-        public List<RouteX.Controllers.FuelConsumptionPoint> FuelConsumptionData { get; set; } = new();
+        public List<FuelConsumptionPoint> FuelConsumptionData { get; set; } = new();
         public List<RecentExpenseItem> RecentExpenses { get; set; } = new();
         public List<CostComparisonItem> CostComparison { get; set; } = new();
     }

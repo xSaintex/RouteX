@@ -29,10 +29,12 @@
 .btn-apply { background:#ff7a00; color: #fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 .btn-clear { background:#111; color:#fff; border: none; padding:5px 10px; border-radius:4px; font-size:0.75rem; }
 
-.table-pagination { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-top:8px; }
-.pagination-info { color:#333; font-size:0.75rem; }
-.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; }
+.table-pagination { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:8px; }
+.pagination-info { margin-right: auto; color:#333; font-size:0.75rem; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; margin:0 2px; }
 .table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
+.table-pagination .page-numbers { display:flex; gap:2px; }
+.pagination-controls { justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
 
 /* Archive button style */
 .archive-btn { color: #6c757d; }
@@ -213,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const pageNumbers = document.querySelector('.pagination-controls .page-numbers');
         pageNumbers.innerHTML = '';
+        pageNumbers.className = 'page-numbers';
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
             btn.type = 'button';

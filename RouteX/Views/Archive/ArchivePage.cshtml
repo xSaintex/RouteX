@@ -260,6 +260,7 @@
                         <option value="Fuel">Fuel</option>
                         <option value="Maintenance">Maintenance</option>
                         <option value="Finance">Finance</option>
+                        <option value="Budget">Budget</option>
                         <option value="Trip">Trip</option>
                         <option value="User">User</option>
                     </select>
@@ -309,7 +310,7 @@
             </tbody>
         </table>
 
-        @if (!Model.ArchivedVehicles.Any() && !Model.ArchivedFuel.Any() && !Model.ArchivedMaintenance.Any() && !Model.ArchivedFinance.Any() && !Model.ArchivedUsers.Any() && !Model.ArchivedTrips.Any())
+        @if (!Model.ArchivedVehicles.Any() && !Model.ArchivedFuel.Any() && !Model.ArchivedMaintenance.Any() && !Model.ArchivedFinance.Any() && !Model.ArchivedUsers.Any() && !Model.ArchivedTrips.Any() && !Model.ArchiveItems.Any(i => i.Category == "Budget"))
         {
             <div class="empty-state">
                 <i class="fas fa-archive"></i>
@@ -361,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowCategory = (row.getAttribute('data-category') || '').toLowerCase();
             const rowDate = row.getAttribute('data-date');
 
-            const matchesSearch = !searchTerm || text.includes(searchTerm);
+            const matchesSearch = !searchTerm || searchTerm.length === 0 || text.includes(searchTerm);
             const matchesCategory = !selectedCategory || rowCategory === selectedCategory;
             const matchesDateRange = (!startDate || rowDate >= startDate) && (!endDate || rowDate <= endDate);
 

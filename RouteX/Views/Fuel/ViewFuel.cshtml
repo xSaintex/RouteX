@@ -203,12 +203,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                 <label for="vehicle">Vehicle</label>
                 <select id="vehicle" disabled>
                     @{
-    Vehicle selectedVehicle = null;
-    if (ViewBag.Vehicles != null && Model != null && Model.VehicleId != 0)
+    Vehicle? selectedVehicle = null;
+    if (ViewBag?.Vehicles != null && Model != null && Model.VehicleId != 0)
     {
-        foreach (Vehicle vehicle in ViewBag.Vehicles)
+        foreach (Vehicle? vehicle in ViewBag.Vehicles)
         {
-            if (vehicle.Id == Model.VehicleId)
+            if (vehicle?.Id == Model.VehicleId)
             {
                 selectedVehicle = vehicle;
                 break;

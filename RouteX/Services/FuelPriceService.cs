@@ -60,7 +60,7 @@ namespace RouteX.Services
         {
             var cacheKey = "AllFuelPrices";
             
-            if (_cache.TryGetValue(cacheKey, out Dictionary<string, decimal> cachedPrices))
+            if (_cache.TryGetValue(cacheKey, out Dictionary<string, decimal>? cachedPrices))
             {
                 _logger.LogDebug("Returning cached fuel prices");
                 return cachedPrices;
@@ -98,11 +98,11 @@ namespace RouteX.Services
 
                 var prices = new Dictionary<string, decimal>
                 {
-                    ["Regular"] = fuelData.Prices.Regular ?? 0m,
-                    ["Premium"] = fuelData.Prices.Premium ?? 0m,
-                    ["Diesel"] = fuelData.Prices.Diesel ?? 0m,
-                    ["Unleaded"] = fuelData.Prices.Unleaded ?? 0m,
-                    ["Ethanol"] = fuelData.Prices.Ethanol ?? 0m
+                    ["Regular"] = fuelData.Prices?.Regular ?? 0m,
+                    ["Premium"] = fuelData.Prices?.Premium ?? 0m,
+                    ["Diesel"] = fuelData.Prices?.Diesel ?? 0m,
+                    ["Unleaded"] = fuelData.Prices?.Unleaded ?? 0m,
+                    ["Ethanol"] = fuelData.Prices?.Ethanol ?? 0m,
                 };
 
                 // Cache the result

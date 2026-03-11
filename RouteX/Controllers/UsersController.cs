@@ -35,6 +35,11 @@ namespace RouteX.Controllers
         // GET: Users
         public async Task<IActionResult> UsersPage()
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             var users = await _context.Users
                 .AsNoTracking()
                 .Where(u => u.Status != UserStatus.Archived.ToString())
@@ -126,6 +131,11 @@ namespace RouteX.Controllers
         // GET: Users/AddUser
         public async Task<IActionResult> AddUser()
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             ViewData["Title"] = "Add User";
 
             // Get active roles from RolesController sample data
@@ -153,6 +163,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddUser(CreateUserViewModel viewModel)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             if (ModelState.IsValid)
             {
                 var existingIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
@@ -242,6 +257,11 @@ namespace RouteX.Controllers
         // GET: Users/EditUser/5
         public async Task<IActionResult> EditUser(int id)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             ViewData["Title"] = "Edit User";
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
             if (user == null)
@@ -272,6 +292,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditUser(EditUserViewModel viewModel)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             if (ModelState.IsValid)
             {
                 var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == viewModel.UserId);
@@ -353,6 +378,11 @@ namespace RouteX.Controllers
         // GET: Users/ViewUser/5
         public async Task<IActionResult> ViewUser(int id)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             ViewData["Title"] = "View User";
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
             if (user == null)
@@ -368,6 +398,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveUser(int id)
         {
+            if (!IsSuperAdmin())
+            {
+                return Json(new { success = false, message = "Only SuperAdmin can manage users." });
+            }
+
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
             if (user == null)
             {
@@ -397,6 +432,12 @@ namespace RouteX.Controllers
         private Task ArchiveNonProtectedUsersAsync()
         {
             return Task.CompletedTask;
+        }
+
+        private bool IsSuperAdmin()
+        {
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            return userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

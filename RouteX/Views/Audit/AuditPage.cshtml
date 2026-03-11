@@ -268,11 +268,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .audit-pagination {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    margin-top: 25px;
-    padding-top: 20px;
-    border-top: 1px solid #e9ecef;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.audit-pagination .pagination-info {
+    margin-right: auto;
+    color: #333;
+    font-size: 0.75rem;
+}
+
+.audit-pagination .pagination-controls {
+    display: flex;
+    gap: 2px;
+    align-items: center;
 }
 
 .pagination-info {

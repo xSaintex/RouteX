@@ -43,6 +43,7 @@ namespace RouteX.Controllers
             // Get all finance entries from database (active for table)
             var financeQuery = _context.FinanceEntries
                 .Include(f => f.Vehicle)
+                .Include(f => f.Branch)
                 .Where(f => !f.IsArchived);
 
             if (!isSuperAdmin && userBranchId.HasValue)
@@ -69,6 +70,7 @@ namespace RouteX.Controllers
             // Get fuel entries
             var fuelQuery = _context.FuelEntries
                 .Include(f => f.Vehicle)
+                .Include(f => f.Branch)
                 .Where(f => !f.IsArchived);
 
             if (!isSuperAdmin && userBranchId.HasValue)
@@ -81,7 +83,8 @@ namespace RouteX.Controllers
                 .ToListAsync();
 
             IQueryable<FuelEntry> fuelQueryAll = _context.FuelEntries
-                .Include(f => f.Vehicle);
+                .Include(f => f.Vehicle)
+                .Include(f => f.Branch);
 
             if (!isSuperAdmin && userBranchId.HasValue)
             {
@@ -95,6 +98,7 @@ namespace RouteX.Controllers
             // Get completed maintenance entries
             var maintenanceQuery = _context.MaintenanceEntries
                 .Include(m => m.Vehicle)
+                .Include(m => m.Branch)
                 .Where(m => (m.IsArchived == null || m.IsArchived == false) && m.Status == 2);
 
             if (!isSuperAdmin && userBranchId.HasValue)
@@ -108,6 +112,7 @@ namespace RouteX.Controllers
 
             var maintenanceQueryAll = _context.MaintenanceEntries
                 .Include(m => m.Vehicle)
+                .Include(m => m.Branch)
                 .Where(m => m.Status == 2);
 
             if (!isSuperAdmin && userBranchId.HasValue)
@@ -131,8 +136,10 @@ namespace RouteX.Controllers
                 ExpenseType = f.ExpenseType,
                 Amount = f.Amount,
                 ExpenseDate = f.ExpenseDate,
-                Description = f.Description ?? "No description",
-                CreatedDate = f.ExpenseDate
+                Description = f.Description ?? "",
+                CreatedDate = f.ExpenseDate,
+                IsArchived = f.IsArchived,
+                Branch = f.Branch
             }));
 
             // Add fuel entries
@@ -144,7 +151,8 @@ namespace RouteX.Controllers
                 Amount = f.TotalCost,
                 ExpenseDate = f.DateTime,
                 Description = f.Notes ?? "Fuel purchase",
-                CreatedDate = f.DateTime
+                CreatedDate = f.DateTime,
+                Branch = f.Branch
             }));
 
             // Add completed maintenance entries
@@ -156,7 +164,8 @@ namespace RouteX.Controllers
                 Amount = m.Cost ?? 0,
                 ExpenseDate = m.Date ?? default,
                 Description = m.Description ?? "Maintenance service",
-                CreatedDate = m.Date ?? default
+                CreatedDate = m.Date ?? default,
+                Branch = m.Branch
             }));
 
             // Check if there's a recently added finance entry and remove it from list
@@ -312,6 +321,12 @@ namespace RouteX.Controllers
         public IActionResult TotalFuel()
         {
             ViewData["Title"] = "Total Fuel Expenses";
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
             
             // Generate fuel expense data for different time periods
             var weeklyData = GetWeeklyFuelData();
@@ -319,7 +334,10 @@ namespace RouteX.Controllers
             var annualData = GetAnnualFuelData();
             
             // Get all fuel entries for statistics
-            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var allFuelEntries = _context.FuelEntries
+                .AsNoTracking()
+                .Where(f => isSuperAdmin || f.BranchId == branchId)
+                .ToList();
             
             // Calculate statistics
             var totalFuelCost = allFuelEntries.Sum(f => f.TotalCost);
@@ -345,9 +363,18 @@ namespace RouteX.Controllers
         private List<FuelTimeSeriesData> GetWeeklyFuelData()
         {
             var data = new List<FuelTimeSeriesData>();
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
             
             // Get real fuel data for last 12 weeks
-            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var allFuelEntries = _context.FuelEntries
+                .AsNoTracking()
+                .Where(f => isSuperAdmin || f.BranchId == branchId)
+                .ToList();
             var endDate = DateTime.Now;
             
             for (int i = 0; i < 12; i++)
@@ -372,9 +399,18 @@ namespace RouteX.Controllers
         private List<FuelTimeSeriesData> GetMonthlyFuelData()
         {
             var data = new List<FuelTimeSeriesData>();
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
             
             // Get real fuel data for 2026 months
-            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var allFuelEntries = _context.FuelEntries
+                .AsNoTracking()
+                .Where(f => isSuperAdmin || f.BranchId == branchId)
+                .ToList();
             var currentYear = 2026;
             
             // Show all months of 2026 (January to December)
@@ -399,9 +435,18 @@ namespace RouteX.Controllers
         private List<FuelTimeSeriesData> GetAnnualFuelData()
         {
             var data = new List<FuelTimeSeriesData>();
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
             
             // Get real fuel data for last 5 years
-            var allFuelEntries = _context.FuelEntries.AsNoTracking().ToList();
+            var allFuelEntries = _context.FuelEntries
+                .AsNoTracking()
+                .Where(f => isSuperAdmin || f.BranchId == branchId)
+                .ToList();
             var currentYear = DateTime.Now.Year;
             
             for (int i = 0; i < 5; i++)
@@ -425,11 +470,18 @@ namespace RouteX.Controllers
         public IActionResult TotalMaintenance()
         {
             ViewData["Title"] = "Total Maintenance Expenses";
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
             
             // Get real maintenance data from MaintenancePage table (including archived)
             var allMaintenanceEntries = _context.MaintenanceEntries
                 .AsNoTracking()
                 .Include(m => m.Vehicle)
+                .Where(m => isSuperAdmin || m.BranchId == branchId)
                 .ToList();
             
             // Filter only completed maintenance entries
@@ -477,7 +529,7 @@ namespace RouteX.Controllers
                 
                 var weekMaintenanceCost = (double)(completedMaintenance
                     .Where(m => m.Date.HasValue && m.Date.Value >= startDate && m.Date.Value < weekEnd)
-                    .Sum(m => m.Cost));
+                    .Sum(m => m.Cost ?? 0m));
                 
                 data.Add(new MaintenanceTimeSeriesData
                 {
@@ -503,7 +555,7 @@ namespace RouteX.Controllers
                 
                 var monthMaintenanceCost = (double)(completedMaintenance
                     .Where(m => m.Date.HasValue && m.Date.Value.Year == currentYear && m.Date.Value.Month == month)
-                    .Sum(m => m.Cost));
+                    .Sum(m => m.Cost ?? 0m));
                 
                 data.Add(new MaintenanceTimeSeriesData
                 {
@@ -528,7 +580,7 @@ namespace RouteX.Controllers
                 
                 var yearMaintenanceCost = (double)(completedMaintenance
                     .Where(m => m.Date.HasValue && m.Date.Value.Year == year)
-                    .Sum(m => m.Cost));
+                    .Sum(m => m.Cost ?? 0m));
                 
                 data.Add(new MaintenanceTimeSeriesData
                 {
@@ -544,11 +596,18 @@ namespace RouteX.Controllers
         public async Task<IActionResult> AddFinance()
         {
             ViewData["Title"] = "Add Finance";
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
             
             // Get all vehicles from database, exclude archived vehicles
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
+                .Where(v => isSuperAdmin || v.BranchId == branchId)
                 .OrderBy(v => v.PlateNumber)
                 .ToListAsync();
             
@@ -571,6 +630,31 @@ namespace RouteX.Controllers
             {
                 try
                 {
+                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+                    var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+                    var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+                    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
+                    var sourceVehicle = await _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(v => v.Id == financeEntry.VehicleId);
+                    if (sourceVehicle == null)
+                    {
+                        ModelState.AddModelError("VehicleId", "Selected vehicle was not found.");
+                    }
+                    else
+                    {
+                        if (!isSuperAdmin && user?.BranchId != sourceVehicle.BranchId)
+                        {
+                            return Forbid();
+                        }
+
+                        financeEntry.BranchId = sourceVehicle.BranchId;
+                    }
+
+                    if (!ModelState.IsValid)
+                    {
+                        throw new InvalidOperationException("Invalid finance data.");
+                    }
+
                     // Handle file upload if provided (optional)
                     if (attachment != null && attachment.Length > 0)
                     {
@@ -586,8 +670,8 @@ namespace RouteX.Controllers
                     financeEntry.IsArchived = false;
                     
                     // Use raw SQL to avoid OUTPUT clause issues with triggers
-                    var sql = @"INSERT INTO FinanceEntries (VehicleId, ExpenseType, Amount, ExpenseDate, Description, ReferenceId, AttachmentPath, IsArchived)
-                              VALUES (@VehicleId, @ExpenseType, @Amount, @ExpenseDate, @Description, @ReferenceId, @AttachmentPath, @IsArchived);
+                    var sql = @"INSERT INTO FinanceEntries (VehicleId, ExpenseType, Amount, ExpenseDate, Description, ReferenceId, AttachmentPath, IsArchived, BranchId)
+                              VALUES (@VehicleId, @ExpenseType, @Amount, @ExpenseDate, @Description, @ReferenceId, @AttachmentPath, @IsArchived, @BranchId);
                               SELECT CAST(SCOPE_IDENTITY() as int);";
                     
                     var parameters = new[]
@@ -599,13 +683,14 @@ namespace RouteX.Controllers
                         new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
                         new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", financeEntry.IsArchived)
+                        new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", financeEntry.IsArchived),
+                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", financeEntry.BranchId)
                     };
                     
                     var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
                     financeEntry.Id = id;
 
-                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                    var actingUser = userEmail;
                     await _auditService.LogActionAsync(actingUser, $"Create:Finance:{financeEntry.Id}");
                     
                     TempData["FinanceSuccess"] = "Finance record added successfully!";
@@ -620,9 +705,16 @@ namespace RouteX.Controllers
             }
             
             // If validation fails, reload vehicles and return to view
+            var fallbackUserEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var fallbackUserRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var fallbackUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == fallbackUserEmail);
+            var fallbackIsSuperAdmin = fallbackUserRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var fallbackBranchId = fallbackUser?.BranchId;
+
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
+                .Where(v => fallbackIsSuperAdmin || v.BranchId == fallbackBranchId)
                 .OrderBy(v => v.PlateNumber)
                 .ToListAsync();
             
@@ -649,10 +741,20 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveFinance(int id)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var financeEntry = await _context.FinanceEntries.FindAsync(id);
             if (financeEntry == null)
             {
                 return Json(new { success = false, message = "Finance entry not found." });
+            }
+
+            if (!isSuperAdmin && user?.BranchId != financeEntry.BranchId)
+            {
+                return Json(new { success = false, message = "You do not have access to this branch data." });
             }
 
             try
@@ -680,6 +782,13 @@ namespace RouteX.Controllers
         public async Task<IActionResult> EditFinance(int id)
         {
             ViewData["Title"] = "Edit Finance";
+            
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
             
             // Find the finance entry by ID
             var financeEntry = await _context.FinanceEntries
@@ -721,8 +830,15 @@ namespace RouteX.Controllers
             // Custom validation: Description is required only for "Other" expense type
             if (financeEntry.ExpenseType == "Other" && string.IsNullOrWhiteSpace(financeEntry.Description))
             {
-                ModelState.AddModelError("Description", "Description is required for 'Other' expense type");
+                ModelState.AddModelError("Description", "Description is required for 'Other' expense type.");
             }
+
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            
+            ViewBag.UserRole = userRole;
 
             if (ModelState.IsValid)
             {

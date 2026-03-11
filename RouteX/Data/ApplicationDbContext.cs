@@ -72,6 +72,8 @@ namespace RouteX.Data
                 entity.Property(e => e.StartAddress).HasMaxLength(256);
                 entity.Property(e => e.EndAddress).HasMaxLength(256);
                 entity.Property(e => e.DistanceKm).HasPrecision(18, 2);
+                entity.Property(e => e.BranchId).IsRequired(false);
+                entity.HasIndex(e => e.BranchId);
                 entity.HasOne(e => e.Vehicle)
                       .WithMany()
                       .HasForeignKey(e => e.VehicleId)
@@ -106,6 +108,7 @@ namespace RouteX.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("Users");
+                entity.HasIndex(e => e.BranchId);
                 entity.HasOne(e => e.Branch)
                       .WithMany(b => b.Users)
                       .HasForeignKey(e => e.BranchId)
@@ -116,6 +119,8 @@ namespace RouteX.Data
             modelBuilder.Entity<Vehicle>(entity =>
             {
                 entity.ToTable("Vehicles");
+                entity.Property(e => e.BranchId).IsRequired(false);
+                entity.HasIndex(e => e.BranchId);
                 entity.HasOne(e => e.Branch)
                       .WithMany(b => b.Vehicles)
                       .HasForeignKey(e => e.BranchId)
@@ -129,6 +134,8 @@ namespace RouteX.Data
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.Liters).HasPrecision(10, 2);
                 entity.Property(e => e.TotalCost).HasPrecision(18, 2);
+                entity.Property(e => e.BranchId).IsRequired(false);
+                entity.HasIndex(e => e.BranchId);
 
                 entity.HasOne(f => f.Vehicle)
                       .WithMany()
@@ -145,6 +152,8 @@ namespace RouteX.Data
             {
                 entity.ToTable("MaintenanceEntries");
                 entity.Property(e => e.Cost).HasPrecision(18, 2);
+                entity.Property(e => e.BranchId).IsRequired(false);
+                entity.HasIndex(e => e.BranchId);
                 entity.HasOne(e => e.Vehicle)
                       .WithMany()
                       .HasForeignKey(e => e.VehicleId)
@@ -160,6 +169,8 @@ namespace RouteX.Data
             {
                 entity.ToTable("FinanceEntries");
                 entity.Property(e => e.Amount).HasPrecision(18, 2);
+                entity.Property(e => e.BranchId).IsRequired(false);
+                entity.HasIndex(e => e.BranchId);
                 entity.HasOne(e => e.Branch)
                       .WithMany(b => b.FinanceEntries)
                       .HasForeignKey(e => e.BranchId)
@@ -171,6 +182,8 @@ namespace RouteX.Data
             {
                 entity.ToTable("MonthlyBudget");
                 entity.Property(e => e.BudgetAmount).HasPrecision(18, 2);
+                entity.Property(e => e.BranchId).IsRequired(false);
+                entity.HasIndex(e => e.BranchId);
                 entity.HasOne(e => e.Branch)
                       .WithMany(b => b.BudgetEntries)
                       .HasForeignKey(e => e.BranchId)

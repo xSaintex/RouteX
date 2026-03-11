@@ -70,6 +70,17 @@ namespace RouteX.Controllers
                         HttpContext.Session.SetInt32("UserId", customUser.UserId);
                         HttpContext.Session.SetString("UserRole", customUser.Role);
                         
+                        // Store branch information
+                        if (customUser.BranchId.HasValue)
+                        {
+                            HttpContext.Session.SetInt32("UserBranchId", customUser.BranchId.Value);
+                            var branch = _context.Branches.FirstOrDefault(b => b.BranchId == customUser.BranchId.Value);
+                            if (branch != null)
+                            {
+                                HttpContext.Session.SetString("UserBranchName", branch.BranchName);
+                            }
+                        }
+                        
                         // Log successful login
                         await _auditService.LogActionAsync(customUser.Email, "Login");
                     }
@@ -81,14 +92,19 @@ namespace RouteX.Controllers
                 }
                 if (customUser != null)
                 {
-                    if (customUser.Role == "OperationsStaff")
+                    if (customUser.Role == "Admin" || customUser.Role == "Administrator")
                     {
-                        return RedirectToAction("OpStaffDashboard", "Home");
+                        return RedirectToAction("Index", "Home");
                     }
-
+                    
                     if (customUser.Role == "Finance")
                     {
                         return RedirectToAction("FinanceDashboard", "Home");
+                    }
+                    
+                    if (customUser.Role == "OperationsStaff")
+                    {
+                        return RedirectToAction("OpStaffDashboard", "Home");
                     }
                 }
 

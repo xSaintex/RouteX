@@ -1,0 +1,534 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using RouteX.Data;
+using RouteX.Models;
+using RouteX.ViewModels;
+using System.Linq;
+
+namespace RouteX.Controllers
+{
+    public class ArchiveController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+
+        public ArchiveController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+        public async Task<IActionResult> ArchivePage()
+        {
+            ViewData["Title"] = "Archive";
+
+            var viewModel = new ArchiveViewModel();
+
+            try
+            {
+                var missingColumns = new List<string>();
+
+                var archivedVehicles = new List<Vehicle>();
+                try
+                {
+                    archivedVehicles = await _context.Vehicles
+                        .FromSqlRaw("SELECT VehicleId, UnitModel, PlateNumber, VehicleType, Status, Mileage, IsArchived FROM Vehicles WHERE IsArchived = 1 ORDER BY VehicleId DESC")
+                        .AsNoTracking()
+                        .ToListAsync();
+                }
+
+                catch
+                {
+                    missingColumns.Add("Vehicles.IsArchived");
+                }
+
+                var archivedFuel = new List<FuelEntry>();
+                try
+                {
+                    archivedFuel = await _context.FuelEntries
+                        .FromSqlRaw("SELECT * FROM FuelEntries WHERE IsArchived = 1 ORDER BY Id DESC")
+                        .AsNoTracking()
+                        .ToListAsync();
+                }
+                catch
+                {
+                    missingColumns.Add("FuelEntries.IsArchived");
+                }
+
+                var archivedMaintenance = new List<MaintenanceEntry>();
+                try
+                {
+                    archivedMaintenance = await _context.MaintenanceEntries
+                        .FromSqlRaw("SELECT * FROM MaintenanceEntries WHERE IsArchived = 1 ORDER BY Id DESC")
+                        .AsNoTracking()
+                        .ToListAsync();
+                }
+                catch
+                {
+                    missingColumns.Add("MaintenanceEntries.IsArchived");
+                }
+
+                var archivedFinance = new List<FinanceEntry>();
+                if (await ColumnExistsAsync("FinanceEntries", "IsArchived"))
+                {
+                    archivedFinance = await _context.FinanceEntries
+                        .AsNoTracking()
+                        .Where(f => f.IsArchived)
+                        .OrderByDescending(f => f.Id)
+                        .ToListAsync();
+                }
+                else
+                {
+                    missingColumns.Add("FinanceEntries.IsArchived");
+                }
+
+                var archivedUsers = new List<User>();
+                try
+                {
+                    archivedUsers = await _context.Users
+                        .FromSqlRaw("SELECT UserId, FirstName, LastName, Email, Role, Status FROM Users WHERE Status = 'Archived' ORDER BY UserId DESC")
+                        .AsNoTracking()
+                        .ToListAsync();
+                }
+                catch
+                {
+                    missingColumns.Add("Users.Status");
+                }
+
+                var archivedTrips = new List<RouteTrip>();
+                if (await ColumnExistsAsync("RouteTrips", "IsArchived"))
+                {
+                    archivedTrips = await _context.RouteTrips
+                        .AsNoTracking()
+                        .Where(t => t.IsArchived)
+                        .OrderByDescending(t => t.ArchivedAt ?? t.CompletedAt ?? t.CreatedAt)
+                        .ToListAsync();
+                }
+                else
+                {
+                    missingColumns.Add("RouteTrips.IsArchived");
+                }
+
+                var archivedBudgets = await _context.BudgetEntries
+                    .AsNoTracking()
+                    .Where(b => !b.IsActive)
+                    .OrderByDescending(b => b.Id)
+                    .ToListAsync();
+
+                var archiveLogs = await _context.AuditLogs
+                    .AsNoTracking()
+                    .Where(l => l.Action.StartsWith("Archive:"))
+                    .OrderByDescending(l => l.ActionDate)
+                    .ToListAsync();
+
+                var archiveLogLookup = new Dictionary<string, AuditLog>();
+                foreach (var log in archiveLogs)
+                {
+                    var key = GetArchiveLogKey(log.Action);
+                    if (!archiveLogLookup.ContainsKey(key))
+                    {
+                        archiveLogLookup[key] = log;
+                    }
+                }
+
+                ViewBag.ArchiveLogLookup = archiveLogLookup;
+
+                var archiveItems = new List<ArchiveItemViewModel>();
+
+                foreach (var vehicle in archivedVehicles)
+                {
+                    var key = $"Archive:Vehicle:{vehicle.Id}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Vehicle",
+                        DetailsHtml = $"<strong>{vehicle.UnitModel}</strong><br><small>{vehicle.PlateNumber} • {vehicle.VehicleType}</small>",
+                        RestoreAction = "RestoreVehicle",
+                        RestoreId = vehicle.Id,
+                        ArchivedDate = log?.ActionDate ?? DateTime.Now,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
+                foreach (var budget in archivedBudgets)
+                {
+                    var budgetKey = $"Archive:Budget:{budget.Id}";
+                    var budgetLog = archiveLogLookup.ContainsKey(budgetKey) ? archiveLogLookup[budgetKey] : null;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Budget",
+                        DetailsHtml = $"<strong>{budget.Month}</strong><br><small>{budget.BudgetAmount:C}</small>",
+                        RestoreAction = "RestoreBudget",
+                        RestoreId = budget.Id,
+                        ArchivedDate = budgetLog?.ActionDate ?? budget.CreatedAt,
+                        ArchivedBy = budgetLog?.UserId ?? "System"
+                    });
+                }
+
+                foreach (var fuel in archivedFuel)
+                {
+                    var key = $"Archive:Fuel:{fuel.Id}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Fuel",
+                        DetailsHtml = $"<strong>{fuel.UnitModel}</strong><br><small>{fuel.PlateNumber} • {fuel.Driver} • {fuel.Liters}</small><br><small>{fuel.TotalCost:C}</small>",
+                        RestoreAction = "RestoreFuel",
+                        RestoreId = fuel.Id,
+                        ArchivedDate = log?.ActionDate ?? fuel.Date,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
+                foreach (var maintenance in archivedMaintenance)
+                {
+                    var key = $"Archive:Maintenance:{maintenance.Id}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    var serviceType = maintenance.ServiceType ?? "N/A";
+                    var plate = maintenance.PlateNumber ?? "N/A";
+                    var tech = maintenance.TechnicianName ?? "N/A";
+                    var cost = maintenance.Cost ?? 0;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Maintenance",
+                        DetailsHtml = $"<strong>{serviceType}</strong><br><small>{plate} • {tech}</small><br><small>{cost:C}</small>",
+                        RestoreAction = "RestoreMaintenance",
+                        RestoreId = maintenance.Id,
+                        ArchivedDate = log?.ActionDate ?? maintenance.ServiceDate,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
+                foreach (var finance in archivedFinance)
+                {
+                    var key = $"Archive:Finance:{finance.Id}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Finance",
+                        DetailsHtml = $"<strong>{finance.ExpenseType}</strong><br><small>{finance.UnitModel} • {finance.Description}</small><br><small>{finance.Amount:C}</small>",
+                        RestoreAction = "RestoreFinance",
+                        RestoreId = finance.Id,
+                        ArchivedDate = log?.ActionDate ?? finance.ExpenseDate,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
+                foreach (var trip in archivedTrips)
+                {
+                    var key = $"Archive:Trip:{trip.Id}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    var distanceText = trip.DistanceKm.HasValue ? $" • {trip.DistanceKm.Value:N2} km" : string.Empty;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "Trip",
+                        DetailsHtml = $"<strong>{trip.StartAddress}</strong><br><small>to {trip.EndAddress}{distanceText}</small>",
+                        RestoreAction = "RestoreTrip",
+                        RestoreId = trip.Id,
+                        ArchivedDate = log?.ActionDate ?? trip.ArchivedAt ?? trip.CompletedAt ?? trip.CreatedAt,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
+                var excludedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Juan Santos",
+                    "Maria Reyes",
+                    "Carlos Garcia",
+                    "Ana Lopez",
+                    "John Doe"
+                };
+
+                foreach (var user in archivedUsers)
+                {
+                    var fullName = $"{user.FirstName} {user.LastName}".Trim();
+                    if (excludedNames.Contains(fullName))
+                    {
+                        continue;
+                    }
+
+                    var key = $"Archive:User:{user.UserId}";
+                    var log = archiveLogLookup.ContainsKey(key) ? archiveLogLookup[key] : null;
+                    archiveItems.Add(new ArchiveItemViewModel
+                    {
+                        Category = "User",
+                        DetailsHtml = $"<strong>{user.FirstName} {user.LastName}</strong><br><small>{user.Email} • {user.Role}</small>",
+                        RestoreAction = "RestoreUser",
+                        RestoreId = user.UserId,
+                        ArchivedDate = log?.ActionDate ?? DateTime.Now,
+                        ArchivedBy = log?.UserId ?? "System"
+                    });
+                }
+
+                archiveItems = archiveItems
+                    .OrderByDescending(item => item.ArchivedDate)
+                    .ThenByDescending(item => item.RestoreId)
+                    .ToList();
+
+                viewModel = new ArchiveViewModel
+                {
+                    ArchivedVehicles = archivedVehicles,
+                    ArchivedFuel = archivedFuel,
+                    ArchivedMaintenance = archivedMaintenance,
+                    ArchivedFinance = archivedFinance,
+                    ArchivedUsers = archivedUsers,
+                    ArchivedTrips = archivedTrips,
+                    ArchiveItems = archiveItems
+                };
+
+                if (missingColumns.Count > 0)
+                {
+                    TempData["Warning"] = $"Archive data is unavailable for: {string.Join(", ", missingColumns)}. Those columns are missing in the database.";
+                }
+            }
+            catch (SqlException)
+            {
+                TempData["Error"] = "Unable to load archive data. Please ensure the latest database schema has been applied.";
+            }
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreVehicle(int id)
+        {
+            if (!await ColumnExistsAsync("Vehicles", "IsArchived"))
+            {
+                TempData["Error"] = "Vehicles archive column is missing. Please add it before restoring.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+
+            var status = await GetArchivedVehicleStatusAsync(id);
+            var sql = status.HasValue
+                ? "UPDATE Vehicles SET IsArchived = 0, Status = @Status WHERE VehicleId = @Id"
+                : "UPDATE Vehicles SET IsArchived = 0 WHERE VehicleId = @Id";
+
+            if (status.HasValue)
+            {
+                await _context.Database.ExecuteSqlRawAsync(sql,
+                    new SqlParameter("@Status", status.Value),
+                    new SqlParameter("@Id", id));
+            }
+            else
+            {
+                await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
+            }
+
+            TempData["Success"] = "Vehicle restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreFuel(int id)
+        {
+            if (!await ColumnExistsAsync("FuelEntries", "IsArchived"))
+            {
+                TempData["Error"] = "FuelEntries archive column is missing. Please add it before restoring.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+            var sql = "UPDATE FuelEntries SET IsArchived = 0 WHERE Id = @Id";
+            await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
+
+            TempData["Success"] = "Fuel entry restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreMaintenance(int id)
+        {
+            if (!await ColumnExistsAsync("MaintenanceEntries", "IsArchived"))
+            {
+                TempData["Error"] = "MaintenanceEntries archive column is missing. Please add it before restoring.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+            var status = await GetArchivedMaintenanceStatusAsync(id);
+            var sql = status.HasValue
+                ? "UPDATE MaintenanceEntries SET IsArchived = 0, Status = @Status WHERE Id = @Id"
+                : "UPDATE MaintenanceEntries SET IsArchived = 0 WHERE Id = @Id";
+
+            if (status.HasValue)
+            {
+                await _context.Database.ExecuteSqlRawAsync(sql,
+                    new SqlParameter("@Status", status.Value),
+                    new SqlParameter("@Id", id));
+            }
+            else
+            {
+                await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
+            }
+
+            TempData["Success"] = "Maintenance entry restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreFinance(int id)
+        {
+            if (!await ColumnExistsAsync("FinanceEntries", "IsArchived"))
+            {
+                TempData["Error"] = "FinanceEntries archive column is missing. Please add it before restoring.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+            var sql = "UPDATE FinanceEntries SET IsArchived = 0 WHERE Id = @Id";
+            await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
+
+            TempData["Success"] = "Finance entry restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreTrip(int id)
+        {
+            if (!await ColumnExistsAsync("RouteTrips", "IsArchived"))
+            {
+                TempData["Error"] = "RouteTrips archive column is missing. Please add it before restoring.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+
+            var sql = "UPDATE RouteTrips SET IsArchived = 0, ArchivedAt = NULL WHERE Id = @Id";
+            await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
+
+            TempData["Success"] = "Trip restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreUser(int id)
+        {
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
+            if (user == null)
+            {
+                TempData["Error"] = "User not found.";
+                return RedirectToAction(nameof(ArchivePage));
+            }
+
+            var status = await GetArchivedUserStatusAsync(id) ?? UserStatus.Active.ToString();
+            var sql = "UPDATE Users SET Status = @Status WHERE UserId = @UserId";
+            await _context.Database.ExecuteSqlRawAsync(sql,
+                new SqlParameter("@Status", status),
+                new SqlParameter("@UserId", id));
+
+            TempData["Success"] = $"{user.FirstName} {user.LastName} restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreBudget(int id)
+        {
+            var entry = await _context.BudgetEntries.FindAsync(id);
+            if (entry == null)
+            {
+                return RedirectToAction(nameof(ArchivePage));
+            }
+
+            entry.IsActive = true;
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Budget restored successfully.";
+            return RedirectToAction(nameof(ArchivePage));
+        }
+
+        private async Task<string?> GetArchivedUserStatusAsync(int userId)
+        {
+            var prefix = $"Archive:User:{userId}:Status:";
+            var log = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(l => l.Action.StartsWith(prefix))
+                .OrderByDescending(l => l.ActionDate)
+                .FirstOrDefaultAsync();
+
+            if (log == null)
+            {
+                return null;
+            }
+
+            return log.Action.Substring(prefix.Length);
+        }
+
+        private async Task<int?> GetArchivedVehicleStatusAsync(int vehicleId)
+        {
+            var prefix = $"Archive:Vehicle:{vehicleId}:Status:";
+            var log = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(l => l.Action.StartsWith(prefix))
+                .OrderByDescending(l => l.ActionDate)
+                .FirstOrDefaultAsync();
+
+            if (log == null)
+            {
+                return null;
+            }
+
+            if (int.TryParse(log.Action.Substring(prefix.Length), out var status))
+            {
+                return status;
+            }
+
+            return null;
+        }
+
+        private async Task<int?> GetArchivedMaintenanceStatusAsync(int maintenanceId)
+        {
+            var prefix = $"Archive:Maintenance:{maintenanceId}:Status:";
+            var log = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(l => l.Action.StartsWith(prefix))
+                .OrderByDescending(l => l.ActionDate)
+                .FirstOrDefaultAsync();
+
+            if (log == null)
+            {
+                return null;
+            }
+
+            if (int.TryParse(log.Action.Substring(prefix.Length), out var status))
+            {
+                return status;
+            }
+
+            return null;
+        }
+
+        private static string GetArchiveLogKey(string action)
+        {
+            if (string.IsNullOrWhiteSpace(action))
+            {
+                return string.Empty;
+            }
+
+            var parts = action.Split(':', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 3 && parts[0] == "Archive")
+            {
+                return $"Archive:{parts[1]}:{parts[2]}";
+            }
+
+            return action;
+        }
+
+        private async Task<bool> ColumnExistsAsync(string tableName, string columnName)
+        {
+            const string sql = @"SELECT COUNT(*) AS Value
+                                 FROM INFORMATION_SCHEMA.COLUMNS
+                                 WHERE TABLE_NAME = @TableName AND COLUMN_NAME = @ColumnName";
+
+            try
+            {
+                var result = await _context.Database.SqlQueryRaw<int>(
+                        sql,
+                        new SqlParameter("@TableName", tableName),
+                        new SqlParameter("@ColumnName", columnName))
+                    .FirstOrDefaultAsync();
+                return result > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+}

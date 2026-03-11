@@ -38,6 +38,7 @@ namespace RouteX.Models
         public string Description { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; }
         public bool IsArchived { get; set; }
+        public Branch? Branch { get; set; }
     }
 
     public class FuelTimeSeriesData

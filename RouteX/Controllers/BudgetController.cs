@@ -31,11 +31,26 @@ namespace RouteX.Controllers
         {
             ViewData["Title"] = "Budget";
 
-            var entries = await _context.BudgetEntries
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var branchId = user?.BranchId;
+            
+            ViewBag.UserRole = userRole;
+
+            var query = _context.BudgetEntries
                 .AsNoTracking()
+                .Include(b => b.Branch)
                 .Where(b => b.IsActive)
-                .OrderByDescending(b => b.Month)
-                .ToListAsync();
+                .AsQueryable();
+
+            if (!isSuperAdmin && branchId.HasValue)
+            {
+                query = query.Where(b => b.BranchId == branchId.Value);
+            }
+
+            var entries = await query.OrderByDescending(b => b.Month).ToListAsync();
 
             var viewModel = new BudgetPageViewModel
             {
@@ -51,19 +66,30 @@ namespace RouteX.Controllers
         {
             ViewData["Title"] = "Budget";
 
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var resolvedBranchId = user?.BranchId ?? await _context.Branches.AsNoTracking().Where(b => !b.IsArchived).Select(b => (int?)b.BranchId).FirstOrDefaultAsync();
+
+            if (!resolvedBranchId.HasValue)
+            {
+                ModelState.AddModelError(string.Empty, "No active branch available for budget assignment.");
+            }
+
             if (model.MonthValue == null || model.Year == null || model.Amount == null)
             {
                 ModelState.AddModelError(string.Empty, "Month, year, and budget amount are required.");
             }
 
-            var createdBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+            var createdBy = userEmail;
             var monthValue = Math.Clamp(model.MonthValue ?? 1, 1, 12);
             var yearValue = model.Year ?? DateTime.Today.Year;
             var monthLabel = $"{yearValue:D4}-{monthValue:D2}";
 
             var duplicateExists = await _context.BudgetEntries
                 .AsNoTracking()
-                .AnyAsync(b => b.Month == monthLabel && b.IsActive);
+                .AnyAsync(b => b.Month == monthLabel && b.IsActive && b.BranchId == resolvedBranchId);
             if (duplicateExists)
             {
                 ModelState.AddModelError(string.Empty, "Budget for the selected month already exists.");
@@ -74,6 +100,7 @@ namespace RouteX.Controllers
                 model.Entries = await _context.BudgetEntries
                     .AsNoTracking()
                     .Where(b => b.IsActive)
+                    .Where(b => isSuperAdmin || b.BranchId == resolvedBranchId)
                     .OrderByDescending(b => b.Month)
                     .ToListAsync();
 
@@ -83,9 +110,10 @@ namespace RouteX.Controllers
             var entry = new BudgetEntry
             {
                 Month = monthLabel,
-                BudgetAmount = model.Amount.Value,
+                BudgetAmount = model.Amount ?? 0m,
                 CreatedBy = createdBy,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                BranchId = resolvedBranchId
             };
 
             _context.BudgetEntries.Add(entry);
@@ -99,10 +127,20 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateBudget(int id, int monthValue, int year, decimal amount)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var entry = await _context.BudgetEntries.FindAsync(id);
             if (entry == null)
             {
                 return NotFound();
+            }
+
+            if (!isSuperAdmin && user?.BranchId != entry.BranchId)
+            {
+                return Forbid();
             }
 
             monthValue = Math.Clamp(monthValue, 1, 12);
@@ -110,7 +148,7 @@ namespace RouteX.Controllers
 
             var duplicateExists = await _context.BudgetEntries
                 .AsNoTracking()
-                .AnyAsync(b => b.Id != id && b.Month == monthLabel && b.IsActive);
+                .AnyAsync(b => b.Id != id && b.Month == monthLabel && b.IsActive && b.BranchId == entry.BranchId);
             if (duplicateExists)
             {
                 TempData["Error"] = "Budget for the selected month already exists.";
@@ -129,16 +167,26 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveBudget(int id)
         {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
             var entry = await _context.BudgetEntries.FindAsync(id);
             if (entry == null)
             {
                 return NotFound();
             }
 
+            if (!isSuperAdmin && user?.BranchId != entry.BranchId)
+            {
+                return Forbid();
+            }
+
             entry.IsActive = false;
             await _context.SaveChangesAsync();
 
-            var archivedBy = HttpContext.Session.GetString("UserEmail") ?? "System";
+            var archivedBy = userEmail;
             await _auditService.LogActionAsync(archivedBy, $"Archive:Budget:{entry.Id}:Month:{entry.Month}");
 
             TempData["Success"] = "Budget archived successfully.";

@@ -53,6 +53,11 @@
     box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
+.total-trips-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
 .finance-card-icon {
     width: 60px;
     height: 60px;
@@ -205,8 +210,8 @@
                     <i class="fas fa-pause-circle"></i>
                 </div>
                 <div class="finance-card-content">
-                    <h3>@Model.IdleVehicles.Count</h3>
-                    <p>Idle Vehicles</p>
+                    <h3>@Model.InactiveVehicles.Count</h3>
+                    <p>Inactive Vehicles</p>
                 </div>
             </div>
         </a>
@@ -224,6 +229,19 @@
         </a>
     </div>
 
+    <!-- Add Trips Card -->
+    <div class="dashboard-grid">
+        <div class="finance-card total-trips-card" style="cursor: default;">
+            <div class="finance-card-icon">
+                <i class="fas fa-route"></i>
+            </div>
+            <div class="finance-card-content">
+                <h3>@Model.TotalTrips</h3>
+                <p>Total Trips</p>
+            </div>
+        </div>
+    </div>
+
     <div class="trip-status-grid">
         <a class="card-link" href="@Url.Action("VehiclePage", "Vehicles")">
             <div class="card-container">
@@ -239,20 +257,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @{
-                            var mileageByVehicleId = ViewBag.MileageByVehicleId as IDictionary<int, decimal> ?? new Dictionary<int, decimal>();
-                            var rank = 1;
-                        }
-                        @foreach (var vehicle in Model.ActiveTripsToday)
+                        @foreach (var activeVehicle in Model.MostActiveVehicles)
                         {
-                            var vehicleMileage = mileageByVehicleId.TryGetValue(vehicle.Id, out var totalKm) ? totalKm : 0m;
                             <tr>
-                                <td><span class="rank-badge">@rank</span></td>
-                                <td><strong>@vehicle.PlateNumber</strong></td>
-                                <td>@vehicle.UnitModel</td>
-                                <td><span class="distance-badge">@vehicleMileage.ToString("N0") km</span></td>
+                                <td><span class="rank-badge">@activeVehicle.Rank</span></td>
+                                <td><strong>@activeVehicle.PlateNumber</strong></td>
+                                <td>@activeVehicle.UnitModel</td>
+                                <td><span class="distance-badge">@activeVehicle.DistanceKm.ToString("N0") km</span></td>
                             </tr>
-                            rank++;
                         }
                     </tbody>
                 </table>
@@ -282,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
             labels: statusData.map(d => d.Status),
             datasets: [{
                 data: statusData.map(d => d.Count),
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
                 borderWidth: 2,
                 borderColor: '#ffffff'
             }]

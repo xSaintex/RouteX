@@ -1,6 +1,7 @@
 @model RouteX.ViewModels.BudgetPageViewModel
 @{
     ViewData["Title"] = "Budget";
+    var userRole = ViewBag.UserRole as string ?? "";
 }
 
 <div class="vehicles-container">
@@ -33,6 +34,8 @@
         <p>Set monthly budget targets</p>
     </div>
 
+    @if (userRole != "SuperAdmin")
+    {
     <form method="post" class="budget-form">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-danger mb-2"></div>
@@ -63,6 +66,7 @@
             </div>
         </div>
     </form>
+    }
 
     <div class="finance-section">
         <h3>Monthly Budget</h3>
@@ -72,11 +76,12 @@
                     <tr>
                         <th>Month</th>
                         <th>Budget Amount</th>
+                        <th>Branch</th>
                         <th>Created By</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="budgetTableBody">
                     @foreach (var entry in Model.Entries)
                     {
                         var monthParts = entry.Month?.Split('-') ?? new[] { "", "" };
@@ -102,6 +107,7 @@
                                     <input type="number" name="amount" class="form-control form-control-sm edit-amount" min="0" step="0.01" value="@entry.BudgetAmount.ToString("0.00")" form="@updateFormId" />
                                 </div>
                             </td>
+                            <td>@(entry.Branch?.BranchName ?? "Main Headquarters")</td>
                             <td>@entry.CreatedBy</td>
                             <td>
                                 <form asp-action="UpdateBudget" method="post" class="d-inline budget-edit-form" id="@updateFormId">
@@ -128,6 +134,20 @@
                         </tr>
                     }
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5">
+                            <div class="table-pagination">
+                                <div class="pagination-info">Showing 0 of 0 entries</div>
+                                <div class="pagination-controls">
+                                    <button class="page-link prev" type="button">&lt;</button>
+                                    <div class="page-numbers"></div>
+                                    <button class="page-link next" type="button">&gt;</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -198,6 +218,14 @@
 .budget-edit .form-control-sm {
     min-width: 120px;
 }
+
+/* Pagination styles */
+.table-pagination { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:8px; }
+.pagination-info { margin-right: auto; color:#333; font-size:0.75rem; }
+.pagination-controls { justify-content: flex-end; display: flex; gap: 2px; align-items: center; }
+.table-pagination .page-link { border: 1px solid rgba(0,0,0,0.08); background: #fff; color:#111; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:0.7rem; margin:0 2px; }
+.table-pagination .page-link.prev, .table-pagination .page-link.next { min-width:24px; }
+.table-pagination .page-numbers { display:flex; gap:2px; }
 </style>
 
 <script>
@@ -278,5 +306,81 @@ function updateRowMonthAvailability(row) {
         option.disabled = isFutureYear || isFutureMonth;
     });
 }
+
+// Pagination functionality
+let currentPage = 1;
+const itemsPerPage = 10;
+
+function initPagination() {
+    const rows = Array.from(document.querySelectorAll('#budgetTableBody tr'));
+    updatePagination(rows.length);
+    renderRowsForPage(rows);
+    
+    // Add event listeners for pagination controls
+    document.querySelector('.pagination-controls .prev').addEventListener('click', function () {
+        if (currentPage > 1) { 
+            currentPage--; 
+            const rows = Array.from(document.querySelectorAll('#budgetTableBody tr'));
+            renderRowsForPage(rows);
+            updatePagination(rows.length);
+        }
+    });
+    
+    document.querySelector('.pagination-controls .next').addEventListener('click', function () {
+        const rows = Array.from(document.querySelectorAll('#budgetTableBody tr'));
+        const maxPage = Math.max(1, Math.ceil(rows.length / itemsPerPage));
+        if (currentPage < maxPage) { 
+            currentPage++; 
+            renderRowsForPage(rows);
+            updatePagination(rows.length);
+        }
+    });
+}
+
+function renderRowsForPage(rows) {
+    rows.forEach((r, i) => { r.style.display = 'none'; });
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    rows.forEach((r, i) => { if (i >= startIdx && i < endIdx) r.style.display = ''; });
+}
+
+function updatePagination(visibleCount) {
+    const info = document.querySelector('.pagination-info');
+    const start = (currentPage - 1) * itemsPerPage + 1;
+    const end = Math.min(visibleCount, currentPage * itemsPerPage);
+    info.textContent = visibleCount === 0 ? 'Showing 0 of 0 entries' : `Showing ${start}-${end} of ${visibleCount} entries`;
+
+    const prevBtn = document.querySelector('.pagination-controls .prev');
+    const nextBtn = document.querySelector('.pagination-controls .next');
+    const totalPages = Math.max(1, Math.ceil(visibleCount / itemsPerPage));
+    prevBtn.style.display = totalPages > 1 && currentPage > 1 ? '' : 'none';
+    nextBtn.style.display = totalPages > 1 && currentPage < totalPages ? '' : 'none';
+
+    const pageNumbers = document.querySelector('.pagination-controls .page-numbers');
+    pageNumbers.innerHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'page-link';
+        btn.textContent = i;
+        if (i === currentPage) {
+            btn.style.background = '#ff6b35';
+            btn.style.color = '#fff';
+        }
+        btn.addEventListener('click', function () {
+            if (currentPage !== i) {
+                currentPage = i;
+                const rows = Array.from(document.querySelectorAll('#budgetTableBody tr'));
+                renderRowsForPage(rows);
+                updatePagination(rows.length);
+            }
+        });
+        pageNumbers.appendChild(btn);
+    }
+}
+
+// Initialize pagination when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initPagination();
+});
 </script>
 </script>

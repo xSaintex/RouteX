@@ -56,13 +56,8 @@
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s;
+        transition: none;
         border: 1px solid #e9ecef;
-    }
-
-    .branch-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
 
     .branch-header {
@@ -185,9 +180,9 @@
 
 <div class="branches-container">
     <div class="page-header">
-        <h1 class="page-title">🏢 Branch Management</h1>
+        <h1 class="page-title"><i class="fas fa-building"></i> Branch Management</h1>
         <a asp-action="AddBranch" class="btn-add">
-            <span>➕</span>
+            <i class="fas fa-plus"></i>
             <span>Add New Branch</span>
         </a>
     </div>
@@ -226,36 +221,36 @@
 
                     <div class="branch-info">
                         <div class="info-row">
-                            <span class="info-icon">📍</span>
+                            <i class="fas fa-map-marker-alt info-icon"></i>
                             <span>@branch.Address</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-icon">📞</span>
+                            <i class="fas fa-phone info-icon"></i>
                             <span>@branch.PhoneNumber</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-icon">✉️</span>
+                            <i class="fas fa-envelope info-icon"></i>
                             <span>@branch.Email</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-icon">👤</span>
+                            <i class="fas fa-user-tie info-icon"></i>
                             <span>Manager: @branch.ManagerName</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-icon">🕐</span>
+                            <i class="fas fa-clock info-icon"></i>
                             <span>@branch.OperatingHours</span>
                         </div>
                     </div>
 
                     <div class="branch-actions">
                         <a asp-action="ViewBranch" asp-route-id="@branch.BranchId" class="btn-action btn-view">
-                            👁️ View
+                            <i class="fas fa-eye"></i> View
                         </a>
                         <a asp-action="EditBranch" asp-route-id="@branch.BranchId" class="btn-action btn-edit">
-                            ✏️ Edit
+                            <i class="fas fa-edit"></i> Edit
                         </a>
                         <button onclick="archiveBranch(@branch.BranchId, '@branch.BranchName')" class="btn-action btn-archive">
-                            🗑️ Archive
+                            <i class="fas fa-archive"></i> Archive
                         </button>
                     </div>
                 </div>
@@ -265,7 +260,7 @@
     else
     {
         <div class="empty-state">
-            <div class="empty-icon">🏢</div>
+            <div class="empty-icon"><i class="fas fa-building"></i></div>
             <div class="empty-text">No branches found</div>
             <a asp-action="AddBranch" class="btn-add">Add Your First Branch</a>
         </div>

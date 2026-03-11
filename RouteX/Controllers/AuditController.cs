@@ -16,6 +16,12 @@ namespace RouteX.Controllers
 
         public async Task<IActionResult> AuditPage(int page = 1)
         {
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            if (!userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+
             try
             {
                 ViewData["Title"] = "Audit Logs";
