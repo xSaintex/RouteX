@@ -43,6 +43,11 @@ namespace RouteX.Controllers
         // GET: Branches/ViewBranch/5
         public async Task<IActionResult> ViewBranch(int? id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var userRole = HttpContext.Session.GetString("UserRole") ?? "";
             ViewBag.UserRole = userRole;
 
@@ -99,30 +104,35 @@ namespace RouteX.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                branch.CreatedAt = DateTime.UtcNow;
-                branch.UpdatedAt = DateTime.UtcNow;
-                branch.CreatedBy = userEmail;
-                branch.UpdatedBy = userEmail;
-                branch.IsArchived = false;
-
-                _context.Add(branch);
-                await _context.SaveChangesAsync();
-
-                await _auditService.LogActionAsync(userEmail, $"Created branch: {branch.BranchName}");
-
-                TempData["Success"] = "Branch added successfully!";
-                return RedirectToAction(nameof(BranchesPage));
+                ViewBag.UserRole = userRole;
+                return View(branch);
             }
 
-            ViewBag.UserRole = userRole;
-            return View(branch);
+            branch.CreatedAt = DateTime.UtcNow;
+            branch.UpdatedAt = DateTime.UtcNow;
+            branch.CreatedBy = userEmail;
+            branch.UpdatedBy = userEmail;
+            branch.IsArchived = false;
+
+            _context.Add(branch);
+            await _context.SaveChangesAsync();
+
+            await _auditService.LogActionAsync(userEmail, $"Created branch: {branch.BranchName}");
+
+            TempData["Success"] = "Branch added successfully!";
+            return RedirectToAction(nameof(BranchesPage));
         }
 
         // GET: Branches/EditBranch/5
         public async Task<IActionResult> EditBranch(int? id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var userRole = HttpContext.Session.GetString("UserRole") ?? "";
             ViewBag.UserRole = userRole;
 
@@ -165,55 +175,55 @@ namespace RouteX.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var existingBranch = await _context.Branches.FindAsync(id);
-                    if (existingBranch == null)
-                    {
-                        return NotFound();
-                    }
-
-                    existingBranch.BranchName = branch.BranchName;
-                    existingBranch.Address = branch.Address;
-                    existingBranch.City = branch.City;
-                    existingBranch.Province = branch.Province;
-                    existingBranch.PostalCode = branch.PostalCode;
-                    existingBranch.PhoneNumber = branch.PhoneNumber;
-                    existingBranch.Email = branch.Email;
-                    existingBranch.Latitude = branch.Latitude;
-                    existingBranch.Longitude = branch.Longitude;
-                    existingBranch.CoverageRadiusKm = branch.CoverageRadiusKm;
-                    existingBranch.Status = branch.Status;
-                    existingBranch.ManagerName = branch.ManagerName;
-                    existingBranch.OperatingHours = branch.OperatingHours;
-                    existingBranch.ServiceAreas = branch.ServiceAreas;
-                    existingBranch.UpdatedAt = DateTime.UtcNow;
-                    existingBranch.UpdatedBy = userEmail;
-
-                    await _context.SaveChangesAsync();
-
-                                        await _auditService.LogActionAsync(userEmail, $"Updated branch: {branch.BranchName}");
-
-                                        TempData["Success"] = "Branch updated successfully!";
-                    return RedirectToAction(nameof(BranchesPage));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!BranchExists(branch.BranchId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+                ViewBag.UserRole = userRole;
+                return View(branch);
             }
 
-            ViewBag.UserRole = userRole;
-            return View(branch);
+            try
+            {
+                var existingBranch = await _context.Branches.FindAsync(id);
+                if (existingBranch == null)
+                {
+                    return NotFound();
+                }
+
+                existingBranch.BranchName = branch.BranchName;
+                existingBranch.Address = branch.Address;
+                existingBranch.City = branch.City;
+                existingBranch.Province = branch.Province;
+                existingBranch.PostalCode = branch.PostalCode;
+                existingBranch.PhoneNumber = branch.PhoneNumber;
+                existingBranch.Email = branch.Email;
+                existingBranch.Latitude = branch.Latitude;
+                existingBranch.Longitude = branch.Longitude;
+                existingBranch.CoverageRadiusKm = branch.CoverageRadiusKm;
+                existingBranch.Status = branch.Status;
+                existingBranch.ManagerName = branch.ManagerName;
+                existingBranch.OperatingHours = branch.OperatingHours;
+                existingBranch.ServiceAreas = branch.ServiceAreas;
+                existingBranch.UpdatedAt = DateTime.UtcNow;
+                existingBranch.UpdatedBy = userEmail;
+
+                await _context.SaveChangesAsync();
+
+                await _auditService.LogActionAsync(userEmail, $"Updated branch: {branch.BranchName}");
+
+                TempData["Success"] = "Branch updated successfully!";
+                return RedirectToAction(nameof(BranchesPage));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!BranchExists(branch.BranchId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         // POST: Branches/ArchiveBranch/5
@@ -221,6 +231,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveBranch(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid request." });
+            }
+
             var userRole = HttpContext.Session.GetString("UserRole") ?? "";
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
 
@@ -251,6 +266,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid request." });
+            }
+
             var userRole = HttpContext.Session.GetString("UserRole") ?? "";
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
 

@@ -88,6 +88,16 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddFuel(FuelEntry fuelEntry)
         {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
+                return View(fuelEntry);
+            }
+
             // Apply auto-capitalization to text fields
             if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
                 fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
@@ -101,28 +111,15 @@ namespace RouteX.Controllers
             if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
                 fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
 
-            // Debug: Log ModelState errors
-            if (!ModelState.IsValid)
+            try
             {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-                Console.WriteLine("ModelState errors: " + string.Join(", ", errors));
-                TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                // Auto-assign branch from user
+                var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                if (user?.BranchId.HasValue == true)
                 {
-                    // Auto-assign branch from user
-                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
-                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
-                    if (user?.BranchId.HasValue == true)
-                    {
-                        fuelEntry.BranchId = user.BranchId;
-                    }
+                    fuelEntry.BranchId = user.BranchId;
+                }
 
                     // Set legacy properties for backward compatibility
                     var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
@@ -222,6 +219,16 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFuel(int id, FuelEntry fuelEntry)
         {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
+                return View(fuelEntry);
+            }
+
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
             var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
@@ -241,17 +248,6 @@ namespace RouteX.Controllers
             
             if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
                 fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
-
-            // Debug: Log ModelState errors
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-                Console.WriteLine("Edit ModelState errors: " + string.Join(", ", errors));
-                TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
-            }
 
             if (id != fuelEntry.Id)
             {

@@ -626,98 +626,111 @@ namespace RouteX.Controllers
                 ModelState.AddModelError("Description", "Description is required for 'Other' expense type");
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
-                    var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
-                    var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
-                    var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+                var fallbackUserEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+                var fallbackUserRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+                var fallbackUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == fallbackUserEmail);
+                var fallbackIsSuperAdmin = fallbackUserRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+                var fallbackBranchId = fallbackUser?.BranchId;
 
-                    var sourceVehicle = await _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(v => v.Id == financeEntry.VehicleId);
-                    if (sourceVehicle == null)
-                    {
-                        ModelState.AddModelError("VehicleId", "Selected vehicle was not found.");
-                    }
-                    else
-                    {
-                        if (!isSuperAdmin && user?.BranchId != sourceVehicle.BranchId)
-                        {
-                            return Forbid();
-                        }
+                var activeVehiclesOnError = await _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => !v.IsArchived)
+                    .Where(v => fallbackIsSuperAdmin || v.BranchId == fallbackBranchId)
+                    .OrderBy(v => v.PlateNumber)
+                    .ToListAsync();
 
-                        financeEntry.BranchId = sourceVehicle.BranchId;
-                    }
-
-                    if (!ModelState.IsValid)
-                    {
-                        throw new InvalidOperationException("Invalid finance data.");
-                    }
-
-                    // Handle file upload if provided (optional)
-                    if (attachment != null && attachment.Length > 0)
-                    {
-                        // In a real application, you would save the file to storage
-                        // For now, we'll just store the filename
-                        financeEntry.AttachmentPath = attachment.FileName;
-                    }
-                    else
-                    {
-                        financeEntry.AttachmentPath = null; // Explicitly set to null since it's optional
-                    }
-                    
-                    financeEntry.IsArchived = false;
-                    
-                    // Use raw SQL to avoid OUTPUT clause issues with triggers
-                    var sql = @"INSERT INTO FinanceEntries (VehicleId, ExpenseType, Amount, ExpenseDate, Description, ReferenceId, AttachmentPath, IsArchived, BranchId)
-                              VALUES (@VehicleId, @ExpenseType, @Amount, @ExpenseDate, @Description, @ReferenceId, @AttachmentPath, @IsArchived, @BranchId);
-                              SELECT CAST(SCOPE_IDENTITY() as int);";
-                    
-                    var parameters = new[]
-                    {
-                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", financeEntry.VehicleId),
-                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseType", financeEntry.ExpenseType),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Amount", financeEntry.Amount),
-                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseDate", financeEntry.ExpenseDate),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", financeEntry.IsArchived),
-                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", financeEntry.BranchId)
-                    };
-                    
-                    var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
-                    financeEntry.Id = id;
-
-                    var actingUser = userEmail;
-                    await _auditService.LogActionAsync(actingUser, $"Create:Finance:{financeEntry.Id}");
-                    
-                    TempData["FinanceSuccess"] = "Finance record added successfully!";
-                    TempData["RecentFinanceId"] = financeEntry.Id; // Track recently added finance entry
-                    TempData["RecentFinanceAction"] = "Added"; // Track action type
-                    return RedirectToAction(nameof(FinancePage));
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", $"Error adding finance record: {ex.Message}");
-                }
+                ViewBag.Vehicles = activeVehiclesOnError;
+                return View(financeEntry);
             }
-            
+
+            try
+            {
+                var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+                var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+                var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
+                var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
+                var sourceVehicle = await _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(v => v.Id == financeEntry.VehicleId);
+                if (sourceVehicle == null)
+                {
+                    ModelState.AddModelError("VehicleId", "Selected vehicle was not found.");
+                }
+                else
+                {
+                    if (!isSuperAdmin && user?.BranchId != sourceVehicle.BranchId)
+                    {
+                        return Forbid();
+                    }
+
+                    financeEntry.BranchId = sourceVehicle.BranchId;
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    throw new InvalidOperationException("Invalid finance data.");
+                }
+
+                // Handle file upload if provided (optional)
+                if (attachment != null && attachment.Length > 0)
+                {
+                    financeEntry.AttachmentPath = attachment.FileName;
+                }
+                else
+                {
+                    financeEntry.AttachmentPath = null;
+                }
+
+                financeEntry.IsArchived = false;
+
+                var sql = @"INSERT INTO FinanceEntries (VehicleId, ExpenseType, Amount, ExpenseDate, Description, ReferenceId, AttachmentPath, IsArchived, BranchId)
+                          VALUES (@VehicleId, @ExpenseType, @Amount, @ExpenseDate, @Description, @ReferenceId, @AttachmentPath, @IsArchived, @BranchId);
+                          SELECT CAST(SCOPE_IDENTITY() as int);";
+
+                var parameters = new[]
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", financeEntry.VehicleId),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ExpenseType", financeEntry.ExpenseType),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Amount", financeEntry.Amount),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ExpenseDate", financeEntry.ExpenseDate),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", financeEntry.IsArchived),
+                    new Microsoft.Data.SqlClient.SqlParameter("@BranchId", financeEntry.BranchId)
+                };
+
+                var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+                financeEntry.Id = id;
+
+                var actingUser = userEmail;
+                await _auditService.LogActionAsync(actingUser, $"Create:Finance:{financeEntry.Id}");
+
+                TempData["FinanceSuccess"] = "Finance record added successfully!";
+                TempData["RecentFinanceId"] = financeEntry.Id;
+                TempData["RecentFinanceAction"] = "Added";
+                return RedirectToAction(nameof(FinancePage));
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error adding finance record: {ex.Message}");
+            }
+
             // If validation fails, reload vehicles and return to view
-            var fallbackUserEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
-            var fallbackUserRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
-            var fallbackUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == fallbackUserEmail);
-            var fallbackIsSuperAdmin = fallbackUserRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
-            var fallbackBranchId = fallbackUser?.BranchId;
+            var reloadUserEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
+            var reloadUserRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            var reloadUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == reloadUserEmail);
+            var reloadIsSuperAdmin = reloadUserRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var reloadBranchId = reloadUser?.BranchId;
 
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
-                .Where(v => fallbackIsSuperAdmin || v.BranchId == fallbackBranchId)
+                .Where(v => reloadIsSuperAdmin || v.BranchId == reloadBranchId)
                 .OrderBy(v => v.PlateNumber)
                 .ToListAsync();
-            
+
             ViewBag.Vehicles = activeVehicles;
             return View(financeEntry);
         }
@@ -726,6 +739,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> LogExport(string report, string format)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             if (string.IsNullOrWhiteSpace(report) || string.IsNullOrWhiteSpace(format))
             {
                 return BadRequest();
@@ -741,6 +759,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveFinance(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid request." });
+            }
+
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
             var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
@@ -781,6 +804,11 @@ namespace RouteX.Controllers
         // GET: Finance/EditFinance/5
         public async Task<IActionResult> EditFinance(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             ViewData["Title"] = "Edit Finance";
             
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
@@ -835,71 +863,72 @@ namespace RouteX.Controllers
 
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
             var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
-            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
-            var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
-            
             ViewBag.UserRole = userRole;
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    // Handle file upload if provided (optional)
-                    if (attachment != null && attachment.Length > 0)
-                    {
-                        // In a real application, you would save the file to storage
-                        // For now, we'll just store the filename
-                        financeEntry.AttachmentPath = attachment.FileName;
-                    }
-                    // If no new attachment is provided, keep the existing one
-                    // AttachmentPath will remain unchanged in the database
-                    
-                    // Use raw SQL to avoid OUTPUT clause issues with triggers
-                    var sql = @"UPDATE FinanceEntries
-                              SET VehicleId = @VehicleId,
-                                  ExpenseType = @ExpenseType,
-                                  Amount = @Amount,
-                                  ExpenseDate = @ExpenseDate,
-                                  Description = @Description,
-                                  ReferenceId = @ReferenceId,
-                                  AttachmentPath = @AttachmentPath
-                              WHERE Id = @Id";
+                var activeVehiclesOnError = await _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => !v.IsArchived)
+                    .OrderBy(v => v.PlateNumber)
+                    .ToListAsync();
 
-                    var parameters = new[]
-                    {
-                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", financeEntry.VehicleId),
-                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseType", financeEntry.ExpenseType),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Amount", financeEntry.Amount),
-                        new Microsoft.Data.SqlClient.SqlParameter("@ExpenseDate", financeEntry.ExpenseDate),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Id", financeEntry.Id)
-                    };
-
-                    await _context.Database.ExecuteSqlRawAsync(sql, parameters);
-
-                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
-                    await _auditService.LogActionAsync(actingUser, $"Update:Finance:{financeEntry.Id}");
-                    
-                    TempData["FinanceSuccess"] = "Finance record updated successfully!";
-                    TempData["RecentFinanceId"] = financeEntry.Id; // Track recently edited finance entry
-                    TempData["RecentFinanceAction"] = "Edited"; // Track action type
-                    return RedirectToAction(nameof(FinancePage));
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", $"Error updating finance record: {ex.Message}");
-                }
+                ViewBag.Vehicles = activeVehiclesOnError;
+                return View(financeEntry);
             }
-            
+
+            try
+            {
+                // Handle file upload if provided (optional)
+                if (attachment != null && attachment.Length > 0)
+                {
+                    financeEntry.AttachmentPath = attachment.FileName;
+                }
+
+                var sql = @"UPDATE FinanceEntries
+                          SET VehicleId = @VehicleId,
+                              ExpenseType = @ExpenseType,
+                              Amount = @Amount,
+                              ExpenseDate = @ExpenseDate,
+                              Description = @Description,
+                              ReferenceId = @ReferenceId,
+                              AttachmentPath = @AttachmentPath
+                          WHERE Id = @Id";
+
+                var parameters = new[]
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", financeEntry.VehicleId),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ExpenseType", financeEntry.ExpenseType),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Amount", financeEntry.Amount),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ExpenseDate", financeEntry.ExpenseDate),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Description", financeEntry.Description ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ReferenceId", financeEntry.ReferenceId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@AttachmentPath", financeEntry.AttachmentPath ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Id", financeEntry.Id)
+                };
+
+                await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+
+                var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                await _auditService.LogActionAsync(actingUser, $"Update:Finance:{financeEntry.Id}");
+
+                TempData["FinanceSuccess"] = "Finance record updated successfully!";
+                TempData["RecentFinanceId"] = financeEntry.Id;
+                TempData["RecentFinanceAction"] = "Edited";
+                return RedirectToAction(nameof(FinancePage));
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error updating finance record: {ex.Message}");
+            }
+
             // If validation fails, reload vehicles and return to view
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
                 .Where(v => !v.IsArchived)
                 .OrderBy(v => v.PlateNumber)
                 .ToListAsync();
-            
+
             ViewBag.Vehicles = activeVehicles;
             return View(financeEntry);
         }
@@ -907,6 +936,11 @@ namespace RouteX.Controllers
         // GET: Finance/ViewFinance/5
         public async Task<IActionResult> ViewFinance(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             ViewData["Title"] = "View Finance";
             
             // Find the finance entry by ID

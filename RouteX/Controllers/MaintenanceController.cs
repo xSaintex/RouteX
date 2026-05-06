@@ -121,6 +121,17 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddMaintenance(MaintenanceEntry maintenance)
         {
+            if (!ModelState.IsValid)
+            {
+                var vehicleOptions = await _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => !v.IsArchived)
+                    .OrderBy(v => v.PlateNumber)
+                    .ToListAsync();
+                ViewBag.Vehicles = vehicleOptions;
+                return View(maintenance);
+            }
+
             // Validate NextServiceDue - cannot be past date or current date
             if (maintenance.NextServiceDue.HasValue)
             {
@@ -130,6 +141,13 @@ namespace RouteX.Controllers
                 if (nextServiceDate <= today)
                 {
                     ModelState.AddModelError("NextServiceDue", "Next service due date must be a future date (after today).");
+                    var vehicleOptions = await _context.Vehicles
+                        .AsNoTracking()
+                        .Where(v => !v.IsArchived)
+                        .OrderBy(v => v.PlateNumber)
+                        .ToListAsync();
+                    ViewBag.Vehicles = vehicleOptions;
+                    return View(maintenance);
                 }
             }
 
@@ -143,13 +161,11 @@ namespace RouteX.Controllers
             if (!string.IsNullOrWhiteSpace(maintenance.Description))
                 maintenance.Description = _textFormattingService.CapitalizeFirstLetter(maintenance.Description);
 
-            if (ModelState.IsValid)
+            try
             {
-                try
-                {
-                    // Auto-assign branch from user
-                    var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
-                    var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+                // Auto-assign branch from user
+                var userEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+                var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
                     var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
                     var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
                     if (user?.BranchId.HasValue == true)
@@ -261,7 +277,6 @@ namespace RouteX.Controllers
                     ModelState.AddModelError("", $"Error adding maintenance: {ex.Message}");
                     TempData["Error"] = $"Error adding maintenance: {ex.Message}";
                 }
-            }
 
             var activeVehicles = await _context.Vehicles
                 .AsNoTracking()
@@ -326,6 +341,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditMaintenance(int id, MaintenanceEntry maintenance)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(maintenance);
+            }
+
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
             var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);

@@ -64,6 +64,12 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BudgetPage(BudgetPageViewModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = "Please fix the validation errors.";
+                return View(model);
+            }
+
             ViewData["Title"] = "Budget";
 
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;

@@ -224,10 +224,13 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddVehicle(Vehicle vehicle)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                // Check for duplicate plate number
-                var existingVehicle = await _context.Vehicles
+                return View(vehicle);
+            }
+
+            // Check for duplicate plate number
+            var existingVehicle = await _context.Vehicles
                     .AsNoTracking()
                     .FirstOrDefaultAsync(v => v.PlateNumber.ToLower() == vehicle.PlateNumber.ToLower() && v.Status != VehicleStatus.Archived);
 
@@ -280,7 +283,6 @@ namespace RouteX.Controllers
                 TempData["RecentVehicleId"] = vehicle.Id;
                 TempData["RecentAction"] = "Added";
                 return RedirectToAction(nameof(VehiclePage));
-            }
 
             return View(vehicle);
         }
@@ -312,6 +314,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditVehicle(int id, Vehicle vehicle)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(vehicle);
+            }
+
             var userEmail = HttpContext.Session.GetString("UserEmail") ?? string.Empty;
             var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == userEmail);
@@ -322,10 +329,8 @@ namespace RouteX.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
-            {
-                var existingVehicle = await _context.Vehicles.FindAsync(id);
-                if (existingVehicle == null)
+            var existingVehicle = await _context.Vehicles.FindAsync(id);
+            if (existingVehicle == null)
                 {
                     return NotFound();
                 }
@@ -348,7 +353,6 @@ namespace RouteX.Controllers
                 TempData["RecentVehicleId"] = vehicle.Id; // Track recently edited vehicle
                 TempData["RecentAction"] = "Edited"; // Track action type
                 return RedirectToAction(nameof(VehiclePage));
-            }
 
             return View(vehicle);
         }
@@ -727,6 +731,11 @@ namespace RouteX.Controllers
         [HttpPost]
         public async Task<IActionResult> CalculateDistance([FromBody] CalculateDistanceRequest request)
         {
+            if (!ModelState.IsValid || request == null)
+            {
+                return Json(new { success = false, error = "Invalid request." });
+            }
+
             try
             {
                 if (string.IsNullOrWhiteSpace(request.StartAddress) || string.IsNullOrWhiteSpace(request.EndAddress))

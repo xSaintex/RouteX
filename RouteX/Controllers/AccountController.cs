@@ -38,6 +38,12 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(User model)
         {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.ErrorMessage = "Invalid login information.";
+                return View("LoginPage", model);
+            }
+
             if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Password))
             {
                 ViewBag.ErrorMessage = "Email and password are required.";

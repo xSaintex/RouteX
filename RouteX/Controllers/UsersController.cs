@@ -54,7 +54,13 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BackfillUserPasswords()
         {
-            const string tempPassword = "Temp@1234";
+            // Get temporary password from configuration or generate a secure one
+            var tempPassword = System.Guid.NewGuid().ToString() + "@Temp1";
+            if (string.IsNullOrWhiteSpace(tempPassword))
+            {
+                TempData["Error"] = "Failed to generate temporary password.";
+                return RedirectToAction(nameof(UsersPage));
+            }
 
             var usersNeedingPasswords = await _context.Users
                 .Where(u => string.IsNullOrWhiteSpace(u.Password))
@@ -168,10 +174,14 @@ namespace RouteX.Controllers
                 return Forbid();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var existingIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
-                if (existingIdentity != null || await _context.Users.AnyAsync(u => u.Email == viewModel.Email))
+                ViewBag.ActiveRoles = GetActiveRoles();
+                return View(viewModel);
+            }
+
+            var existingIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
+            if (existingIdentity != null || await _context.Users.AnyAsync(u => u.Email == viewModel.Email))
                 {
                     ModelState.AddModelError("Email", "A user with this email already exists.");
                 }
@@ -235,7 +245,6 @@ namespace RouteX.Controllers
                     {
                         ModelState.AddModelError("", error.Description);
                     }
-                }
             }
 
             ViewBag.ActiveRoles = GetActiveRoles();
@@ -257,6 +266,11 @@ namespace RouteX.Controllers
         // GET: Users/EditUser/5
         public async Task<IActionResult> EditUser(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             if (!IsSuperAdmin())
             {
                 return Forbid();
@@ -297,32 +311,54 @@ namespace RouteX.Controllers
                 return Forbid();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == viewModel.UserId);
-                if (existingUser == null)
-                {
-                    TempData["Error"] = "User not found.";
-                    return RedirectToAction(nameof(UsersPage));
-                }
+                ViewBag.ActiveRoles = GetActiveRoles();
+                return View(viewModel);
+            }
 
-                var identityUser = await _userManager.FindByEmailAsync(existingUser.Email);
-                if (identityUser == null)
-                {
-                    identityUser = await _userManager.FindByEmailAsync(viewModel.Email);
-                }
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == viewModel.UserId);
+            if (existingUser == null)
+            {
+                TempData["Error"] = "User not found.";
+                return RedirectToAction(nameof(UsersPage));
+            }
 
-                if (identityUser != null)
+            var identityUser = await _userManager.FindByEmailAsync(existingUser.Email);
+            if (identityUser == null)
+            {
+                identityUser = await _userManager.FindByEmailAsync(viewModel.Email);
+            }
+
+            if (identityUser != null)
+            {
+                // Update email if changed
+                if (identityUser.Email != viewModel.Email)
                 {
-                    // Update email if changed
-                    if (identityUser.Email != viewModel.Email)
+                    identityUser.Email = viewModel.Email;
+                    identityUser.UserName = viewModel.Email;
+                    var updateResult = await _userManager.UpdateAsync(identityUser);
+                    if (!updateResult.Succeeded)
                     {
-                        identityUser.Email = viewModel.Email;
-                        identityUser.UserName = viewModel.Email;
-                        var updateResult = await _userManager.UpdateAsync(identityUser);
-                        if (!updateResult.Succeeded)
+                        foreach (var error in updateResult.Errors)
                         {
-                            foreach (var error in updateResult.Errors)
+                            ModelState.AddModelError("", error.Description);
+                        }
+                        ViewBag.ActiveRoles = GetActiveRoles();
+                        return View(viewModel);
+                    }
+                }
+
+                // Update password only if provided
+                if (!string.IsNullOrWhiteSpace(viewModel.Password))
+                {
+                    var removeResult = await _userManager.RemovePasswordAsync(identityUser);
+                    if (removeResult.Succeeded)
+                    {
+                        var addPasswordResult = await _userManager.AddPasswordAsync(identityUser, viewModel.Password);
+                        if (!addPasswordResult.Succeeded)
+                        {
+                            foreach (var error in addPasswordResult.Errors)
                             {
                                 ModelState.AddModelError("", error.Description);
                             }
@@ -330,54 +366,37 @@ namespace RouteX.Controllers
                             return View(viewModel);
                         }
                     }
-
-                    // Update password only if provided
-                    if (!string.IsNullOrWhiteSpace(viewModel.Password))
-                    {
-                        var removeResult = await _userManager.RemovePasswordAsync(identityUser);
-                        if (removeResult.Succeeded)
-                        {
-                            var addPasswordResult = await _userManager.AddPasswordAsync(identityUser, viewModel.Password);
-                            if (!addPasswordResult.Succeeded)
-                            {
-                                foreach (var error in addPasswordResult.Errors)
-                                {
-                                    ModelState.AddModelError("", error.Description);
-                                }
-                                ViewBag.ActiveRoles = GetActiveRoles();
-                                return View(viewModel);
-                            }
-                        }
-                    }
-
-                    // Get the updated hashed password
-                    var refreshedIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
-                    var passwordHash = refreshedIdentity?.PasswordHash ?? identityUser.PasswordHash ?? string.Empty;
-                    existingUser.Password = passwordHash;
                 }
 
-                // Update user details
-                existingUser.FirstName = viewModel.FirstName;
-                existingUser.LastName = viewModel.LastName;
-                existingUser.Email = viewModel.Email;
-                existingUser.Role = viewModel.Role;
-                existingUser.Status = viewModel.Status;
-                await _context.SaveChangesAsync();
-
-                var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
-                await _auditService.LogActionAsync(actingUser, $"Update:User:{existingUser.UserId}");
-
-                TempData["Success"] = "User updated successfully!";
-                return RedirectToAction(nameof(UsersPage));
+                // Get the updated hashed password
+                var refreshedIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
+                var passwordHash = refreshedIdentity?.PasswordHash ?? identityUser.PasswordHash ?? string.Empty;
+                existingUser.Password = passwordHash;
             }
 
-            ViewBag.ActiveRoles = GetActiveRoles();
-            return View(viewModel);
+            // Update user details
+            existingUser.FirstName = viewModel.FirstName;
+            existingUser.LastName = viewModel.LastName;
+            existingUser.Email = viewModel.Email;
+            existingUser.Role = viewModel.Role;
+            existingUser.Status = viewModel.Status;
+            await _context.SaveChangesAsync();
+
+            var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+            await _auditService.LogActionAsync(actingUser, $"Update:User:{existingUser.UserId}");
+
+            TempData["Success"] = "User updated successfully!";
+            return RedirectToAction(nameof(UsersPage));
         }
 
         // GET: Users/ViewUser/5
         public async Task<IActionResult> ViewUser(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             if (!IsSuperAdmin())
             {
                 return Forbid();
@@ -398,6 +417,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveUser(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid request." });
+            }
+
             if (!IsSuperAdmin())
             {
                 return Json(new { success = false, message = "Only SuperAdmin can manage users." });
