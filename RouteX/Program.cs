@@ -8,6 +8,10 @@ using RouteX.Models;
 
 using RouteX.Services;
 
+using System.Threading.RateLimiting;
+
+using Microsoft.AspNetCore.RateLimiting;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,15 +60,21 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 
     options.SignIn.RequireConfirmedAccount = false;
 
-    options.Password.RequireDigit = false;
+    options.Password.RequireDigit = true;
 
-    options.Password.RequireLowercase = false;
+    options.Password.RequireLowercase = true;
 
-    options.Password.RequireUppercase = false;
+    options.Password.RequireUppercase = true;
 
-    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireNonAlphanumeric = true;
 
-    options.Password.RequiredLength = 6;
+    options.Password.RequiredLength = 8;
+
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+
+    options.Lockout.MaxFailedAccessAttempts = 5;
+
+    options.Lockout.AllowedForNewUsers = true;
 
 })
 
@@ -83,17 +93,13 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 
 // Add Session support for login
-
 builder.Services.AddSession(options =>
-
 {
-
     options.IdleTimeout = TimeSpan.FromMinutes(30);
-
     options.Cookie.HttpOnly = true;
-
     options.Cookie.IsEssential = true;
-
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
 
@@ -112,6 +118,19 @@ builder.Services.AddScoped<IFuelPriceService, FuelPriceService>();
 builder.Services.AddScoped<IRouteDistanceService, TomTomService>();
 builder.Services.AddMemoryCache(); // Required for fuel price caching
 builder.Services.AddHttpClient(); // Required for FuelPriceService
+
+// Add Rate Limiting (Issue 8)
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 
 
@@ -153,25 +172,25 @@ using (var scope = app.Services.CreateScope())
 
         // Seed admin user
 
-        await SeedUser(userManager, context, "admin@routex.com", "admin123", "Admin", "User", "Administrator");
+        await SeedUser(userManager, context, "admin@routex.com", "Admin@1234", "Admin", "User", "Administrator");
 
 
 
         // Seed operations staff user
 
-        await SeedUser(userManager, context, "operationstaff@routex.com", "opstaff123", "Operations", "Staff", "OperationsStaff");
+        await SeedUser(userManager, context, "operationstaff@routex.com", "OpStaff@1234", "Operations", "Staff", "OperationsStaff");
 
 
 
         // Seed super admin user
 
-        await SeedUser(userManager, context, "superadmin@routex.com", "supadmin123", "Super", "Admin", "SuperAdmin");
+        await SeedUser(userManager, context, "superadmin@routex.com", "SupAdmin@1234", "Super", "Admin", "SuperAdmin");
 
 
 
         // Seed finance user
 
-                await SeedUser(userManager, context, "finance@routex.com", "finance123", "Finance", "User", "Finance");
+                await SeedUser(userManager, context, "finance@routex.com", "Finance@1234", "Finance", "User", "Finance");
 
                 // Seed branch data
                 BranchSeedData.SeedBranches(context);
@@ -234,13 +253,25 @@ async Task SeedUser(UserManager<IdentityUser> userManager, ApplicationDbContext 
 
 
 
-    // Ensure password is set
+    // Ensure password is set and meets current policy (reset if user already exists with a weak password)
 
     var hasPassword = await userManager.HasPasswordAsync(identityUser);
 
     if (!hasPassword)
 
     {
+
+        await userManager.AddPasswordAsync(identityUser, password);
+
+    }
+
+    else
+
+    {
+
+        // Reset password to ensure it meets the current strong policy
+
+        await userManager.RemovePasswordAsync(identityUser);
 
         await userManager.AddPasswordAsync(identityUser, password);
 
@@ -303,8 +334,8 @@ async Task SeedUser(UserManager<IdentityUser> userManager, ApplicationDbContext 
     {
 
         // Log but don't fail - Identity user is the important part
-
-        Console.WriteLine($"Warning: Could not update custom Users table for {email}: {ex.Message}");
+        var logger = userManager.Logger;
+        logger.LogWarning(ex, "Could not update custom Users table for {Email}", email);
 
     }
 
@@ -336,7 +367,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-
+// Rate limiting middleware (after UseRouting, before UseAuthentication)
+app.UseRateLimiter();
 
 // Add Session middleware
 

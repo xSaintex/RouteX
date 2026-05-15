@@ -571,7 +571,6 @@ C:\IT15\RouteX\RouteX\obj\Debug\net10.0\staticwebassets.build.json.cache
 C:\IT15\RouteX\RouteX\obj\Debug\net10.0\staticwebassets.development.json
 C:\IT15\RouteX\RouteX\obj\Debug\net10.0\staticwebassets.build.endpoints.json
 C:\IT15\RouteX\RouteX\obj\Debug\net10.0\swae.build.ex.cache
-C:\IT15\RouteX\RouteX\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 C:\IT15\RouteX\RouteX\obj\Debug\net10.0\RouteX.csproj.Up2Date
 C:\IT15\RouteX\RouteX\obj\Debug\net10.0\RouteX.genruntimeconfig.cache
 C:\IT15\RouteX\RouteX\obj\Debug\net10.0\ref\RouteX.dll

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    
+    [Authorize]
     public class UsersController : Controller
     {
         private static readonly HashSet<string> ProtectedEmails = new(StringComparer.OrdinalIgnoreCase)
@@ -24,12 +25,14 @@ namespace RouteX.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IAuditService _auditService;
+        private readonly ILogger<UsersController> _logger;
 
-        public UsersController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAuditService auditService)
+        public UsersController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAuditService auditService, ILogger<UsersController> logger)
         {
             _context = context;
             _userManager = userManager;
             _auditService = auditService;
+            _logger = logger;
         }
 
         // GET: Users
@@ -47,6 +50,7 @@ namespace RouteX.Controllers
         // POST: Users/BackfillUserPasswords
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> BackfillUserPasswords()
         {
             const string tempPassword = "Temp@1234";
@@ -179,10 +183,6 @@ namespace RouteX.Controllers
                         {
                             var passwordHash = identityUser.PasswordHash;
                             
-                            // DEBUG: Log the hash length and first few characters
-                            System.Diagnostics.Debug.WriteLine($"Password hash length: {passwordHash.Length}");
-                            System.Diagnostics.Debug.WriteLine($"Password hash starts: {passwordHash.Substring(0, Math.Min(50, passwordHash.Length))}...");
-                            
                             // Create custom user record with hashed password
                             var customUser = new User
                             {
@@ -201,17 +201,13 @@ namespace RouteX.Controllers
                             var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
                             await _auditService.LogActionAsync(actingUser, $"Create:User:{customUser.UserId}");
                             
-                            // DEBUG: Verify it was saved
-                            System.Diagnostics.Debug.WriteLine($"Custom user created with ID: {customUser.UserId}");
+                            _logger.LogInformation("Custom user created with ID: {UserId}", customUser.UserId);
 
                             TempData["Success"] = "User created successfully!";
                             return RedirectToAction(nameof(UsersPage));
                         }
                         else
                         {
-                            // DEBUG: Log what went wrong
-                            System.Diagnostics.Debug.WriteLine($"Identity user is null: {identityUser == null}");
-                            System.Diagnostics.Debug.WriteLine($"PasswordHash is null or empty: {string.IsNullOrEmpty(identityUser?.PasswordHash)}");
                             ModelState.AddModelError("", "Error: Password was not hashed properly. Please try again.");
                         }
                     }
