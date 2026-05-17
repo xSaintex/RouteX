@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
@@ -8,6 +9,7 @@ using System.Globalization;
 
 namespace RouteX.Controllers
 {
+    [Authorize]
     public class FinanceController : Controller
     {
         private readonly ApplicationDbContext _context;

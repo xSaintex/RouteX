@@ -4,6 +4,7 @@ using RouteX.Data;
 using RouteX.Models;
 using RouteX.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace RouteX.Controllers
 
@@ -36,6 +37,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login(User model)
         {
             if (!ModelState.IsValid)
@@ -61,7 +63,7 @@ namespace RouteX.Controllers
                 model.Email,
                 model.Password,
                 isPersistent: false,
-                lockoutOnFailure: false);
+                lockoutOnFailure: true);
             if (result.Succeeded)
 
             {
@@ -123,6 +125,8 @@ namespace RouteX.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             var userEmail = HttpContext.Session.GetString("UserEmail");

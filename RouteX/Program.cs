@@ -8,6 +8,10 @@ using RouteX.Models;
 
 using RouteX.Services;
 
+using System.Threading.RateLimiting;
+
+using Microsoft.AspNetCore.RateLimiting;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,15 +60,21 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 
     options.SignIn.RequireConfirmedAccount = false;
 
-    options.Password.RequireDigit = false;
+    options.Password.RequireDigit = true;
 
-    options.Password.RequireLowercase = false;
+    options.Password.RequireLowercase = true;
 
-    options.Password.RequireUppercase = false;
+    options.Password.RequireUppercase = true;
 
-    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireNonAlphanumeric = true;
 
-    options.Password.RequiredLength = 6;
+    options.Password.RequiredLength = 8;
+
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+
+    options.Lockout.MaxFailedAccessAttempts = 5;
+
+    options.Lockout.AllowedForNewUsers = true;
 
 })
 
@@ -83,17 +93,13 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 
 // Add Session support for login
-
 builder.Services.AddSession(options =>
-
 {
-
     options.IdleTimeout = TimeSpan.FromMinutes(30);
-
     options.Cookie.HttpOnly = true;
-
     options.Cookie.IsEssential = true;
-
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
 
@@ -114,6 +120,19 @@ builder.Services.AddScoped<ITextFormattingService, TextFormattingService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddMemoryCache(); // Required for fuel price caching
 builder.Services.AddHttpClient(); // Required for FuelPriceService
+
+// Add Rate Limiting (Issue 8)
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 
 
@@ -153,9 +172,11 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding database. Application will continue without seeding.");
-        // Don't throw the exception - let the application start
+
+        // Log but don't fail - Identity user is the important part
+        var logger = userManager.Logger;
+        logger.LogWarning(ex, "Could not update custom Users table for {Email}", email);
+
     }
 
 }
@@ -185,7 +206,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-
+// Rate limiting middleware (after UseRouting, before UseAuthentication)
+app.UseRateLimiter();
 
 // Add Session middleware
 

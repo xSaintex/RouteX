@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
+    [Authorize]
     public class ArchiveController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -84,8 +86,9 @@ namespace RouteX.Controllers
                 try
                 {
                     archivedUsers = await _context.Users
-                        .FromSqlRaw("SELECT UserId, FirstName, LastName, Email, Role, Status FROM Users WHERE Status = 'Archived' ORDER BY UserId DESC")
                         .AsNoTracking()
+                        .Where(u => u.Status == UserStatus.Archived.ToString())
+                        .OrderByDescending(u => u.UserId)
                         .ToListAsync();
                 }
                 catch
@@ -289,6 +292,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreVehicle(int id)
         {
             if (!await ColumnExistsAsync("Vehicles", "IsArchived"))
@@ -319,6 +323,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreFuel(int id)
         {
             if (!await ColumnExistsAsync("FuelEntries", "IsArchived"))
@@ -335,6 +340,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreMaintenance(int id)
         {
             if (!await ColumnExistsAsync("MaintenanceEntries", "IsArchived"))
@@ -364,6 +370,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreFinance(int id)
         {
             if (!await ColumnExistsAsync("FinanceEntries", "IsArchived"))
@@ -380,6 +387,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreTrip(int id)
         {
             if (!await ColumnExistsAsync("RouteTrips", "IsArchived"))
@@ -397,6 +405,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreUser(int id)
         {
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
@@ -418,6 +427,7 @@ namespace RouteX.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreBudget(int id)
         {
             var entry = await _context.BudgetEntries.FindAsync(id);

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
@@ -7,19 +8,20 @@ using RouteX.Services;
 
 namespace RouteX.Controllers
 {
+    [Authorize]
     public class FuelController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
         private readonly IFuelPriceService _fuelPriceService;
-        private readonly ITextFormattingService _textFormattingService;
+        private readonly ILogger<FuelController> _logger;
 
-        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService, ITextFormattingService textFormattingService)
+        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService, ILogger<FuelController> logger)
         {
             _context = context;
             _auditService = auditService;
             _fuelPriceService = fuelPriceService;
-            _textFormattingService = textFormattingService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> FuelPage()
@@ -88,12 +90,14 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddFuel(FuelEntry fuelEntry)
         {
+            // Log ModelState errors
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values
                     .SelectMany(v => v.Errors)
                     .Select(e => e.ErrorMessage)
                     .ToList();
+                _logger.LogWarning("AddFuel ModelState errors: {Errors}", string.Join(", ", errors));
                 TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
                 return View(fuelEntry);
             }
@@ -171,8 +175,8 @@ namespace RouteX.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error adding fuel entry: " + ex.Message);
-                    TempData["Error"] = "Error adding fuel entry: " + ex.Message;
+                    _logger.LogError(ex, "Error adding fuel entry");
+                    TempData["Error"] = "An unexpected error occurred while adding the fuel entry. Please try again.";
                 }
             }
 
@@ -219,12 +223,14 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditFuel(int id, FuelEntry fuelEntry)
         {
+            // Log ModelState errors
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values
                     .SelectMany(v => v.Errors)
                     .Select(e => e.ErrorMessage)
                     .ToList();
+                _logger.LogWarning("EditFuel ModelState errors: {Errors}", string.Join(", ", errors));
                 TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
                 return View(fuelEntry);
             }
@@ -323,8 +329,8 @@ namespace RouteX.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error updating fuel entry: " + ex.Message);
-                    TempData["Error"] = "Error updating fuel entry: " + ex.Message;
+                    _logger.LogError(ex, "Error updating fuel entry {Id}", fuelEntry.Id);
+                    TempData["Error"] = "An unexpected error occurred while updating the fuel entry. Please try again.";
                 }
             }
 
@@ -413,7 +419,8 @@ namespace RouteX.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = $"Error archiving fuel entry: {ex.Message}" });
+                _logger.LogError(ex, "Error archiving fuel entry {Id}", id);
+                return Json(new { success = false, message = "An unexpected error occurred while archiving the fuel entry." });
             }
         }
 
@@ -428,7 +435,8 @@ namespace RouteX.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                _logger.LogError(ex, "Error retrieving fuel prices");
+                return Json(new { success = false, error = "Unable to retrieve fuel prices at this time." });
             }
         }
 
@@ -443,7 +451,8 @@ namespace RouteX.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                _logger.LogError(ex, "Error retrieving fuel price for {FuelType}", fuelType);
+                return Json(new { success = false, error = "Unable to retrieve fuel prices at this time." });
             }
         }
 
@@ -484,7 +493,7 @@ namespace RouteX.Controllers
             catch (Exception ex)
             {
                 // Log error but don't fail the fuel entry creation
-                Console.WriteLine($"Error creating finance entry from fuel: {ex.Message}");
+                _logger.LogError(ex, "Error creating finance entry from fuel entry {FuelId}", fuelEntry.Id);
             }
         }
     }

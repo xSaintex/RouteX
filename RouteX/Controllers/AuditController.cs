@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RouteX.Models;
 using RouteX.Services;
@@ -5,6 +6,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
+    [Authorize]
     public class AuditController : Controller
     {
         private readonly IAuditService _auditService;
