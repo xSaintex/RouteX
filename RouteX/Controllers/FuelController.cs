@@ -15,13 +15,15 @@ namespace RouteX.Controllers
         private readonly IAuditService _auditService;
         private readonly IFuelPriceService _fuelPriceService;
         private readonly ILogger<FuelController> _logger;
+        private readonly ITextFormattingService _textFormattingService;
 
-        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService, ILogger<FuelController> logger)
+        public FuelController(ApplicationDbContext context, IAuditService auditService, IFuelPriceService fuelPriceService, ILogger<FuelController> logger, ITextFormattingService textFormattingService)
         {
             _context = context;
             _auditService = auditService;
             _fuelPriceService = fuelPriceService;
             _logger = logger;
+            _textFormattingService = textFormattingService;
         }
 
         public async Task<IActionResult> FuelPage()
@@ -99,19 +101,26 @@ namespace RouteX.Controllers
                     .ToList();
                 _logger.LogWarning("AddFuel ModelState errors: {Errors}", string.Join(", ", errors));
                 TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
+
+                // Reload vehicles for dropdown
+                var vehiclesOnError = await _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => !v.IsArchived)
+                    .ToListAsync();
+                ViewBag.Vehicles = vehiclesOnError;
                 return View(fuelEntry);
             }
 
             // Apply auto-capitalization to text fields
             if (!string.IsNullOrWhiteSpace(fuelEntry.Driver))
                 fuelEntry.Driver = _textFormattingService.FormatName(fuelEntry.Driver);
-            
+
             if (!string.IsNullOrWhiteSpace(fuelEntry.FuelStation))
                 fuelEntry.FuelStation = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelStation);
-            
+
             if (!string.IsNullOrWhiteSpace(fuelEntry.FuelType))
                 fuelEntry.FuelType = _textFormattingService.CapitalizeEachWord(fuelEntry.FuelType);
-            
+
             if (!string.IsNullOrWhiteSpace(fuelEntry.Notes))
                 fuelEntry.Notes = _textFormattingService.CapitalizeFirstLetter(fuelEntry.Notes);
 
@@ -125,59 +134,58 @@ namespace RouteX.Controllers
                     fuelEntry.BranchId = user.BranchId;
                 }
 
-                    // Set legacy properties for backward compatibility
-                    var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
-                    if (vehicle != null)
-                    {
-                        fuelEntry.UnitModel = vehicle.UnitModel;
-                        fuelEntry.PlateNumber = vehicle.PlateNumber;
-                    }
-                    fuelEntry.Date = fuelEntry.DateTime.Date;
-                    fuelEntry.IsArchived = false;
-
-                    // Use raw SQL to avoid OUTPUT clause issues with triggers
-                    var sql = @"INSERT INTO FuelEntries (VehicleId, Driver, DateTime, FuelStation, Odometer, Liters, TotalCost, FuelType, FullTank, Notes, IsArchived, UnitModel, PlateNumber, Date, BranchId)
-                              VALUES (@VehicleId, @Driver, @DateTime, @FuelStation, @Odometer, @Liters, @TotalCost, @FuelType, @FullTank, @Notes, @IsArchived, @UnitModel, @PlateNumber, @Date, @BranchId);
-                              SELECT CAST(SCOPE_IDENTITY() as int);";
-                    
-                    var parameters = new[]
-                    {
-                        new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", fuelEntry.VehicleId),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Driver", fuelEntry.Driver),
-                        new Microsoft.Data.SqlClient.SqlParameter("@DateTime", fuelEntry.DateTime),
-                        new Microsoft.Data.SqlClient.SqlParameter("@FuelStation", fuelEntry.FuelStation),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Odometer", fuelEntry.Odometer),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Liters", fuelEntry.Liters),
-                        new Microsoft.Data.SqlClient.SqlParameter("@TotalCost", fuelEntry.TotalCost),
-                        new Microsoft.Data.SqlClient.SqlParameter("@FuelType", fuelEntry.FuelType),
-                        new Microsoft.Data.SqlClient.SqlParameter("@FullTank", fuelEntry.FullTank),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Notes", fuelEntry.Notes ?? (object)DBNull.Value),
-                        new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", fuelEntry.IsArchived),
-                        new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", fuelEntry.UnitModel),
-                        new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", fuelEntry.PlateNumber),
-                        new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date),
-                        new Microsoft.Data.SqlClient.SqlParameter("@BranchId", (object?)fuelEntry.BranchId ?? DBNull.Value)
-                    };
-                    
-                    var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
-                    fuelEntry.Id = id;
-
-                    // Create corresponding finance entry
-                    await CreateFinanceEntryFromFuel(fuelEntry);
-
-                    var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
-                    await _auditService.LogActionAsync(actingUser, $"Create:Fuel:{fuelEntry.Id}");
-                     
-                    TempData["Success"] = "Fuel record added successfully!";
-                    TempData["RecentFuelId"] = fuelEntry.Id; // Track recently added fuel entry
-                    TempData["RecentFuelAction"] = "Added"; // Track action type
-                    return RedirectToAction(nameof(FuelPage));
-                }
-                catch (Exception ex)
+                // Set legacy properties for backward compatibility
+                var vehicle = await _context.Vehicles.FindAsync(fuelEntry.VehicleId);
+                if (vehicle != null)
                 {
-                    _logger.LogError(ex, "Error adding fuel entry");
-                    TempData["Error"] = "An unexpected error occurred while adding the fuel entry. Please try again.";
+                    fuelEntry.UnitModel = vehicle.UnitModel;
+                    fuelEntry.PlateNumber = vehicle.PlateNumber;
                 }
+                fuelEntry.Date = fuelEntry.DateTime.Date;
+                fuelEntry.IsArchived = false;
+
+                // Use raw SQL to avoid OUTPUT clause issues with triggers
+                var sql = @"INSERT INTO FuelEntries (VehicleId, Driver, DateTime, FuelStation, Odometer, Liters, TotalCost, FuelType, FullTank, Notes, IsArchived, UnitModel, PlateNumber, Date, BranchId)
+                          VALUES (@VehicleId, @Driver, @DateTime, @FuelStation, @Odometer, @Liters, @TotalCost, @FuelType, @FullTank, @Notes, @IsArchived, @UnitModel, @PlateNumber, @Date, @BranchId);
+                          SELECT CAST(SCOPE_IDENTITY() as int);";
+
+                var parameters = new[]
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@VehicleId", fuelEntry.VehicleId),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Driver", fuelEntry.Driver),
+                    new Microsoft.Data.SqlClient.SqlParameter("@DateTime", fuelEntry.DateTime),
+                    new Microsoft.Data.SqlClient.SqlParameter("@FuelStation", fuelEntry.FuelStation),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Odometer", fuelEntry.Odometer),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Liters", fuelEntry.Liters),
+                    new Microsoft.Data.SqlClient.SqlParameter("@TotalCost", fuelEntry.TotalCost),
+                    new Microsoft.Data.SqlClient.SqlParameter("@FuelType", fuelEntry.FuelType),
+                    new Microsoft.Data.SqlClient.SqlParameter("@FullTank", fuelEntry.FullTank),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Notes", fuelEntry.Notes ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@IsArchived", fuelEntry.IsArchived),
+                    new Microsoft.Data.SqlClient.SqlParameter("@UnitModel", fuelEntry.UnitModel),
+                    new Microsoft.Data.SqlClient.SqlParameter("@PlateNumber", fuelEntry.PlateNumber),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Date", fuelEntry.Date),
+                    new Microsoft.Data.SqlClient.SqlParameter("@BranchId", (object?)fuelEntry.BranchId ?? DBNull.Value)
+                };
+
+                var id = await _context.Database.ExecuteSqlRawAsync(sql, parameters);
+                fuelEntry.Id = id;
+
+                // Create corresponding finance entry
+                await CreateFinanceEntryFromFuel(fuelEntry);
+
+                var actingUser = HttpContext.Session.GetString("UserEmail") ?? "System";
+                await _auditService.LogActionAsync(actingUser, $"Create:Fuel:{fuelEntry.Id}");
+
+                TempData["Success"] = "Fuel record added successfully!";
+                TempData["RecentFuelId"] = fuelEntry.Id;
+                TempData["RecentFuelAction"] = "Added";
+                return RedirectToAction(nameof(FuelPage));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding fuel entry");
+                TempData["Error"] = "An unexpected error occurred while adding the fuel entry. Please try again.";
             }
 
             // Reload vehicles for dropdown

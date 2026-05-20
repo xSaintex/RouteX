@@ -207,7 +207,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
             <div class="form-group">
                 <label for="expenseType">Expense Type</label>
-                <input type="text" id="expenseType" name="ExpenseType" value="@(Model?.ExpenseType ?? "OTHER")" readonly style="background-color: #f8f9fa; color: #666; cursor: not-allowed;" />
+                <select id="expenseType" name="ExpenseType" required>
+                    <option value="">Select Expense Type</option>
+                    @{
+                        var expTypes = new[] { "Fuel", "Maintenance", "Toll", "Parking", "Insurance", "Registration", "Other" };
+                        var currentType = Model?.ExpenseType?.ToLower() ?? "";
+                        foreach (var et in expTypes)
+                        {
+                            var isSelected = currentType == et.ToLower() || currentType == et.ToUpper();
+                            <option value="@et" selected="@(isSelected ? "selected" : null)">@et</option>
+                        }
+                    }
+                </select>
             </div>
 
             <div class="form-group">

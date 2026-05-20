@@ -120,7 +120,11 @@ namespace RouteX.Controllers
             }
             else
             {
-                ViewBag.ErrorMessage = "Invalid email or password. Please try again.";
+                // Log failed login attempt to audit log
+                await _auditService.LogActionAsync(model.Email, $"FailedLogin:{(result.IsLockedOut ? "AccountLocked" : "InvalidCredentials")}");
+                ViewBag.ErrorMessage = result.IsLockedOut
+                    ? "Your account has been locked due to too many failed attempts. Please try again in 15 minutes."
+                    : "Invalid email or password. Please try again.";
                 return View("LoginPage", model);
             }
         }

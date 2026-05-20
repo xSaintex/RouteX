@@ -3,3 +3,8 @@
 [Oo]bj/
 *.user
 *.suo
+
+# Secrets - never commit these
+appsettings.Production.json
+appsettings.Staging.json
+secrets.json
