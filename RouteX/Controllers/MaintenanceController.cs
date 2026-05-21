@@ -8,7 +8,7 @@ using RouteX.Services;
 
 namespace RouteX.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin,Administrator,OperationsStaff")]
+    [Authorize(Roles = "SuperAdmin,Admin,Administrator,Finance,OperationsStaff")]
     public class MaintenanceController : Controller
     {
         private readonly ApplicationDbContext _context;

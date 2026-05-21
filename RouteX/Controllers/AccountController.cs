@@ -38,7 +38,33 @@ namespace RouteX.Controllers
         [HttpGet]
         public IActionResult AccessDenied()
         {
-            return View();
+            // Redirect to the referring page if available, otherwise to the role dashboard
+            var referer = Request.Headers["Referer"].ToString();
+            var role = HttpContext.Session.GetString("UserRole") ?? "";
+
+            string dashboard = role switch
+            {
+                "SuperAdmin"      => "/Home/Index",
+                "Admin"           => "/Home/Index",
+                "Administrator"   => "/Home/Index",
+                "Finance"         => "/Home/FinanceDashboard",
+                "OperationsStaff" => "/Home/OpStaffDashboard",
+                _                 => "/Home/Index"
+            };
+
+            // If there's a valid referer that isn't the current page, go back there
+            if (!string.IsNullOrEmpty(referer))
+            {
+                var refererUri = new Uri(referer);
+                var currentHost = Request.Host.Host;
+                // Only redirect to same-origin referers to prevent open redirect
+                if (refererUri.Host.Equals(currentHost, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Redirect(referer);
+                }
+            }
+
+            return Redirect(dashboard);
         }
 
         [HttpPost]

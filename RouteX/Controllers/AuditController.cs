@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize]
     public class AuditController : Controller
     {
         private readonly IAuditService _auditService;

@@ -8,7 +8,7 @@ using RouteX.Services;
 
 namespace RouteX.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin,Administrator,OperationsStaff")]
+    [Authorize]
     public class FuelController : Controller
     {
         private readonly ApplicationDbContext _context;

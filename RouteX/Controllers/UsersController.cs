@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize]
     public class UsersController : Controller
     {
         private static readonly HashSet<string> ProtectedEmails = new(StringComparer.OrdinalIgnoreCase)
