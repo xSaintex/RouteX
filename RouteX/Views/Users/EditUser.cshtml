@@ -235,7 +235,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                 <select id="status" name="Status" required>
                     <option value="">Select Status</option>
                     @{
-                        var statuses = new[] { "Active", "Inactive", "Archived" };
+                        var statuses = new[] { "Active", "Inactive" };
                         foreach (var s in statuses)
                         {
                             <option value="@s" selected="@(Model?.Status == s ? "selected" : null)">@s</option>

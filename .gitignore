@@ -1,0 +1,16 @@
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+
+# Secrets - never commit these
+appsettings.Production.json
+appsettings.Staging.json
+secrets.json
+
+# Publish profiles with secrets
+*.pubxml.user
+
+# Logs
+*.log

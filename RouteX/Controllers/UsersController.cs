@@ -293,6 +293,13 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditUser(EditUserViewModel viewModel)
         {
+            // Allow empty passwords during edit — remove validation errors for blank password fields
+            if (string.IsNullOrWhiteSpace(viewModel.Password))
+            {
+                ModelState.Remove("Password");
+                ModelState.Remove("ConfirmPassword");
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.ActiveRoles = GetActiveRoles();
@@ -354,6 +361,13 @@ namespace RouteX.Controllers
                 var refreshedIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
                 var passwordHash = refreshedIdentity?.PasswordHash ?? identityUser.PasswordHash ?? string.Empty;
                 existingUser.Password = passwordHash;
+            }
+
+            // Prevent setting Status to Archived via edit form
+            if (string.Equals(viewModel.Status, UserStatus.Archived.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                // Do not allow manually archiving a user from edit; keep existing status
+                viewModel.Status = existingUser.Status;
             }
 
             // Update user details
