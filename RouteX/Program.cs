@@ -141,6 +141,29 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Role-based redirect: intercept 403 responses and redirect authenticated users to their dashboard
+app.UseStatusCodePages(async context =>
+{
+    if (context.HttpContext.Response.StatusCode == 403)
+    {
+        var role = context.HttpContext.Session.GetString("UserRole");
+        string? dashboard = role switch
+        {
+            "SuperAdmin"      => null,
+            "Admin"           => "/Home/Index",
+            "Administrator"   => "/Home/Index",
+            "Finance"         => "/Home/FinanceDashboard",
+            "OperationsStaff" => "/Home/OpStaffDashboard",
+            _                 => "/Home/Index"
+        };
+        if (dashboard is not null &&
+            context.HttpContext.Request.Path != dashboard)
+        {
+            context.HttpContext.Response.Redirect(dashboard);
+        }
+    }
+});
+
 // ================== ROUTES ==================
 
 app.MapControllerRoute(
@@ -152,3 +175,6 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 app.Run();
+
+// Expose Program class for integration testing with WebApplicationFactory
+public partial class Program { }
