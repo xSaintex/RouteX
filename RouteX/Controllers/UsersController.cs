@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin")]
     public class UsersController : Controller
     {
         private static readonly HashSet<string> ProtectedEmails = new(StringComparer.OrdinalIgnoreCase)
@@ -38,11 +38,6 @@ namespace RouteX.Controllers
         // GET: Users
         public async Task<IActionResult> UsersPage()
         {
-            if (!IsSuperAdmin())
-            {
-                return Forbid();
-            }
-
             var users = await _context.Users
                 .AsNoTracking()
                 .Where(u => u.Status != UserStatus.Archived.ToString())
@@ -141,11 +136,6 @@ namespace RouteX.Controllers
         // GET: Users/AddUser
         public async Task<IActionResult> AddUser()
         {
-            if (!IsSuperAdmin())
-            {
-                return Forbid();
-            }
-
             ViewData["Title"] = "Add User";
 
             // Get active roles from RolesController sample data
@@ -173,11 +163,6 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddUser(CreateUserViewModel viewModel)
         {
-            if (!IsSuperAdmin())
-            {
-                return Forbid();
-            }
-
             if (!ModelState.IsValid)
             {
                 ViewBag.ActiveRoles = GetActiveRoles();
@@ -278,11 +263,6 @@ namespace RouteX.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!IsSuperAdmin())
-            {
-                return Forbid();
-            }
-
             ViewData["Title"] = "Edit User";
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
             if (user == null)
@@ -313,11 +293,6 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditUser(EditUserViewModel viewModel)
         {
-            if (!IsSuperAdmin())
-            {
-                return Forbid();
-            }
-
             if (!ModelState.IsValid)
             {
                 ViewBag.ActiveRoles = GetActiveRoles();
@@ -404,11 +379,6 @@ namespace RouteX.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!IsSuperAdmin())
-            {
-                return Forbid();
-            }
-
             ViewData["Title"] = "View User";
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
             if (user == null)
@@ -427,11 +397,6 @@ namespace RouteX.Controllers
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = "Invalid request." });
-            }
-
-            if (!IsSuperAdmin())
-            {
-                return Json(new { success = false, message = "Only SuperAdmin can manage users." });
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
@@ -460,15 +425,5 @@ namespace RouteX.Controllers
             return Json(new { success = true, message = "User archived successfully." });
         }
 
-        private Task ArchiveNonProtectedUsersAsync()
-        {
-            return Task.CompletedTask;
-        }
-
-        private bool IsSuperAdmin()
-        {
-            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
-            return userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
-        }
     }
 }

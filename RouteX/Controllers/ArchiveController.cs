@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin")]
     public class ArchiveController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -20,95 +20,47 @@ namespace RouteX.Controllers
         }
         public async Task<IActionResult> ArchivePage()
         {
-            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
-            if (!userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
-            {
-                return Forbid();
-            }
-
             ViewData["Title"] = "Archive";
 
             var viewModel = new ArchiveViewModel();
 
             try
             {
-                var missingColumns = new List<string>();
-
                 var archivedVehicles = await _context.Vehicles
                         .AsNoTracking()
                         .Where(v => v.IsArchived == true)
                         .OrderByDescending(v => v.Id)
                         .ToListAsync();
 
-                var archivedFuel = new List<FuelEntry>();
-                if (await ColumnExistsAsync("FuelEntries", "IsArchived"))
-                {
-                    archivedFuel = await _context.FuelEntries
-                            .AsNoTracking()
-                            .Where(f => f.IsArchived == true)
-                            .OrderByDescending(f => f.Id)
-                            .ToListAsync();
-                }
-                else
-                {
-                    missingColumns.Add("FuelEntries.IsArchived");
-                }
+                var archivedFuel = await _context.FuelEntries
+                        .AsNoTracking()
+                        .Where(f => f.IsArchived == true)
+                        .OrderByDescending(f => f.Id)
+                        .ToListAsync();
 
-                var archivedMaintenance = new List<MaintenanceEntry>();
-                if (await ColumnExistsAsync("MaintenanceEntries", "IsArchived"))
-                {
-                    archivedMaintenance = await _context.MaintenanceEntries
-                            .AsNoTracking()
-                            .Where(m => m.IsArchived == true)
-                            .OrderByDescending(m => m.Id)
-                            .ToListAsync();
-                }
-                else
-                {
-                    missingColumns.Add("MaintenanceEntries.IsArchived");
-                }
+                var archivedMaintenance = await _context.MaintenanceEntries
+                        .AsNoTracking()
+                        .Where(m => m.IsArchived == true)
+                        .OrderByDescending(m => m.Id)
+                        .ToListAsync();
 
-                var archivedFinance = new List<FinanceEntry>();
-                if (await ColumnExistsAsync("FinanceEntries", "IsArchived"))
-                {
-                    archivedFinance = await _context.FinanceEntries
+                var archivedFinance = await _context.FinanceEntries
                         .AsNoTracking()
                         .Where(f => f.IsArchived)
                         .OrderByDescending(f => f.Id)
                         .ToListAsync();
-                }
-                else
-                {
-                    missingColumns.Add("FinanceEntries.IsArchived");
-                }
 
-                var archivedUsers = new List<User>();
-                try
-                {
-                    archivedUsers = await _context.Users
+                var archivedUsers = await _context.Users
                         .AsNoTracking()
                         .Where(u => u.Status == UserStatus.Archived.ToString())
                         .OrderByDescending(u => u.UserId)
                         .ToListAsync();
-                }
-                catch
-                {
-                    missingColumns.Add("Users.Status");
-                }
 
-                var archivedTrips = new List<RouteTrip>();
-                if (await ColumnExistsAsync("RouteTrips", "IsArchived"))
-                {
-                    archivedTrips = await _context.RouteTrips
+                var archivedTrips = await _context.RouteTrips
                         .AsNoTracking()
                         .Where(t => t.IsArchived)
                         .OrderByDescending(t => t.ArchivedAt ?? t.CompletedAt ?? t.CreatedAt)
                         .ToListAsync();
-                }
-                else
-                {
-                    missingColumns.Add("RouteTrips.IsArchived");
-                }
 
                 var archivedBudgets = await _context.BudgetEntries
                     .AsNoTracking()
@@ -276,11 +228,6 @@ namespace RouteX.Controllers
                     ArchivedTrips = archivedTrips,
                     ArchiveItems = archiveItems
                 };
-
-                if (missingColumns.Count > 0)
-                {
-                    TempData["Warning"] = $"Archive data is unavailable for: {string.Join(", ", missingColumns)}. Those columns are missing in the database.";
-                }
             }
             catch (SqlException)
             {
@@ -295,12 +242,6 @@ namespace RouteX.Controllers
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreVehicle(int id)
         {
-            if (!await ColumnExistsAsync("Vehicles", "IsArchived"))
-            {
-                TempData["Error"] = "Vehicles archive column is missing. Please add it before restoring.";
-                return RedirectToAction(nameof(ArchivePage));
-            }
-
             var status = await GetArchivedVehicleStatusAsync(id);
             var sql = status.HasValue
                 ? "UPDATE Vehicles SET IsArchived = 0, Status = @Status WHERE VehicleId = @Id"
@@ -326,11 +267,6 @@ namespace RouteX.Controllers
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreFuel(int id)
         {
-            if (!await ColumnExistsAsync("FuelEntries", "IsArchived"))
-            {
-                TempData["Error"] = "FuelEntries archive column is missing. Please add it before restoring.";
-                return RedirectToAction(nameof(ArchivePage));
-            }
             var sql = "UPDATE FuelEntries SET IsArchived = 0 WHERE Id = @Id";
             await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
 
@@ -343,11 +279,6 @@ namespace RouteX.Controllers
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreMaintenance(int id)
         {
-            if (!await ColumnExistsAsync("MaintenanceEntries", "IsArchived"))
-            {
-                TempData["Error"] = "MaintenanceEntries archive column is missing. Please add it before restoring.";
-                return RedirectToAction(nameof(ArchivePage));
-            }
             var status = await GetArchivedMaintenanceStatusAsync(id);
             var sql = status.HasValue
                 ? "UPDATE MaintenanceEntries SET IsArchived = 0, Status = @Status WHERE Id = @Id"
@@ -373,11 +304,6 @@ namespace RouteX.Controllers
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreFinance(int id)
         {
-            if (!await ColumnExistsAsync("FinanceEntries", "IsArchived"))
-            {
-                TempData["Error"] = "FinanceEntries archive column is missing. Please add it before restoring.";
-                return RedirectToAction(nameof(ArchivePage));
-            }
             var sql = "UPDATE FinanceEntries SET IsArchived = 0 WHERE Id = @Id";
             await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
 
@@ -390,12 +316,6 @@ namespace RouteX.Controllers
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> RestoreTrip(int id)
         {
-            if (!await ColumnExistsAsync("RouteTrips", "IsArchived"))
-            {
-                TempData["Error"] = "RouteTrips archive column is missing. Please add it before restoring.";
-                return RedirectToAction(nameof(ArchivePage));
-            }
-
             var sql = "UPDATE RouteTrips SET IsArchived = 0, ArchivedAt = NULL WHERE Id = @Id";
             await _context.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Id", id));
 
@@ -526,25 +446,5 @@ namespace RouteX.Controllers
             return action;
         }
 
-        private async Task<bool> ColumnExistsAsync(string tableName, string columnName)
-        {
-            const string sql = @"SELECT COUNT(*) AS Value
-                                 FROM INFORMATION_SCHEMA.COLUMNS
-                                 WHERE TABLE_NAME = @TableName AND COLUMN_NAME = @ColumnName";
-
-            try
-            {
-                var result = await _context.Database.SqlQueryRaw<int>(
-                        sql,
-                        new SqlParameter("@TableName", tableName),
-                        new SqlParameter("@ColumnName", columnName))
-                    .FirstOrDefaultAsync();
-                return result > 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
     }
 }

@@ -8,18 +8,20 @@ using RouteX.Services;
 
 namespace RouteX.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin,Administrator,Finance,OperationsStaff")]
+    [Authorize(Roles = "SuperAdmin,Admin,Administrator,OperationsStaff")]
     public class MaintenanceController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
         private readonly ITextFormattingService _textFormattingService;
+        private readonly ILogger<MaintenanceController> _logger;
 
-        public MaintenanceController(ApplicationDbContext context, IAuditService auditService, ITextFormattingService textFormattingService)
+        public MaintenanceController(ApplicationDbContext context, IAuditService auditService, ITextFormattingService textFormattingService, ILogger<MaintenanceController> logger)
         {
             _context = context;
             _auditService = auditService;
             _textFormattingService = textFormattingService;
+            _logger = logger;
         }
 
         // GET: Maintenance/MaintenancePage
@@ -72,7 +74,7 @@ namespace RouteX.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error accessing MaintenanceEntries: {ex.Message}");
+                _logger.LogError(ex, "Error accessing MaintenanceEntries");
                 return View(new List<MaintenanceEntry>());
             }
         }
@@ -110,7 +112,7 @@ namespace RouteX.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error accessing Vehicles for AddMaintenance: {ex.Message}");
+                _logger.LogError(ex, "Error accessing Vehicles for AddMaintenance");
                 ViewBag.Vehicles = new List<Vehicle>();
                 return View();
             }
@@ -330,7 +332,7 @@ namespace RouteX.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error accessing MaintenanceEntries for EditMaintenance: {ex.Message}");
+                _logger.LogError(ex, "Error accessing MaintenanceEntries for EditMaintenance id={Id}", id);
                 TempData["Error"] = "Error accessing maintenance data. The maintenance table may not be available.";
                 return RedirectToAction(nameof(MaintenancePage));
             }
@@ -381,7 +383,7 @@ namespace RouteX.Controllers
                     .SelectMany(v => v.Errors)
                     .Select(e => e.ErrorMessage)
                     .ToList();
-                Console.WriteLine("Edit Maintenance ModelState errors: " + string.Join(", ", errors));
+                _logger.LogWarning("EditMaintenance ModelState errors: {Errors}", string.Join(", ", errors));
                 TempData["Error"] = "Please fix the validation errors: " + string.Join(", ", errors);
             }
 
@@ -611,7 +613,7 @@ namespace RouteX.Controllers
             catch (Exception ex)
             {
                 // Log error but don't fail the maintenance entry creation
-                Console.WriteLine($"Error creating finance entry from maintenance: {ex.Message}");
+                _logger.LogError(ex, "Error creating finance entry from maintenance id={Id}", maintenance.Id);
             }
         }
 

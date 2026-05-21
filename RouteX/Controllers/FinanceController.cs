@@ -408,20 +408,21 @@ namespace RouteX.Controllers
             var isSuperAdmin = userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
             var branchId = user?.BranchId;
             
-            // Get real fuel data for 2026 months
+            // Get real fuel data for last 12 months (rolling)
             var allFuelEntries = _context.FuelEntries
                 .AsNoTracking()
                 .Where(f => isSuperAdmin || f.BranchId == branchId)
                 .ToList();
-            var currentYear = 2026;
+            var currentYear = DateTime.Today.Year;
+            var currentMonth = DateTime.Today.Month;
             
-            // Show all months of 2026 (January to December)
-            for (int month = 1; month <= 12; month++)
+            // Show rolling 12 months ending this month
+            for (int i = 11; i >= 0; i--)
             {
-                var monthDate = new DateTime(currentYear, month, 1);
+                var monthDate = new DateTime(currentYear, currentMonth, 1).AddMonths(-i);
                 
                 var monthFuelCost = (double)(allFuelEntries
-                    .Where(f => f.DateTime.Year == currentYear && f.DateTime.Month == month)
+                    .Where(f => f.DateTime.Year == monthDate.Year && f.DateTime.Month == monthDate.Month)
                     .Sum(f => f.TotalCost));
                 
                 data.Add(new FuelTimeSeriesData
@@ -547,16 +548,16 @@ namespace RouteX.Controllers
         {
             var data = new List<MaintenanceTimeSeriesData>();
             
-            // Get real maintenance data for 2026 months
-            var currentYear = 2026;
+            // Rolling 12 months ending this month
+            var currentYear = DateTime.Today.Year;
+            var currentMonth = DateTime.Today.Month;
             
-            // Show all months of 2026 (January to December)
-            for (int month = 1; month <= 12; month++)
+            for (int i = 11; i >= 0; i--)
             {
-                var monthDate = new DateTime(currentYear, month, 1);
+                var monthDate = new DateTime(currentYear, currentMonth, 1).AddMonths(-i);
                 
                 var monthMaintenanceCost = (double)(completedMaintenance
-                    .Where(m => m.Date.HasValue && m.Date.Value.Year == currentYear && m.Date.Value.Month == month)
+                    .Where(m => m.Date.HasValue && m.Date.Value.Year == monthDate.Year && m.Date.Value.Month == monthDate.Month)
                     .Sum(m => m.Cost ?? 0m));
                 
                 data.Add(new MaintenanceTimeSeriesData

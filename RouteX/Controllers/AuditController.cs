@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin")]
     public class AuditController : Controller
     {
         private readonly IAuditService _auditService;
@@ -18,12 +18,6 @@ namespace RouteX.Controllers
 
         public async Task<IActionResult> AuditPage(int page = 1)
         {
-            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
-            if (!userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
-            {
-                return Forbid();
-            }
-
             try
             {
                 ViewData["Title"] = "Audit Logs";

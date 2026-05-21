@@ -371,17 +371,15 @@ namespace RouteX.Controllers
 
         private async Task<List<MonthlyExpenseBreakdownData>> GetMonthlyExpenseBreakdownAsync(bool isSuperAdmin, int? branchId)
         {
-            // Explicitly set date range from January 2025 to March 2026 only
-            var startMonth = new DateTime(2025, 1, 1);
-            var endMonthExclusive = new DateTime(2026, 4, 1); // April 1, 2026 (exclusive) = up to March 31, 2026
-            
-            // Validate we don't exceed March 2026
-            var maxAllowedDate = new DateTime(2026, 3, 31);
+            // Rolling 15-month window: 14 months back through current month
+            var today = DateTime.Today;
+            var startMonth = new DateTime(today.Year, today.Month, 1).AddMonths(-14);
+            var endMonthExclusive = new DateTime(today.Year, today.Month, 1).AddMonths(1);
 
-            // Get Finance Entries - strictly filtered by date range
+            // Get Finance Entries - filtered by rolling window
             var financeQuery = _context.FinanceEntries
                 .AsNoTracking()
-                .Where(f => !f.IsArchived && f.ExpenseDate >= startMonth && f.ExpenseDate <= maxAllowedDate)
+                .Where(f => !f.IsArchived && f.ExpenseDate >= startMonth && f.ExpenseDate < endMonthExclusive)
                 .AsQueryable();
 
             if (!isSuperAdmin && branchId.HasValue)
@@ -391,10 +389,10 @@ namespace RouteX.Controllers
 
             var financeEntries = await financeQuery.ToListAsync();
 
-            // Get Fuel Entries - strictly filtered by date range
+            // Get Fuel Entries - filtered by rolling window
             var fuelQuery = _context.FuelEntries
                 .AsNoTracking()
-                .Where(f => !f.IsArchived && f.DateTime >= startMonth && f.DateTime <= maxAllowedDate)
+                .Where(f => !f.IsArchived && f.DateTime >= startMonth && f.DateTime < endMonthExclusive)
                 .AsQueryable();
 
             if (!isSuperAdmin && branchId.HasValue)
@@ -404,10 +402,10 @@ namespace RouteX.Controllers
 
             var fuelEntries = await fuelQuery.ToListAsync();
 
-            // Get Maintenance Entries - strictly filtered by date range
+            // Get Maintenance Entries - filtered by rolling window
             var maintenanceQuery = _context.MaintenanceEntries
                 .AsNoTracking()
-                .Where(m => m.IsArchived != true && m.Date.HasValue && m.Date >= startMonth && m.Date <= maxAllowedDate)
+                .Where(m => m.IsArchived != true && m.Date.HasValue && m.Date >= startMonth && m.Date < endMonthExclusive)
                 .AsQueryable();
 
             if (!isSuperAdmin && branchId.HasValue)
@@ -459,12 +457,10 @@ namespace RouteX.Controllers
 
         private async Task<List<MonthlyBudgetData>> GetMonthlyBudgetsAsync(bool isSuperAdmin, int? branchId)
         {
-            // Explicitly set date range from January 2025 to March 2026 only
-            var startMonth = new DateTime(2025, 1, 1);
-            var endMonthExclusive = new DateTime(2026, 4, 1); // April 1, 2026 (exclusive) = up to March 31, 2026
-            
-            // Validate we don't exceed March 2026
-            var maxAllowedDate = new DateTime(2026, 3, 31);
+            // Rolling 15-month window matching GetMonthlyExpenseBreakdownAsync
+            var today = DateTime.Today;
+            var startMonth = new DateTime(today.Year, today.Month, 1).AddMonths(-14);
+            var endMonthExclusive = new DateTime(today.Year, today.Month, 1).AddMonths(1);
             var data = new List<MonthlyBudgetData>();
 
             var budgetQuery = _context.BudgetEntries
