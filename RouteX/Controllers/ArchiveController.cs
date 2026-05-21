@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin")]
     public class ArchiveController : Controller
     {
         private readonly ApplicationDbContext _context;

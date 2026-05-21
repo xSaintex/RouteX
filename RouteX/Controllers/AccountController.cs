@@ -38,8 +38,6 @@ namespace RouteX.Controllers
         [HttpGet]
         public IActionResult AccessDenied()
         {
-            // Redirect to the referring page if available, otherwise to the role dashboard
-            var referer = Request.Headers["Referer"].ToString();
             var role = HttpContext.Session.GetString("UserRole") ?? "";
 
             string dashboard = role switch
@@ -51,18 +49,6 @@ namespace RouteX.Controllers
                 "OperationsStaff" => "/Home/OpStaffDashboard",
                 _                 => "/Home/Index"
             };
-
-            // If there's a valid referer that isn't the current page, go back there
-            if (!string.IsNullOrEmpty(referer))
-            {
-                var refererUri = new Uri(referer);
-                var currentHost = Request.Host.Host;
-                // Only redirect to same-origin referers to prevent open redirect
-                if (refererUri.Host.Equals(currentHost, StringComparison.OrdinalIgnoreCase))
-                {
-                    return Redirect(referer);
-                }
-            }
 
             return Redirect(dashboard);
         }
@@ -109,6 +95,24 @@ namespace RouteX.Controllers
                         HttpContext.Session.SetString("UserName", $"{customUser.FirstName} {customUser.LastName}");
                         HttpContext.Session.SetInt32("UserId", customUser.UserId);
                         HttpContext.Session.SetString("UserRole", customUser.Role);
+                        
+                        // Sync the custom role into Identity claims so [Authorize(Roles=...)] works
+                        // Always force-sync to ensure the correct role is in the Identity cookie
+                        var existingRoles = await _userManager.GetRolesAsync(identityUser);
+                        if (!existingRoles.Contains(customUser.Role, StringComparer.OrdinalIgnoreCase))
+                        {
+                            if (existingRoles.Count > 0)
+                                await _userManager.RemoveFromRolesAsync(identityUser, existingRoles);
+                            // Ensure the role exists in Identity before assigning
+                            var roleManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.RoleManager<Microsoft.AspNetCore.Identity.IdentityRole>>();
+                            if (!await roleManager.RoleExistsAsync(customUser.Role))
+                            {
+                                await roleManager.CreateAsync(new Microsoft.AspNetCore.Identity.IdentityRole(customUser.Role));
+                            }
+                            await _userManager.AddToRoleAsync(identityUser, customUser.Role);
+                        }
+                        // Always refresh the sign-in cookie so role claims are current
+                        await _signInManager.RefreshSignInAsync(identityUser);
                         
                         // Store branch information
                         if (customUser.BranchId.HasValue)

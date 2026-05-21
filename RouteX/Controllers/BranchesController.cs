@@ -7,7 +7,7 @@ using RouteX.Services;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin")]
     public class BranchesController : Controller
     {
         private readonly ApplicationDbContext _context;

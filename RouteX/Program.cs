@@ -36,8 +36,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     )
 );
 
-// Add ASP.NET Core Identity
-builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+// Add ASP.NET Core Identity with role support
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
     options.Password.RequireDigit = false;
@@ -49,7 +49,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
 })
-.AddEntityFrameworkStores<ApplicationDbContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
