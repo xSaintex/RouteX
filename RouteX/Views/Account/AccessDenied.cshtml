@@ -1,0 +1,127 @@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RouteX - Access Denied</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            color: #ffffff;
+            padding: 40px;
+        }
+
+        .icon {
+            font-size: 80px;
+            color: #ff6b35;
+            margin-bottom: 24px;
+            opacity: 0.9;
+        }
+
+        .code {
+            font-size: 72px;
+            font-weight: 700;
+            color: #ff6b35;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+
+        .message {
+            font-size: 15px;
+            color: #aaaaaa;
+            margin-bottom: 32px;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ff6b35;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .btn-logout {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            color: #aaaaaa;
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid #444;
+            margin-left: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-logout:hover {
+            background: #333;
+            color: #ffffff;
+            border-color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon"><i class="fas fa-lock"></i></div>
+        <div class="code">403</div>
+        <div class="title">Access Denied</div>
+        <p class="message">
+            You don't have permission to access this page.
+            Please contact your administrator if you believe this is a mistake.
+        </p>
+        <a href="javascript:history.back()" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Go Back
+        </a>
+        <form method="post" asp-controller="Account" asp-action="Logout" style="display:inline;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </form>
+        <p style="margin-top:24px; font-size:12px; color:#555;">
+            <a href="/Home/TermsAndConditions" style="color:#ff6b35; text-decoration:none;">Terms &amp; Conditions</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -181,25 +181,30 @@ namespace RouteX.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.ActiveRoles = GetActiveRoles();
+                var activeBranches = await _context.Branches
+                    .Where(b => !b.IsArchived && b.Status == BranchStatus.Active)
+                    .OrderBy(b => b.BranchName)
+                    .ToListAsync();
+                ViewBag.ActiveBranches = activeBranches;
                 return View(viewModel);
             }
 
             var existingIdentity = await _userManager.FindByEmailAsync(viewModel.Email);
             if (existingIdentity != null || await _context.Users.AnyAsync(u => u.Email == viewModel.Email))
+            {
+                ModelState.AddModelError("Email", "A user with this email already exists.");
+            }
+            else
+            {
+                var identityUser = new IdentityUser
                 {
-                    ModelState.AddModelError("Email", "A user with this email already exists.");
-                }
-                else
-                {
-                    var identityUser = new IdentityUser
-                    {
-                        UserName = viewModel.Email,
-                        Email = viewModel.Email,
-                        EmailConfirmed = true
-                    };
+                    UserName = viewModel.Email,
+                    Email = viewModel.Email,
+                    EmailConfirmed = true
+                };
 
-                    // Create user with hashed password
-                    var createResult = await _userManager.CreateAsync(identityUser, viewModel.Password);
+                // Create user with hashed password
+                var createResult = await _userManager.CreateAsync(identityUser, viewModel.Password);
                     if (createResult.Succeeded)
                     {
                         // Refresh the identity user to get the hashed password
@@ -243,7 +248,13 @@ namespace RouteX.Controllers
                     }
             }
 
+            // Repopulate ViewBags as ModelState is invalid
             ViewBag.ActiveRoles = GetActiveRoles();
+            var activeBranchesForInvalid = await _context.Branches
+                .Where(b => !b.IsArchived && b.Status == BranchStatus.Active)
+                .OrderBy(b => b.BranchName)
+                .ToListAsync();
+            ViewBag.ActiveBranches = activeBranchesForInvalid;
             return View(viewModel);
         }
 

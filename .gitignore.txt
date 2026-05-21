@@ -8,3 +8,9 @@
 appsettings.Production.json
 appsettings.Staging.json
 secrets.json
+
+# Publish profiles with secrets
+*.pubxml.user
+
+# Logs
+*.log

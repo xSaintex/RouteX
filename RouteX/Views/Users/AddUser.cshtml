@@ -157,6 +157,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
     <form class="add-user-form" method="post" asp-action="AddUser">
         @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "margin-bottom: 15px; font-size: 14px;" })
+
         <div class="form-grid">
             <div class="form-group">
                 <label for="firstName">First Name *</label>
@@ -223,7 +225,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                     </div>
                     <span class="char-count" id="charCount">0/12</span>
                 </div>
-                <span class="validation-message">Password must be 8-12 characters long</span>
+                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger", style = "font-size: 12px; margin-top: 4px;" })
+                <span class="validation-message">Password must be 8-12 chars, 1 uppercase, 1 special char</span>
             </div>
 
             <div class="form-group">
@@ -373,16 +376,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function validateField(field) {
-        const validationMessage = field.parentElement.querySelector('.validation-message');
-        
+        const formGroup = field.closest('.form-group');
+        const validationMessage = formGroup ? formGroup.querySelector('.validation-message') : null;
+
         // Special validation for password field
         if (field.id === 'password') {
-            const passwordLength = field.value.length;
-            if (passwordLength < 8 || passwordLength > 12) {
+            const passwordValue = field.value;
+            const passwordLength = passwordValue.length;
+            const hasUpper = /[A-Z]/.test(passwordValue);
+            const hasSpecial = /[^a-zA-Z0-9]/.test(passwordValue);
+
+            if (passwordLength < 8 || passwordLength > 12 || !hasUpper || !hasSpecial) {
                 field.style.borderColor = '#dc3545';
                 if (validationMessage) {
                     validationMessage.style.display = 'block';
-                    validationMessage.textContent = 'Password must be 8-12 characters long';
+                    if (passwordLength < 8 || passwordLength > 12) {
+                        validationMessage.textContent = 'Password must be 8-12 characters long';
+                    } else if (!hasUpper) {
+                        validationMessage.textContent = 'Password must contain at least one uppercase letter';
+                    } else if (!hasSpecial) {
+                        validationMessage.textContent = 'Password must contain at least one special character';
+                    }
                 }
                 return false;
             } else {

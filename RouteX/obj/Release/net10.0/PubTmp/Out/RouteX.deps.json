@@ -55,9 +55,6 @@
         }
       },
       "Microsoft.AspNetCore.Identity.UI/10.0.3": {
-        "dependencies": {
-          "Microsoft.Extensions.FileProviders.Embedded": "10.0.3"
-        },
         "runtime": {
           "lib/net10.0/Microsoft.AspNetCore.Identity.UI.dll": {
             "assemblyVersion": "10.0.3.0",
@@ -211,14 +208,6 @@
         "runtime": {
           "lib/net10.0/Microsoft.EntityFrameworkCore.SqlServer.dll": {
             "assemblyVersion": "10.0.3.0",
-            "fileVersion": "10.0.326.7603"
-          }
-        }
-      },
-      "Microsoft.Extensions.FileProviders.Embedded/10.0.3": {
-        "runtime": {
-          "lib/net10.0/Microsoft.Extensions.FileProviders.Embedded.dll": {
-            "assemblyVersion": "10.0.0.0",
             "fileVersion": "10.0.326.7603"
           }
         }
@@ -459,13 +448,6 @@
       "sha512": "sha512-q0fUFQ4PG4uhKwP+D5dsvlDQbwNpEfWsag3HaoGzkkKj+OQ90ya9W0HuFtwigwEEqc/H1SzDZYUAv7Ya1hh5ow==",
       "path": "microsoft.entityframeworkcore.sqlserver/10.0.3",
       "hashPath": "microsoft.entityframeworkcore.sqlserver.10.0.3.nupkg.sha512"
-    },
-    "Microsoft.Extensions.FileProviders.Embedded/10.0.3": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-kw/xPl7m4Gv6bqx2ojihTtWiN2K2AklyMIrvncuSi2MOdwu0oMKoyh0G3p2Brt7m43Q9ER0IaA2G4EGjfgDh/w==",
-      "path": "microsoft.extensions.fileproviders.embedded/10.0.3",
-      "hashPath": "microsoft.extensions.fileproviders.embedded.10.0.3.nupkg.sha512"
     },
     "Microsoft.Identity.Client/4.73.1": {
       "type": "package",

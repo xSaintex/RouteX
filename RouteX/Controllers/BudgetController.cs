@@ -8,7 +8,7 @@ using RouteX.ViewModels;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,Admin,Administrator,Finance")]
     public class BudgetController : Controller
     {
         private readonly ApplicationDbContext _context;

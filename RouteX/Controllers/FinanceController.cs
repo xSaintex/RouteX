@@ -9,7 +9,7 @@ using System.Globalization;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,Admin,Administrator,Finance")]
     public class FinanceController : Controller
     {
         private readonly ApplicationDbContext _context;

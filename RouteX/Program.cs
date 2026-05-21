@@ -30,11 +30,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredLength = 10;
+    options.Password.RequiredLength = 8;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
@@ -44,6 +44,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/LoginPage";
+    options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
 // Add Session support for login
@@ -52,8 +53,8 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Allow HTTP
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
 // Add MVC
@@ -121,10 +122,10 @@ if (!app.Environment.IsDevelopment())
     });
 
     app.UseExceptionHandler("/Home/Error");
-    // app.UseHsts(); // Re-enable when HTTPS is fully working on MonsterASP
+    app.UseHsts();
 }
 
-// app.UseHttpsRedirection(); // Re-enable when HTTPS is fully working on MonsterASP
+app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 

@@ -1,0 +1,253 @@
+@{
+    ViewData["Title"] = "Terms & Conditions";
+    Layout = null;
+    var isAuthenticated = Context.User.Identity?.IsAuthenticated ?? false;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terms &amp; Conditions - RouteX</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .tc-topbar {
+            background: #1a1a1a;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tc-topbar .brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .tc-topbar .brand span { color: #ff6b35; }
+
+        .tc-topbar a {
+            color: #ff6b35;
+            text-decoration: none;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px solid rgba(255,107,53,0.4);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tc-topbar a:hover {
+            background: rgba(255,107,53,0.1);
+            color: #e55a2b;
+        }
+
+        .tc-container {
+            max-width: 820px;
+            margin: 32px auto 60px;
+            padding: 0 24px;
+            color: #1a1a1a;
+        }
+
+        .tc-header {
+            border-bottom: 2px solid #ff6b35;
+            padding-bottom: 16px;
+            margin-bottom: 32px;
+        }
+
+        .tc-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 6px;
+        }
+
+        .tc-header p {
+            color: #888;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .tc-section {
+            margin-bottom: 28px;
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+
+        .tc-section h2 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #ff6b35;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tc-section p, .tc-section ul {
+            font-size: 14px;
+            color: #444;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .tc-section ul {
+            padding-left: 20px;
+        }
+
+        .tc-section ul li {
+            margin-bottom: 4px;
+        }
+
+        .tc-highlight {
+            background: #fff8f5;
+            border-left: 3px solid #ff6b35;
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .tc-footer-note {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tc-topbar">
+        <div class="brand">Route<span>X</span></div>
+        @if (isAuthenticated)
+        {
+            <a href="javascript:history.back()">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </a>
+        }
+        else
+        {
+            <a href="/Account/LoginPage">
+                <i class="fas fa-arrow-left"></i> Back to Login
+            </a>
+        }
+    </div>
+
+    <div class="tc-container">
+
+        <div class="tc-header">
+            <h1><i class="fas fa-file-contract" style="color:#ff6b35; margin-right:10px;"></i>Terms &amp; Conditions</h1>
+            <p>RouteX Fleet Management System &nbsp;·&nbsp; Effective: January 2025</p>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-info-circle"></i> 1. About This System</h2>
+            <p>
+                RouteX is an internal fleet management system used to track vehicles, fuel consumption,
+                maintenance schedules, route trips, and financial records. Access is restricted to
+                authorized personnel only.
+            </p>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-user-check"></i> 2. Authorized Use</h2>
+            <p>By logging in, you confirm that:</p>
+            <ul>
+                <li>You are an authorized employee or administrator of the organization.</li>
+                <li>You will only access data relevant to your assigned role and branch.</li>
+                <li>You will not share your login credentials with anyone.</li>
+                <li>You will not attempt to access pages or data outside your permission level.</li>
+            </ul>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-database"></i> 3. Data Accuracy</h2>
+            <p>
+                You are responsible for the accuracy of any data you enter into the system.
+                Intentionally entering false, misleading, or incorrect records is a violation of
+                company policy and may result in disciplinary action.
+            </p>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-eye"></i> 4. Monitoring &amp; Audit Logging</h2>
+            <div class="tc-highlight">
+                All actions performed within RouteX are recorded in an audit log, including logins,
+                logouts, record creation, edits, and archives. These logs are reviewed by administrators
+                and may be used in investigations.
+            </div>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-lock"></i> 5. Data Privacy</h2>
+            <p>
+                Personal information stored in this system (names, emails, roles) is used solely for
+                operational purposes. It will not be shared with third parties outside the organization
+                without proper authorization.
+            </p>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-shield-alt"></i> 6. Security Responsibilities</h2>
+            <ul>
+                <li>Use a strong password and do not reuse passwords from other systems.</li>
+                <li>Log out when you are done or leaving your workstation.</li>
+                <li>Report any suspicious activity or unauthorized access immediately to your administrator.</li>
+                <li>Do not attempt to bypass security controls or access restricted pages.</li>
+            </ul>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-ban"></i> 7. Prohibited Actions</h2>
+            <p>The following are strictly prohibited:</p>
+            <ul>
+                <li>Accessing another user's account or data without authorization.</li>
+                <li>Attempting to manipulate, delete, or corrupt system records.</li>
+                <li>Using the system for any purpose unrelated to fleet management operations.</li>
+                <li>Exporting or sharing system data outside the organization without approval.</li>
+            </ul>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-exclamation-triangle"></i> 8. Violations</h2>
+            <p>
+                Violations of these terms may result in immediate account suspension, disciplinary
+                action, or legal consequences depending on the severity of the breach.
+            </p>
+        </div>
+
+        <div class="tc-section">
+            <h2><i class="fas fa-envelope"></i> 9. Contact</h2>
+            <p>
+                If you have questions about these terms or need to report an issue, contact your
+                system administrator or the IT department.
+            </p>
+        </div>
+
+        <div class="tc-footer-note">
+            RouteX Fleet Management System &nbsp;·&nbsp; These terms apply to all users of the system.
+        </div>
+
+    </div>
+
+</body>
+</html>

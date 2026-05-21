@@ -234,21 +234,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
                 <label for="status">Status *</label>
                 <select id="status" name="Status" required>
                     <option value="">Select Status</option>
-                    @if (Model?.Status == "Active")
-                    {
-                        <option value="Active" selected>Active</option>
-                    }
-                    else
-                    {
-                        <option value="Active">Active</option>
-                    }
-                    @if (Model?.Status == "Inactive")
-                    {
-                        <option value="Inactive" selected>Inactive</option>
-                    }
-                    else
-                    {
-                        <option value="Inactive">Inactive</option>
+                    @{
+                        var statuses = new[] { "Active", "Inactive", "Archived" };
+                        foreach (var s in statuses)
+                        {
+                            <option value="@s" selected="@(Model?.Status == s ? "selected" : null)">@s</option>
+                        }
                     }
                 </select>
                 <span class="validation-message">Please select status</span>

@@ -42,6 +42,18 @@ namespace RouteX.Models
     {
         // Additional properties specific to user creation
         public bool IsEditMode { get; set; } = false;
+
+        // Override password for creation — required, min 8 chars, must have uppercase + special char
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
+        [RegularExpression(
+            @"^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$",
+            ErrorMessage = "Password must contain at least one uppercase letter and one special character")]
+        public new string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please confirm your password")]
+        [Compare("Password", ErrorMessage = "Passwords do not match")]
+        public new string ConfirmPassword { get; set; } = string.Empty;
     }
 
     public class EditUserViewModel : UserViewModel

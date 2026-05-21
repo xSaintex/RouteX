@@ -12,10 +12,11 @@ using System;
 using System.Reflection;
 
 [assembly: Microsoft.AspNetCore.Identity.UI.UIFrameworkAttribute("Bootstrap5")]
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("37b56cdf-fd3c-4e29-ad10-f97527fb7f87")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("RouteX")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+421a5b445c3d4099b054ab81280850a78d7d9951")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f49263baca0bf2f1caaac9c18981c89d10f63519")]
 [assembly: System.Reflection.AssemblyProductAttribute("RouteX")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RouteX")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -35,6 +35,12 @@ namespace RouteX.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [EnableRateLimiting("login")]

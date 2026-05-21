@@ -13,7 +13,7 @@ using RouteX.ViewModels;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,Admin,Administrator,OperationsStaff")]
     public class VehiclesController : Controller
     {
         private readonly ApplicationDbContext _context;

@@ -7,7 +7,7 @@ using RouteX.Services;
 
 namespace RouteX.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,Admin,Administrator,Finance")]
     public class ReportsController : Controller
     {
         private readonly IAuditService _auditService;

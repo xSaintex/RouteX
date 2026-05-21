@@ -505,6 +505,13 @@ namespace RouteX.Controllers
             return View();
         }
 
+        [AllowAnonymous]
+        public IActionResult TermsAndConditions()
+        {
+            ViewData["Title"] = "Terms & Conditions";
+            return View();
+        }
+
         private List<ActiveVehicleData> GetMostActiveVehiclesForBranch(bool isSuperAdmin, int? branchId)
         {
             var mileageByVehicleId = _context.RouteTrips
