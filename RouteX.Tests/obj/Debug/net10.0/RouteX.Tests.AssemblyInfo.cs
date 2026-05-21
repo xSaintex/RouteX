@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RouteX.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f49263baca0bf2f1caaac9c18981c89d10f63519")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3afe78baf0e3b212672d7e66f5c83204e2542afb")]
 [assembly: System.Reflection.AssemblyProductAttribute("RouteX.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RouteX.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

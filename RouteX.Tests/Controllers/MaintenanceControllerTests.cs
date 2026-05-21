@@ -16,6 +16,7 @@ namespace RouteX.Tests.Controllers
     {
         private readonly Mock<IAuditService> _auditMock = new();
         private readonly Mock<ITextFormattingService> _textFormattingMock = new();
+        private readonly Mock<ILogger<MaintenanceController>> _loggerMock = new();
 
         private MaintenanceController CreateController(string dbName)
         {
@@ -25,7 +26,7 @@ namespace RouteX.Tests.Controllers
             _textFormattingMock.Setup(s => s.FormatName(It.IsAny<string>())).Returns<string>(s => s);
             _textFormattingMock.Setup(s => s.CapitalizeFirstLetter(It.IsAny<string>())).Returns<string>(s => s);
 
-            return new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object);
+            return new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object, _loggerMock.Object);
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ namespace RouteX.Tests.Controllers
             );
             await context.SaveChangesAsync();
 
-            var controller = new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object);
+            var controller = new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object, _loggerMock.Object);
             controller.ControllerContext = MockHttpContext.Create(MockHttpContext.SuperAdminSession());
 
             // Act
@@ -216,7 +217,7 @@ namespace RouteX.Tests.Controllers
             });
             await context.SaveChangesAsync();
 
-            var controller = new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object);
+            var controller = new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object, _loggerMock.Object);
             MockHttpContext.Setup(controller, MockHttpContext.SuperAdminSession());
 
             // Act
@@ -261,7 +262,7 @@ namespace RouteX.Tests.Controllers
             });
             await context.SaveChangesAsync();
 
-            var controller = new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object);
+            var controller = new MaintenanceController(context, _auditMock.Object, _textFormattingMock.Object, _loggerMock.Object);
             MockHttpContext.Setup(controller, MockHttpContext.SuperAdminSession());
 
             // Act

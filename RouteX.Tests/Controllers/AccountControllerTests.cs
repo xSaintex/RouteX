@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.DataProtection;
 using Moq;
 using RouteX.Controllers;
 using RouteX.Models;
@@ -18,12 +19,19 @@ namespace RouteX.Tests.Controllers
         private readonly Mock<IAuditService> _auditMock = new();
         private readonly Mock<UserManager<IdentityUser>> _userManagerMock;
         private readonly Mock<SignInManager<IdentityUser>> _signInManagerMock;
+        private readonly Mock<IDataProtectionProvider> _dataProtectionProviderMock = new();
+        private readonly Mock<IDataProtector> _dataProtectorMock = new();
+        private readonly Mock<IEmailService> _emailServiceMock = new();
 
         public AccountControllerTests()
         {
             var userStoreMock = new Mock<IUserStore<IdentityUser>>();
             _userManagerMock = new Mock<UserManager<IdentityUser>>(
                 userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+            _userManagerMock
+                .Setup(u => u.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((string email) => new IdentityUser { Email = email });
 
             var contextAccessorMock = new Mock<IHttpContextAccessor>();
             var claimsFactoryMock = new Mock<IUserClaimsPrincipalFactory<IdentityUser>>();
@@ -32,12 +40,22 @@ namespace RouteX.Tests.Controllers
                 contextAccessorMock.Object,
                 claimsFactoryMock.Object,
                 null!, null!, null!, null!);
+
+            _dataProtectionProviderMock
+                .Setup(p => p.CreateProtector(It.IsAny<string>()))
+                .Returns(_dataProtectorMock.Object);
         }
 
         private AccountController CreateController(string dbName)
         {
             var context = TestDbContextFactory.Create(dbName);
-            return new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            return new AccountController(
+                context, 
+                _signInManagerMock.Object, 
+                _userManagerMock.Object, 
+                _auditMock.Object, 
+                _dataProtectionProviderMock.Object, 
+                _emailServiceMock.Object);
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -135,7 +153,7 @@ namespace RouteX.Tests.Controllers
             });
             await context.SaveChangesAsync();
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = MockHttpContext.Create(new Dictionary<string, string>());
 
             var model = new User { Email = "inactive@routex.com", Password = "Password1!" };
@@ -168,7 +186,7 @@ namespace RouteX.Tests.Controllers
             });
             await context.SaveChangesAsync();
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = MockHttpContext.Create(new Dictionary<string, string>());
 
             var model = new User { Email = "archived@routex.com", Password = "Password1!" };
@@ -190,10 +208,10 @@ namespace RouteX.Tests.Controllers
             var context = TestDbContextFactory.Create(nameof(Login_Post_FailedSignIn_LogsFailedAttempt));
 
             _signInManagerMock
-                .Setup(s => s.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), false, true))
+                .Setup(s => s.CheckPasswordSignInAsync(It.IsAny<IdentityUser>(), It.IsAny<string>(), true))
                 .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Failed);
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = MockHttpContext.Create(new Dictionary<string, string>());
 
             var model = new User { Email = "wrong@routex.com", Password = "WrongPassword1!" };
@@ -220,10 +238,10 @@ namespace RouteX.Tests.Controllers
             var context = TestDbContextFactory.Create(nameof(Login_Post_LockedOutAccount_ShowsLockoutMessage));
 
             _signInManagerMock
-                .Setup(s => s.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), false, true))
+                .Setup(s => s.CheckPasswordSignInAsync(It.IsAny<IdentityUser>(), It.IsAny<string>(), true))
                 .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.LockedOut);
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = MockHttpContext.Create(new Dictionary<string, string>());
 
             var model = new User { Email = "locked@routex.com", Password = "Password1!" };
@@ -262,7 +280,7 @@ namespace RouteX.Tests.Controllers
             await context.SaveChangesAsync();
 
             _signInManagerMock
-                .Setup(s => s.PasswordSignInAsync("admin@routex.com", It.IsAny<string>(), false, true))
+                .Setup(s => s.CheckPasswordSignInAsync(It.IsAny<IdentityUser>(), It.IsAny<string>(), true))
                 .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
 
             _userManagerMock
@@ -274,7 +292,7 @@ namespace RouteX.Tests.Controllers
             var httpContextMock = new Mock<HttpContext>();
             httpContextMock.Setup(c => c.Session).Returns(sessionMock.Object);
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = new ControllerContext { HttpContext = httpContextMock.Object };
 
             var model = new User { Email = "admin@routex.com", Password = "Password1!" };
@@ -308,7 +326,7 @@ namespace RouteX.Tests.Controllers
             await context.SaveChangesAsync();
 
             _signInManagerMock
-                .Setup(s => s.PasswordSignInAsync("finance@routex.com", It.IsAny<string>(), false, true))
+                .Setup(s => s.CheckPasswordSignInAsync(It.IsAny<IdentityUser>(), It.IsAny<string>(), true))
                 .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
 
             _userManagerMock
@@ -320,7 +338,7 @@ namespace RouteX.Tests.Controllers
             var httpContextMock = new Mock<HttpContext>();
             httpContextMock.Setup(c => c.Session).Returns(sessionMock.Object);
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = new ControllerContext { HttpContext = httpContextMock.Object };
 
             var model = new User { Email = "finance@routex.com", Password = "Password1!" };
@@ -354,7 +372,7 @@ namespace RouteX.Tests.Controllers
             await context.SaveChangesAsync();
 
             _signInManagerMock
-                .Setup(s => s.PasswordSignInAsync("ops@routex.com", It.IsAny<string>(), false, true))
+                .Setup(s => s.CheckPasswordSignInAsync(It.IsAny<IdentityUser>(), It.IsAny<string>(), true))
                 .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
 
             _userManagerMock
@@ -366,7 +384,7 @@ namespace RouteX.Tests.Controllers
             var httpContextMock = new Mock<HttpContext>();
             httpContextMock.Setup(c => c.Session).Returns(sessionMock.Object);
 
-            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object);
+            var controller = new AccountController(context, _signInManagerMock.Object, _userManagerMock.Object, _auditMock.Object, _dataProtectionProviderMock.Object, _emailServiceMock.Object);
             controller.ControllerContext = new ControllerContext { HttpContext = httpContextMock.Object };
 
             var model = new User { Email = "ops@routex.com", Password = "Password1!" };

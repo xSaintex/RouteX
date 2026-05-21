@@ -77,6 +77,7 @@ builder.Services.AddRazorPages();
 
 // Add Audit Service
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IEmailService, GmailSmtpEmailService>();
 
 // Add Fuel Price Service
 builder.Services.AddScoped<IFuelPriceService, FuelPriceService>();

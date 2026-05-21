@@ -35,9 +35,20 @@ namespace RouteX.Controllers
             _logger = logger;
         }
 
+        private bool IsSuperAdmin()
+        {
+            var userRole = HttpContext.Session.GetString("UserRole") ?? string.Empty;
+            return userRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+        }
+
         // GET: Users
         public async Task<IActionResult> UsersPage()
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             var users = await _context.Users
                 .AsNoTracking()
                 .Where(u => u.Status != UserStatus.Archived.ToString())
@@ -136,6 +147,11 @@ namespace RouteX.Controllers
         // GET: Users/AddUser
         public async Task<IActionResult> AddUser()
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             ViewData["Title"] = "Add User";
 
             // Get active roles from RolesController sample data
@@ -163,6 +179,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddUser(CreateUserViewModel viewModel)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.ActiveRoles = GetActiveRoles();
@@ -258,6 +279,11 @@ namespace RouteX.Controllers
         // GET: Users/EditUser/5
         public async Task<IActionResult> EditUser(int id)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -293,6 +319,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditUser(EditUserViewModel viewModel)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             // Allow empty passwords during edit — remove validation errors for blank password fields
             if (string.IsNullOrWhiteSpace(viewModel.Password))
             {
@@ -388,6 +419,11 @@ namespace RouteX.Controllers
         // GET: Users/ViewUser/5
         public async Task<IActionResult> ViewUser(int id)
         {
+            if (!IsSuperAdmin())
+            {
+                return Forbid();
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -408,6 +444,11 @@ namespace RouteX.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveUser(int id)
         {
+            if (!IsSuperAdmin())
+            {
+                return Json(new { success = false, message = "You do not have permission to archive users." });
+            }
+
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = "Invalid request." });
