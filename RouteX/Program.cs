@@ -6,8 +6,18 @@ using RouteX.Services;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ================== SERVICES ==================
+
+// Persist data protection keys to disk so antiforgery tokens and auth cookies
+// survive app pool recycles on shared hosting (MonsterASP)
+var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysFolder))
+    .SetApplicationName("RouteX");
 
 // ================== SERVICES ==================
 
@@ -145,9 +155,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Role-based redirect: intercept 403 responses and redirect authenticated users to their dashboard
+// Must be after UseAuthorization and scoped only to 403 to avoid interfering with error handling
 app.UseStatusCodePages(async context =>
 {
-    if (context.HttpContext.Response.StatusCode == 403)
+    var response = context.HttpContext.Response;
+    if (response.StatusCode == 403 && !response.HasStarted)
     {
         var role = context.HttpContext.Session.GetString("UserRole");
         string? dashboard = role switch
@@ -159,10 +171,10 @@ app.UseStatusCodePages(async context =>
             "OperationsStaff" => "/Home/OpStaffDashboard",
             _                 => "/Home/Index"
         };
-        if (dashboard is not null &&
-            context.HttpContext.Request.Path != dashboard)
+        var requestPath = context.HttpContext.Request.Path.Value ?? string.Empty;
+        if (dashboard is not null && !requestPath.Equals(dashboard, StringComparison.OrdinalIgnoreCase))
         {
-            context.HttpContext.Response.Redirect(dashboard);
+            response.Redirect(dashboard);
         }
     }
 });
